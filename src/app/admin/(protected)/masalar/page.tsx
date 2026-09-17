@@ -7,6 +7,7 @@ import {
   deleteTableAction,
 } from "@/lib/actions";
 import { getBaseUrl } from "@/lib/baseUrl";
+import { byNaturalName } from "@/lib/money";
 import { verifyManagerSession } from "@/lib/dal";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function MasalarPage() {
     orderBy: { name: "asc" },
     include: { _count: { select: { orders: true } } },
   });
+  tables.sort(byNaturalName);
   const baseUrl = await getBaseUrl();
 
   const tablesWithQr = await Promise.all(

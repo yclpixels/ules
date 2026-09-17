@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getOrderBill } from "@/lib/orders";
-import { formatTL } from "@/lib/money";
+import { byNaturalName, formatTL } from "@/lib/money";
 import { verifyAdminSession } from "@/lib/dal";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +20,7 @@ export default async function KasaPage() {
       },
     },
   });
+  tables.sort(byNaturalName);
 
   const rows = await Promise.all(
     tables.map(async (table) => {

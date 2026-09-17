@@ -27,6 +27,7 @@ model Branch {
   products   Product[]
   staff      StaffUser[]
   feedbacks  Feedback[]
+  dayCloses  DayClose[]
 }
 
 /// Ödeme sonrası müşteri değerlendirmesi (1–5 yıldız, 4 kriter + yorum).
@@ -177,4 +178,23 @@ model StaffUser {
 
   branchId String
   branch   Branch @relation(fields: [branchId], references: [id])
+}
+
+/// Gün sonu kasa kapanışı: sistemin beklediği nakit ile sayılan nakit karşılaştırılıp kaydedilir.
+model DayClose {
+  id                String   @id @default(cuid())
+  date              String   // "YYYY-MM-DD" (Europe/Istanbul günü)
+  expectedCashCents Int      // sistemdeki nakit tahsilat (bahşiş dahil, iptaller hariç)
+  countedCashCents  Int      // personelin saydığı nakit
+  cardCents         Int      // POS ile alınan kart (bilgi amaçlı)
+  onlineCents       Int      // QR/iyzico ile alınan kart
+  tipCents          Int
+  note              String?
+  closedBy          String
+  createdAt         DateTime @default(now())
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  @@unique([branchId, date])
 }

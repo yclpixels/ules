@@ -11,3 +11,9 @@ export function parseTLInputToCents(value: string): number {
   if (Number.isNaN(amount) || amount <= 0) return 0;
   return Math.round(amount * 100);
 }
+
+/** "Masa 2" < "Masa 10" olacak şekilde doğal (sayı duyarlı) Türkçe sıralama. */
+const naturalCollator = new Intl.Collator("tr", { numeric: true, sensitivity: "base" });
+export function byNaturalName<T extends { name: string }>(a: T, b: T): number {
+  return naturalCollator.compare(a.name, b.name);
+}

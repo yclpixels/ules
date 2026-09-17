@@ -50,6 +50,10 @@ edildi).
 - `/admin/hesabim` — Kendi şifreni değiştirme (her iki rol de)
 - `/admin/degerlendirmeler` — Müşteri puanları (yemek/servis/ortam/fiyat, 30 günlük ortalama, düşük puanlar kırmızı) (**sadece müdür**)
 - `/admin/ayarlar` — Google yorum linki ve bahşiş yüzdeleri (**sadece müdür**)
+- `/admin/gun-sonu` — Z raporu: sistemdeki nakit / POS kart / QR kart / bahşiş; sayılan nakit girilir,
+  eksik-fazla hesaplanır ve kayıt altına alınır (`DayClose`) (**sadece müdür**)
+- `/admin/performans` — Personel bazlı: eklediği kalem, satış, aldığı ödeme, bahşiş, sildiği kalem;
+  tarih aralığı seçilebilir (**sadece müdür**)
 - `/masa/[qrToken]` — Müşteri ekranı (QR ile açılır): **Menü** sekmesinden kendi siparişini
   verebilir, **Hesap** sekmesinden güncel hesabı görüp eşit böl / tutar gir ile öder
 - `/fis/[orderId]` — Herkese açık, yazdırılabilir fiş sayfası + e-posta ile gönderme
@@ -144,7 +148,12 @@ edilmesi (Alpine Linux base image, `npm ci` adımı vb.) — ilk `docker build`'
 
 ### Adımlar
 
-1. **Yerel Postgres ile deneyin (opsiyonel ama önerilir).** Docker kurulduysa:
+1. **Postgres'e geçiş — DİKKAT:** `prisma/migrations` klasörü SQLite için üretildi
+   (`migration_lock.toml` = sqlite) ve SQL'i Postgres'te çalışmaz. Geçişte:
+   `provider = "postgresql"` yap, `prisma/migrations` klasörünü sil, `DATABASE_URL`'i Postgres'e
+   çevir, `npx prisma migrate dev --name init` ile sıfırdan tek migration üret, sonra `npm run db:seed`.
+   Eski SQLite verisi taşınmaz (pilot verisi için sorun değil; gerekiyorsa export/import yazılır).
+2. **Yerel Postgres ile deneyin (opsiyonel ama önerilir).** Docker kurulduysa:
    `docker compose up -d`, sonra `prisma/schema.prisma`'da `provider = "sqlite"` →
    `provider = "postgresql"`, `.env`'de `DATABASE_URL="postgresql://masaqr:masaqr@localhost:5432/masaqr"`,
    `npx prisma migrate dev`. Gerçek sağlayıcıya geçmeden önce şemanın sorunsuz çalıştığını
@@ -171,7 +180,8 @@ edilmesi (Alpine Linux base image, `npm ci` adımı vb.) — ilk `docker build`'
    fatura değil)
 5. Şube yönetimi için UI (şu an yeni şube açmak `npm run db:seed`'i farklı env değerleriyle
    çalıştırmayı gerektiriyor — bkz. yukarı)
-6. Login'de brute-force/rate limiting koruması yok
+6. Hız sınırlayıcı bellek içi (`src/lib/rateLimit.ts`); birden fazla sunucu instance'ına
+   çıkınca Redis/Upstash ile değiştirilmeli
 7. Müşteri kendi sipariş verirken not giremiyor (sadece garson ekranından not girilebiliyor)
-8. Ürün resmi/açıklaması (`imageUrl`, `description` alanları veritabanında var ama hiçbir
-   ekranda kullanılmıyor)
+8. Ürün görseli dosya yükleme ile değil, sadece harici link (https) ile ekleniyor — hosting
+   bağımsız kalsın diye. Görsel yükleme istenirse S3/R2 gibi bir depo eklenmeli.

@@ -344,3 +344,41 @@ export async function updateBranchSettingsAction(formData: FormData) {
   });
   revalidatePath("/admin/ayarlar");
 }
+
+/** Gün sonu kasa kapanışı (sadece müdür): sayılan nakit kaydedilir, fark hesaplanır. */
+export async function closeDayAction(formData: FormData) {
+  const session = await verifyManagerSession();
+  const date = String(formData.get("date") || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  const countedCents = parseTLInputToCents(String(formData.get("countedCash") || "0"));
+  const note = String(formData.get("note") || "").trim().slice(0, 300) || null;
+
+  const { getDayData } = await import("@/lib/reports");
+  const day = await getDayData(session.branchId, date);
+  if (!day) return;
+
+  await prisma.dayClose.upsert({
+    where: { branchId_date: { branchId: session.branchId, date } },
+    create: {
+      branchId: session.branchId,
+      date,
+      expectedCashCents: day.cashCents,
+      countedCashCents: countedCents,
+      cardCents: day.posCardCents,
+      onlineCents: day.onlineCents,
+      tipCents: day.tipCents,
+      note,
+      closedBy: session.name,
+    },
+    update: {
+      expectedCashCents: day.cashCents,
+      countedCashCents: countedCents,
+      cardCents: day.posCardCents,
+      onlineCents: day.onlineCents,
+      tipCents: day.tipCents,
+      note,
+      closedBy: session.name,
+    },
+  });
+  revalidatePath("/admin/gun-sonu");
+}

@@ -18,7 +18,7 @@ export default async function AdminLayout({
             Masa QR Yönetim
             <span className="text-gray-400 font-normal"> · {session.branchName}</span>
           </span>
-          <nav className="flex gap-4 text-sm flex-1">
+          <nav className="flex gap-x-4 gap-y-1 text-sm flex-1 flex-wrap">
             <Link href="/admin" className="text-gray-600 hover:text-black">
               Kasa
             </Link>
@@ -47,6 +47,18 @@ export default async function AdminLayout({
                   className="text-gray-600 hover:text-black"
                 >
                   Personel
+                </Link>
+                <Link
+                  href="/admin/gun-sonu"
+                  className="text-gray-600 hover:text-black"
+                >
+                  Gün Sonu
+                </Link>
+                <Link
+                  href="/admin/performans"
+                  className="text-gray-600 hover:text-black"
+                >
+                  Performans
                 </Link>
                 <Link
                   href="/admin/degerlendirmeler"
