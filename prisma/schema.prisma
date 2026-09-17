@@ -1,0 +1,179 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String   // "Kadıköy Şubesi" vb.
+  createdAt DateTime @default(now())
+
+  // Ödeme sonrası müşteriyi yönlendireceğimiz Google yorum linki
+  // (Google Business Profile → "Yorum isteyin" → g.page/r/... linki). Boşsa adım atlanır.
+  googleReviewUrl String?
+  // Ödeme ekranında sunulan bahşiş yüzdeleri, virgülle: "5,10,15". Boşsa bahşiş adımı gizlenir.
+  tipPresets      String  @default("5,10,15")
+
+  tables     Table[]
+  categories Category[]
+  products   Product[]
+  staff      StaffUser[]
+  feedbacks  Feedback[]
+}
+
+/// Ödeme sonrası müşteri değerlendirmesi (1–5 yıldız, 4 kriter + yorum).
+model Feedback {
+  id            String   @id @default(cuid())
+  foodRating    Int
+  serviceRating Int
+  ambianceRating Int
+  valueRating   Int
+  comment       String?
+  createdAt     DateTime @default(now())
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+}
+
+model Table {
+  id        String   @id @default(cuid())
+  name      String   // "Masa 1", "Bahçe 3" vb.
+  qrToken   String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  orders Order[]
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  sortOrder Int      @default(0)
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  products Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  priceCents  Int      // kuruş cinsinden fiyat (yuvarlama hatalarını önlemek için)
+  isAvailable Boolean  @default(true)
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  orderItems OrderItem[]
+}
+
+enum OrderStatus {
+  OPEN
+  CLOSED
+  CANCELLED // personel tarafından iptal/ikram edildi; ciroya girmez
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  status    OrderStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+  closedAt  DateTime?
+  closedBy  String?     // hesabı elle kapatan/iptal eden personel (ödemeyle otomatik kapandıysa boş)
+
+  // Masa başına aynı anda tek açık hesap garantisi: sipariş OPEN iken tableId
+  // ile doldurulur, kapanınca null yapılır (unique kısıtı null'ları saymaz).
+  openTableKey String? @unique
+
+  tableId String
+  table   Table  @relation(fields: [tableId], references: [id])
+
+  items    OrderItem[]
+  payments Payment[]
+  feedbacks Feedback[]
+}
+
+model OrderItem {
+  id             String    @id @default(cuid())
+  quantity       Int       @default(1)
+  unitPriceCents Int       // eklendiği andaki fiyat (ürün fiyatı sonradan değişse bile hesap sabit kalır)
+  note           String?
+  createdAt      DateTime  @default(now())
+  addedBy        String?   // ekleyen personelin adı; müşteri kendi eklediyse boş
+
+  removedAt DateTime? // silinen ürünler hesaptan düşer ama kayıt (audit) için saklanır
+  removedBy String?
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  VOIDED // yanlış girilen nakit/POS ödemesi müdür tarafından iptal edildi
+}
+
+enum PaymentMethod {
+  CARD
+  CASH
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  amountCents Int           // tahsil edilen toplam (hesap payı + bahşiş)
+  tipCents    Int           @default(0) // amountCents içindeki bahşiş kısmı; hesaptan düşülmez, personele gider
+  payerName   String?
+  method      PaymentMethod @default(CARD)
+  status      PaymentStatus @default(PENDING)
+  providerRef String?       // ödeme sağlayıcısının işlem/token referansı (ör. iyzico checkout token)
+  recordedBy  String?       // nakit ödemeyi kaydeden personelin adı (hesap verebilirlik için)
+  createdAt   DateTime      @default(now())
+  paidAt      DateTime?
+  voidedAt    DateTime?
+  voidedBy    String?
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+}
+
+enum StaffRole {
+  MANAGER
+  WAITER
+}
+
+model StaffUser {
+  id           String    @id @default(cuid())
+  name         String
+  username     String    @unique
+  passwordHash String
+  role         StaffRole @default(WAITER)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+}

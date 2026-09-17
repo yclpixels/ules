@@ -1,0 +1,25 @@
+# Yerel geliştirmede gerçek bir Postgres'e karşı test etmek için:
+#   docker compose up -d
+#   .env → DATABASE_URL="postgresql://masaqr:masaqr@localhost:5432/masaqr"
+#   prisma/schema.prisma → provider = "postgresql"
+#   npx prisma migrate dev
+#
+# Uygulamanın kendisi burada YOK — `npm run dev` ile host'ta çalışmaya devam
+# edin, hızlı yeniden yükleme (hot reload) için. Üretimde Dockerfile'daki
+# image'ı kullanın; veritabanınız için ise gerçek bir sağlayıcı (Neon,
+# Supabase, Railway, kendi sunucunuz) kullanın — burası sadece yerel test için.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: masaqr
+      POSTGRES_PASSWORD: masaqr
+      POSTGRES_DB: masaqr
+    ports:
+      - "5432:5432"
+    volumes:
+      - masaqr-db-data:/var/lib/postgresql/data
+
+volumes:
+  masaqr-db-data:
