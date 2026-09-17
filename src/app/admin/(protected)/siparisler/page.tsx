@@ -20,14 +20,13 @@ export default async function SiparislerPage({
   const session = await verifyManagerSession();
 
   const { date: dateParam } = await searchParams;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Sunucu UTC'de çalışsa bile "gün" Türkiye saatine göre hesaplanır.
+  const today = startOfDayInIstanbul(new Date())!;
 
   let selectedDate = today;
-  if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
-    const [y, m, d] = dateParam.split("-").map(Number);
-    const parsed = new Date(y, m - 1, d);
-    if (!Number.isNaN(parsed.getTime())) selectedDate = parsed;
+  if (dateParam) {
+    const parsed = startOfDayInIstanbul(dateParam);
+    if (parsed) selectedDate = parsed;
   }
   const nextDate = addDays(selectedDate, 1);
 

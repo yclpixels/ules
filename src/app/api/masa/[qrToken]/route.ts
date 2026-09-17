@@ -2,6 +2,24 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOpenOrder, getOrderBill } from "@/lib/orders";
 
+function toMenuProduct(p: {
+  id: string;
+  name: string;
+  priceCents: number;
+  description: string | null;
+  allergens: string | null;
+  imageUrl: string | null;
+}) {
+  return {
+    id: p.id,
+    name: p.name,
+    priceCents: p.priceCents,
+    description: p.description,
+    allergens: p.allergens,
+    imageUrl: p.imageUrl,
+  };
+}
+
 async function getMenu(branchId: string) {
   const categories = await prisma.category.findMany({
     where: { branchId },
@@ -24,22 +42,14 @@ async function getMenu(branchId: string) {
     .map((c) => ({
       id: c.id,
       name: c.name,
-      products: c.products.map((p) => ({
-        id: p.id,
-        name: p.name,
-        priceCents: p.priceCents,
-      })),
+      products: c.products.map(toMenuProduct),
     }));
 
   if (uncategorized.length > 0) {
     groups.push({
       id: "uncategorized",
       name: "Diğer",
-      products: uncategorized.map((p) => ({
-        id: p.id,
-        name: p.name,
-        priceCents: p.priceCents,
-      })),
+      products: uncategorized.map(toMenuProduct),
     });
   }
 

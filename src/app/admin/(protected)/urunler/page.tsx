@@ -62,6 +62,13 @@ export default async function UrunlerPage() {
                       defaultValue={c.name}
                       className="flex-1 border rounded-lg px-2 py-1 text-sm"
                     />
+                    <input
+                      name="sortOrder"
+                      type="number"
+                      defaultValue={c.sortOrder}
+                      title="Sıra (küçük önce)"
+                      className="w-14 border rounded-lg px-2 py-1 text-sm"
+                    />
                     <button className="text-sm bg-black text-white rounded-lg px-2 py-1">
                       Kaydet
                     </button>
@@ -115,6 +122,33 @@ export default async function UrunlerPage() {
             ))}
           </select>
         </div>
+        <div className="w-full grid sm:grid-cols-3 gap-3">
+          <div>
+            <label className="text-sm text-gray-500">Açıklama (opsiyonel)</label>
+            <input
+              name="description"
+              placeholder="Ör. Közlenmiş biber ve domatesle"
+              className="w-full mt-1 border rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-gray-500">Alerjenler (opsiyonel)</label>
+            <input
+              name="allergens"
+              placeholder="Ör. gluten, süt"
+              className="w-full mt-1 border rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-gray-500">Görsel linki (opsiyonel)</label>
+            <input
+              name="imageUrl"
+              type="url"
+              placeholder="https://.../ayran.jpg"
+              className="w-full mt-1 border rounded-lg px-3 py-2"
+            />
+          </div>
+        </div>
         <button className="bg-black text-white rounded-lg px-4 py-2 font-medium">
           Ürün Ekle
         </button>
@@ -123,19 +157,35 @@ export default async function UrunlerPage() {
       <div className="bg-white border rounded-xl divide-y">
         {products.map((p) => (
           <div key={p.id} className="px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p
-                  className={`font-medium ${
-                    !p.isAvailable ? "line-through text-gray-400" : ""
-                  }`}
-                >
-                  {p.name}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {p.category?.name || "Kategorisiz"} —{" "}
-                  {formatTL(p.priceCents)}
-                </p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                {p.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.imageUrl}
+                    alt=""
+                    className="w-12 h-12 rounded-lg object-cover border shrink-0"
+                  />
+                )}
+                <div className="min-w-0">
+                  <p
+                    className={`font-medium ${
+                      !p.isAvailable ? "line-through text-gray-400" : ""
+                    }`}
+                  >
+                    {p.name}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {p.category?.name || "Kategorisiz"} —{" "}
+                    {formatTL(p.priceCents)}
+                  </p>
+                  {p.description && (
+                    <p className="text-xs text-gray-400 truncate">{p.description}</p>
+                  )}
+                  {p.allergens && (
+                    <p className="text-xs text-amber-600">Alerjen: {p.allergens}</p>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <details className="relative">
@@ -167,6 +217,25 @@ export default async function UrunlerPage() {
                           </option>
                         ))}
                       </select>
+                      <input
+                        name="description"
+                        defaultValue={p.description ?? ""}
+                        placeholder="Açıklama"
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                      />
+                      <input
+                        name="allergens"
+                        defaultValue={p.allergens ?? ""}
+                        placeholder="Alerjenler"
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                      />
+                      <input
+                        name="imageUrl"
+                        type="url"
+                        defaultValue={p.imageUrl ?? ""}
+                        placeholder="Görsel linki (https)"
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                      />
                       <button className="w-full bg-black text-white rounded-lg px-2 py-1 text-sm">
                         Kaydet
                       </button>

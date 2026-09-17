@@ -75,7 +75,8 @@ model Product {
   description String?
   priceCents  Int      // kuruş cinsinden fiyat (yuvarlama hatalarını önlemek için)
   isAvailable Boolean  @default(true)
-  imageUrl    String?
+  imageUrl    String?  // https://... (harici görsel linki; dosya yükleme yok, hosting bağımsız kalsın diye)
+  allergens   String?  // "gluten, süt, fındık" gibi serbest metin
   createdAt   DateTime @default(now())
 
   branchId String

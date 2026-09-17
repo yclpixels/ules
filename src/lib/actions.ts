@@ -46,6 +46,25 @@ export async function deleteTableAction(formData: FormData) {
   revalidatePath("/admin/masalar");
 }
 
+/** Ürün formundaki opsiyonel alanlar: açıklama, alerjen, görsel linki (sadece http(s)). */
+function parseProductExtras(formData: FormData) {
+  const description =
+    String(formData.get("description") || "").trim().slice(0, 300) || null;
+  const allergens =
+    String(formData.get("allergens") || "").trim().slice(0, 120) || null;
+  const imageInput = String(formData.get("imageUrl") || "").trim();
+  let imageUrl: string | null = null;
+  if (imageInput) {
+    try {
+      const u = new URL(imageInput);
+      if (u.protocol === "https:" || u.protocol === "http:") imageUrl = u.toString();
+    } catch {
+      /* geçersiz link → boş */
+    }
+  }
+  return { description, allergens, imageUrl };
+}
+
 export async function addProductAction(formData: FormData) {
   const session = await verifyManagerSession();
   const name = String(formData.get("name") || "").trim();
@@ -53,6 +72,7 @@ export async function addProductAction(formData: FormData) {
   const categoryIdInput = String(formData.get("categoryId") || "") || null;
   const priceCents = parseTLInputToCents(priceInput);
   if (!name || priceCents <= 0) return;
+  const extras = parseProductExtras(formData);
 
   const category = categoryIdInput
     ? await prisma.category.findFirst({
@@ -66,6 +86,7 @@ export async function addProductAction(formData: FormData) {
       priceCents,
       categoryId: category?.id,
       branchId: session.branchId,
+      ...extras,
     },
   });
   revalidatePath("/admin/urunler");
@@ -91,6 +112,7 @@ export async function updateProductAction(formData: FormData) {
   const categoryIdInput = String(formData.get("categoryId") || "") || null;
   const priceCents = parseTLInputToCents(priceInput);
   if (!id || !name || priceCents <= 0) return;
+  const extras = parseProductExtras(formData);
 
   const category = categoryIdInput
     ? await prisma.category.findFirst({
@@ -100,7 +122,7 @@ export async function updateProductAction(formData: FormData) {
 
   await prisma.product.updateMany({
     where: { id, branchId: session.branchId },
-    data: { name, priceCents, categoryId: category?.id ?? null },
+    data: { name, priceCents, categoryId: category?.id ?? null, ...extras },
   });
   revalidatePath("/admin/urunler");
 }
@@ -134,10 +156,12 @@ export async function updateCategoryAction(formData: FormData) {
   const session = await verifyManagerSession();
   const id = String(formData.get("id") || "");
   const name = String(formData.get("name") || "").trim();
+  const sortOrderRaw = Number(formData.get("sortOrder"));
+  const sortOrder = Number.isInteger(sortOrderRaw) ? sortOrderRaw : undefined;
   if (!id || !name) return;
   await prisma.category.updateMany({
     where: { id, branchId: session.branchId },
-    data: { name },
+    data: { name, sortOrder },
   });
   revalidatePath("/admin/urunler");
 }

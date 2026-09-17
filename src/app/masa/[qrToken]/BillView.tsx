@@ -20,7 +20,14 @@ type BillPayment = {
   payerName: string | null;
 };
 
-type MenuProduct = { id: string; name: string; priceCents: number };
+type MenuProduct = {
+  id: string;
+  name: string;
+  priceCents: number;
+  description: string | null;
+  allergens: string | null;
+  imageUrl: string | null;
+};
 type MenuGroup = { id: string; name: string; products: MenuProduct[] };
 
 type Bill = {
@@ -259,13 +266,32 @@ export default function BillView({
                     {group.products.map((p) => (
                       <div
                         key={p.id}
-                        className="flex items-center justify-between px-4 py-3"
+                        className="flex items-center justify-between gap-3 px-4 py-3"
                       >
-                        <div>
-                          <p className="font-medium">{p.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {formatTL(p.priceCents)}
-                          </p>
+                        <div className="flex items-center gap-3 min-w-0">
+                          {p.imageUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={p.imageUrl}
+                              alt=""
+                              loading="lazy"
+                              className="w-14 h-14 rounded-lg object-cover border shrink-0"
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-medium">{p.name}</p>
+                            {p.description && (
+                              <p className="text-xs text-gray-500">{p.description}</p>
+                            )}
+                            {p.allergens && (
+                              <p className="text-xs text-amber-600">
+                                Alerjen: {p.allergens}
+                              </p>
+                            )}
+                            <p className="text-sm text-gray-700 mt-0.5">
+                              {formatTL(p.priceCents)}
+                            </p>
+                          </div>
                         </div>
                         <button
                           onClick={() => handleAddItem(p.id)}
