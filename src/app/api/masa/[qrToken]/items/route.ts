@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { getOrCreateOpenOrder } from "@/lib/orders";
 
 export async function POST(
@@ -7,6 +8,10 @@ export async function POST(
   { params }: { params: Promise<{ qrToken: string }> }
 ) {
   const { qrToken } = await params;
+  const rl = rateLimit(`masa:${clientIp(req)}`, { limit: 60, windowMs: 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json({ error: "Çok hızlı, biraz bekleyin" }, { status: 429 });
+  }
   const table = await prisma.table.findUnique({ where: { qrToken } });
   if (!table) {
     return NextResponse.json({ error: "Masa bulunamadı" }, { status: 404 });

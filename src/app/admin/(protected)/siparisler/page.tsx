@@ -2,23 +2,12 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatTL } from "@/lib/money";
 import { verifyManagerSession } from "@/lib/dal";
+import { addDays, startOfDayInIstanbul, toDateInputValue } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
-function toDateInputValue(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function addDays(d: Date, days: number) {
-  const copy = new Date(d);
-  copy.setDate(copy.getDate() + days);
-  return copy;
-}
-
 const timeFormatter = new Intl.DateTimeFormat("tr-TR", {
+  timeZone: "Europe/Istanbul",
   hour: "2-digit",
   minute: "2-digit",
 });

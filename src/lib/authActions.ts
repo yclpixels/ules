@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { createStaffSession, deleteAdminSession } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/passwords";
 import { verifyAdminSession, verifyManagerSession } from "@/lib/dal";
+import { rateLimit } from "@/lib/rateLimit";
+import { headers } from "next/headers";
 
 export type LoginState = { error?: string } | undefined;
 
@@ -20,6 +22,15 @@ export async function loginAction(
 
   if (!username || !password) {
     return { error: "Kullanıcı adı ve şifre gerekli" };
+  }
+
+  // Brute-force koruması: IP başına 15 dk'da 10, kullanıcı adı başına 15 dk'da 5 deneme
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const byIp = rateLimit(`login:ip:${ip}`, { limit: 10, windowMs: 15 * 60 * 1000 });
+  const byUser = rateLimit(`login:user:${username}`, { limit: 5, windowMs: 15 * 60 * 1000 });
+  if (!byIp.ok || !byUser.ok) {
+    return { error: "Çok fazla deneme. 15 dakika sonra tekrar deneyin." };
   }
 
   const staff = await prisma.staffUser.findUnique({

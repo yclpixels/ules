@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getReceiptData, renderReceiptHtml } from "@/lib/receipt";
 import { sendEmail } from "@/lib/email";
+import { clientIp, rateLimit } from "@/lib/rateLimit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -9,6 +10,18 @@ export async function POST(
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   const { orderId } = await params;
+
+  // Açık spam kapısı olmasın: IP başına saatte 10, sipariş başına 3 gönderim.
+  const ip = clientIp(req);
+  const perIp = rateLimit(`email:ip:${ip}`, { limit: 10, windowMs: 60 * 60 * 1000 });
+  const perOrder = rateLimit(`email:order:${orderId}`, { limit: 3, windowMs: 24 * 60 * 60 * 1000 });
+  if (!perIp.ok || !perOrder.ok) {
+    return NextResponse.json(
+      { error: "Çok fazla gönderim denemesi, daha sonra tekrar deneyin" },
+      { status: 429 }
+    );
+  }
+
   const body = await req.json().catch(() => null);
   const email = typeof body?.email === "string" ? body.email.trim() : "";
 

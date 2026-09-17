@@ -4,6 +4,7 @@ import { verifyManagerSession } from "@/lib/dal";
 export const dynamic = "force-dynamic";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("tr-TR", {
+  timeZone: "Europe/Istanbul",
   dateStyle: "short",
   timeStyle: "short",
 });

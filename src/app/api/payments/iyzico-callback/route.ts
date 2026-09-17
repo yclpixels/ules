@@ -35,7 +35,24 @@ export async function POST(req: Request) {
     return NextResponse.redirect(`${baseUrl}/admin`, { status: 303 });
   }
 
-  await resolvePendingPayment(paymentId, success);
+  // iyzico'nun döndürdüğü sonuç bizim PENDING kaydımızla eşleşmeli:
+  // token (providerRef) ve tutar (paidPrice) farklıysa ödemeyi başarılı sayma.
+  const pending = await prisma.payment.findUnique({ where: { id: paymentId } });
+  const paidPriceCents = Math.round(Number(result.paidPrice) * 100);
+  const tokenMatches = !pending?.providerRef || pending.providerRef === token;
+  const amountMatches =
+    !!pending && Number.isFinite(paidPriceCents) && paidPriceCents === pending.amountCents;
+  if (success && (!tokenMatches || !amountMatches)) {
+    console.error("[iyzico-callback] eşleşmeyen ödeme", {
+      paymentId,
+      tokenMatches,
+      paidPriceCents,
+      expected: pending?.amountCents,
+    });
+  }
+  const verified = success && tokenMatches && amountMatches;
+
+  await resolvePendingPayment(paymentId, verified);
 
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
@@ -44,7 +61,7 @@ export async function POST(req: Request) {
   const qrToken = payment?.order.table.qrToken;
 
   const redirectUrl = qrToken
-    ? `${baseUrl}/masa/${qrToken}?payment=${success ? "success" : "failed"}`
+    ? `${baseUrl}/masa/${qrToken}?payment=${verified ? "success" : "failed"}`
     : `${baseUrl}/admin`;
 
   return NextResponse.redirect(redirectUrl, { status: 303 });

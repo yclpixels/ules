@@ -37,6 +37,7 @@ export type ReceiptData = NonNullable<
 >;
 
 const dateTimeFormatter = new Intl.DateTimeFormat("tr-TR", {
+  timeZone: "Europe/Istanbul",
   dateStyle: "medium",
   timeStyle: "short",
 });

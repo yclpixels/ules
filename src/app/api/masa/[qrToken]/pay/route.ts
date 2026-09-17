@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { clientIp, rateLimit } from "@/lib/rateLimit";
 import {
   getOpenOrder,
   payTowardsOrderInstant,
@@ -14,6 +15,10 @@ export async function POST(
   { params }: { params: Promise<{ qrToken: string }> }
 ) {
   const { qrToken } = await params;
+  const rl = rateLimit(`masa:${clientIp(req)}`, { limit: 60, windowMs: 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json({ error: "Çok hızlı, biraz bekleyin" }, { status: 429 });
+  }
   const table = await prisma.table.findUnique({ where: { qrToken } });
   if (!table) {
     return NextResponse.json({ error: "Masa bulunamadı" }, { status: 404 });
@@ -51,6 +56,20 @@ export async function POST(
   }
 
   const provider = getPaymentProvider();
+
+  // Prod'da yanlışlıkla mock ile çıkılırsa müşteri hesabı bedava kapatır.
+  // Bilinçli demo için ALLOW_MOCK_PAYMENTS=true ile açılabilir.
+  if (
+    process.env.PAYMENT_PROVIDER !== "iyzico" &&
+    process.env.NODE_ENV === "production" &&
+    process.env.ALLOW_MOCK_PAYMENTS !== "true"
+  ) {
+    console.error("[pay] PAYMENT_PROVIDER=mock prod'da engellendi (ALLOW_MOCK_PAYMENTS yok)");
+    return NextResponse.json(
+      { error: "Kartla ödeme şu an kapalı, lütfen personele ödeyin" },
+      { status: 503 }
+    );
+  }
 
   try {
     if (process.env.PAYMENT_PROVIDER !== "iyzico") {

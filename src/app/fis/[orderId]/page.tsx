@@ -5,6 +5,7 @@ import { formatTL } from "@/lib/money";
 import EmailForm from "./EmailForm";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("tr-TR", {
+  timeZone: "Europe/Istanbul",
   dateStyle: "medium",
   timeStyle: "short",
 });
