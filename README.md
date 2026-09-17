@@ -158,16 +158,16 @@ edilmesi (Alpine Linux base image, `npm ci` adımı vb.) — ilk `docker build`'
    `provider = "postgresql"`, `.env`'de `DATABASE_URL="postgresql://masaqr:masaqr@localhost:5432/masaqr"`,
    `npx prisma migrate dev`. Gerçek sağlayıcıya geçmeden önce şemanın sorunsuz çalıştığını
    kendi makinenizde görmüş olursunuz.
-2. **Barındırma + veritabanı sağlayıcısı seçin ve hesap açın** (bunu ben yapamam — hesap
+3. **Barındırma + veritabanı sağlayıcısı seçin ve hesap açın** (bunu ben yapamam — hesap
    oluşturma ve ödeme içeriyor). Hızlı başlangıç için Vercel (uygulama) + Neon (Postgres, her
    ikisi de kredi kartsız ücretsiz katmana sahip) öneririm; VPS + Docker de eşit derecede
    geçerli, sadece bakım yükü size kalır.
-3. **Prod veritabanına migration'ı çalıştırın**: `DATABASE_URL=<gerçek bağlantı dizesi> npx prisma migrate deploy`
+4. **Prod veritabanına migration'ı çalıştırın**: `DATABASE_URL=<gerçek bağlantı dizesi> npx prisma migrate deploy`
    (kendi makinenizden, tam proje koduyla — bkz. `Dockerfile`'daki not).
-4. **Domain + SSL.** Vercel'de otomatik; VPS'te kendiniz kurarsınız (ör. Caddy/nginx + Let's Encrypt).
-5. **Ortam değişkenlerini prod'a taşıyın**: yeni bir `SESSION_SECRET` (`openssl rand -base64 32`),
+5. **Domain + SSL.** Vercel'de otomatik; VPS'te kendiniz kurarsınız (ör. Caddy/nginx + Let's Encrypt).
+6. **Ortam değişkenlerini prod'a taşıyın**: yeni bir `SESSION_SECRET` (`openssl rand -base64 32`),
    `PAYMENT_PROVIDER=iyzico` + gerçek anahtarlar, `SMTP_*`, varsa `POS_WEBHOOK_URL`.
-6. **`/gizlilik` sayfasını doldurun** — işletme unvanı/iletişim bilgisiyle, ideal olarak bir
+7. **`/gizlilik` sayfasını doldurun** — işletme unvanı/iletişim bilgisiyle, ideal olarak bir
    hukuk danışmanına kontrol ettirin.
 
 ## Sırada ne var
