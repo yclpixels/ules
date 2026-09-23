@@ -28,6 +28,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 
+# Ürün görsellerinin yazıldığı klasör. ÜRETİMDE BUNU VOLUME OLARAK BAĞLAYIN —
+# aksi halde container her yenilendiğinde yüklenen görseller kaybolur:
+#   docker run -v masaqr-uploads:/app/uploads ...
+ENV UPLOAD_DIR=/app/uploads
+RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+VOLUME ["/app/uploads"]
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

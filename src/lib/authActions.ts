@@ -7,6 +7,8 @@ import { createStaffSession, deleteAdminSession } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/passwords";
 import { verifyAdminSession, verifyManagerSession } from "@/lib/dal";
 import { rateLimit } from "@/lib/rateLimit";
+import { Prisma } from "@/generated/prisma/client";
+import { audit } from "@/lib/audit";
 import { headers } from "next/headers";
 
 export type LoginState = { error?: string } | undefined;
@@ -38,8 +40,25 @@ export async function loginAction(
     include: { branch: true },
   });
   if (!staff || !staff.isActive || !verifyPassword(password, staff.passwordHash)) {
+    // Yetkisiz erişim denemesini kaydet. Kullanıcı adı hiç yoksa hangi şubeye
+    // yazacağımızı bilemeyiz, o durumda kayıt atlanır (şube bazlı tablo).
+    if (staff) {
+      await audit({
+        branchId: staff.branchId,
+        action: "LOGIN_FAILED",
+        actorName: username,
+        detail: staff.isActive ? "Şifre yanlış" : "Pasif hesapla giriş denendi",
+      });
+    }
     return { error: "Kullanıcı adı veya şifre yanlış" };
   }
+
+  await audit({
+    branchId: staff.branchId,
+    action: "LOGIN_SUCCESS",
+    actorName: staff.name,
+    actorId: staff.id,
+  });
 
   await createStaffSession({
     staffId: staff.id,
@@ -72,14 +91,34 @@ export async function addStaffAction(formData: FormData) {
     return;
   }
 
-  await prisma.staffUser.create({
-    data: {
-      name,
-      username,
-      passwordHash: hashPassword(password),
-      role,
-      branchId: session.branchId,
-    },
+  // Kullanıcı adı tüm şubelerde tekil; çakışırsa Prisma P2002 fırlatır ve
+  // müdür beyaz hata sayfası görürdü — yakalayıp forma geri dönüyoruz.
+  try {
+    await prisma.staffUser.create({
+      data: {
+        name,
+        username,
+        passwordHash: hashPassword(password),
+        role,
+        branchId: session.branchId,
+      },
+    });
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      redirect("/admin/personel?hata=kullanici-mevcut");
+    }
+    throw err;
+  }
+
+  await audit({
+    branchId: session.branchId,
+    action: "STAFF_ADDED",
+    actorName: session.name,
+    actorId: session.staffId,
+    detail: `${name} (${username}), rol: ${role === "MANAGER" ? "Müdür" : "Garson"}`,
   });
 
   revalidatePath("/admin/personel");
@@ -92,10 +131,24 @@ export async function toggleStaffActiveAction(formData: FormData) {
   const isActive = String(formData.get("isActive")) === "true";
   if (!id || id === session.staffId) return; // kendi hesabını pasifleştiremesin
 
-  await prisma.staffUser.updateMany({
+  const updated = await prisma.staffUser.updateMany({
     where: { id, branchId: session.branchId },
     data: { isActive: !isActive },
   });
+
+  if (updated.count > 0) {
+    const target = await prisma.staffUser.findUnique({
+      where: { id },
+      select: { name: true },
+    });
+    await audit({
+      branchId: session.branchId,
+      action: isActive ? "STAFF_DEACTIVATED" : "STAFF_ACTIVATED",
+      actorName: session.name,
+      actorId: session.staffId,
+      detail: target?.name ?? id,
+    });
+  }
 
   revalidatePath("/admin/personel");
 }
@@ -127,6 +180,14 @@ export async function changeOwnPasswordAction(
     data: { passwordHash: hashPassword(newPassword) },
   });
 
+  await audit({
+    branchId: session.branchId,
+    action: "PASSWORD_CHANGED",
+    actorName: session.name,
+    actorId: session.staffId,
+    detail: "Kendi şifresini değiştirdi",
+  });
+
   return { success: true };
 }
 
@@ -137,10 +198,24 @@ export async function resetStaffPasswordAction(formData: FormData) {
   const newPassword = String(formData.get("newPassword") || "");
   if (!id || newPassword.length < 4) return;
 
-  await prisma.staffUser.updateMany({
+  const reset = await prisma.staffUser.updateMany({
     where: { id, branchId: session.branchId },
     data: { passwordHash: hashPassword(newPassword) },
   });
+
+  if (reset.count > 0) {
+    const target = await prisma.staffUser.findUnique({
+      where: { id },
+      select: { name: true },
+    });
+    await audit({
+      branchId: session.branchId,
+      action: "STAFF_PASSWORD_RESET",
+      actorName: session.name,
+      actorId: session.staffId,
+      detail: target?.name ?? id,
+    });
+  }
 
   revalidatePath("/admin/personel");
 }

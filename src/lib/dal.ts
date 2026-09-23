@@ -35,10 +35,27 @@ export const verifyAdminSession = cache(async () => {
   };
 });
 
-/** Sadece müdür rolüne izin verir; garson gelirse kasaya geri yönlendirir. */
+/**
+ * Müdür yetkisi gerektiren sayfalar. OWNER (platform sahibi) kendi şubesinde
+ * müdür sayılır — ama şube filtresi değişmez, o da yalnızca kendi şubesinin
+ * verisini görür. Şubeler arası görünüm sadece `verifyOwnerSession` ile
+ * korunan sahip paneline özeldir.
+ */
 export const verifyManagerSession = cache(async () => {
   const session = await verifyAdminSession();
-  if (session.role !== "MANAGER") {
+  if (session.role !== "MANAGER" && session.role !== "OWNER") {
+    redirect("/admin");
+  }
+  return session;
+});
+
+/**
+ * Platform sahibi (biz). Tüm şubeleri görebilen tek rol; sadece sahip
+ * panelinde kullanılır, şubeye bağlı sayfalar bundan etkilenmez.
+ */
+export const verifyOwnerSession = cache(async () => {
+  const session = await verifyAdminSession();
+  if (session.role !== "OWNER") {
     redirect("/admin");
   }
   return session;

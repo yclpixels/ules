@@ -49,7 +49,9 @@ edildi).
 - `/admin/personel` — Personel ekleme/pasifleştirme/şifre sıfırlama, rol atama (**sadece müdür**)
 - `/admin/hesabim` — Kendi şifreni değiştirme (her iki rol de)
 - `/admin/degerlendirmeler` — Müşteri puanları (yemek/servis/ortam/fiyat, 30 günlük ortalama, düşük puanlar kırmızı) (**sadece müdür**)
-- `/admin/ayarlar` — Google yorum linki ve bahşiş yüzdeleri (**sadece müdür**)
+- `/admin/isletmeler` — Tüm işletmeler ve abonelik durumları (**sadece OWNER**)
+- `/admin/kayitlar` — Erişim ve işlem kayıtları (KVKK) (**sadece müdür**)
+- `/admin/ayarlar` — Google yorum linki, bahşiş yüzdeleri ve KVKK işletme bilgileri (**sadece müdür**)
 - `/admin/gun-sonu` — Z raporu: sistemdeki nakit / POS kart / QR kart / bahşiş; sayılan nakit girilir,
   eksik-fazla hesaplanır ve kayıt altına alınır (`DayClose`) (**sadece müdür**)
 - `/admin/performans` — Personel bazlı: eklediği kalem, satış, aldığı ödeme, bahşiş, sildiği kalem;
@@ -57,6 +59,7 @@ edildi).
 - `/masa/[qrToken]` — Müşteri ekranı (QR ile açılır): **Menü** sekmesinden kendi siparişini
   verebilir, **Hesap** sekmesinden güncel hesabı görüp eşit böl / tutar gir ile öder
 - `/fis/[orderId]` — Herkese açık, yazdırılabilir fiş sayfası + e-posta ile gönderme
+- `/menu/[slug]` — Herkese açık, paylaşılabilir/gömülebilir menü (arama motorlarına açık)
 - `/gizlilik` — KVKK aydınlatma metni şablonu (fiş e-postasında bağlantısı var)
 
 ## Kapsam
@@ -97,6 +100,110 @@ edildi).
   Masanın QR token'ı isim değişse bile sabit kalır (bastırılmış QR bozulmaz).
 - **Şifre yönetimi**: herkes `/admin/hesabim`'den kendi şifresini değiştirebilir; müdür
   `/admin/personel`'den başka bir personelin şifresini sıfırlayabilir.
+- **Düşük puan bildirimi** (`src/lib/feedbackAlerts.ts`): 4 kriterin ortalaması 3'ün altındaysa
+  müdür panelinde kırmızı uyarı bandı çıkar ("müşteri hâlâ masada olabilir") ve
+  `Branch.alertEmail` doluysa oraya e-posta gider. Amaç, kötü Google yorumu yazılmadan
+  müdahale edebilmek. Müdür `/admin/degerlendirmeler`'den "Gördüm" deyince bant düşer
+  (`Feedback.acknowledgedAt/By`). Garsona gösterilmez. Bildirim en iyi çaba — e-posta
+  gönderilemese de müşteri akışı bozulmaz; SMTP yoksa demo modda konsola düşer.
+- **Herkese açık menü sayfası** (`/menu/[slug]`): masaya bağlı olmayan, paylaşılabilir
+  menü. Adres `/admin/ayarlar`'dan verilir (`Branch.menuSlug`, Türkçe karakterler ve
+  boşluklar otomatik temizlenir: "Ana Şube" → `ana-sube`); boş bırakılırsa sayfa yayına
+  girmez. Sitesi olan işletme ayarlardaki hazır `<iframe>` koduyla kendi sitesine gömer;
+  **sitesi olmayan aynı linki Instagram biyografisinde / WhatsApp'ta paylaşır** — pratikte
+  işletmenin web varlığı olur. Hesap/ödeme/sipariş burada yoktur, sadece menü.
+  **Arama motorlarına açık tek sayfa burasıdır** (`robots: index`) — işletmenin menüsünün
+  Google'da çıkması istenen şeydir; masa/admin/fiş sayfaları `noindex` kalır.
+  `Branch.websiteUrl` verilirse işletmenin sitesi/Instagram'ı hem bu sayfada hem müşteri
+  ekranında link olarak görünür.
+
+- **Ürün görseli yükleme** (`src/lib/uploads.ts`, `src/components/ImagePicker.tsx`):
+  restoran telefonuyla çektiği fotoğrafı doğrudan yükleyebilir — sitesi olmayan işletme de
+  görsel ekleyebilir. Sitesi olan, kendi sitesindeki görselin adresini yapıştırmaya devam
+  edebilir (tek alan, `Product.imageUrl`). Fotoğraf **tarayıcıda küçültülür** (en fazla
+  1400px, JPEG) — sunucuda görüntü işleme kütüphanesi yok, müşterinin menüsü mobil veriyle
+  açılabilir kalır. Sunucu tarafında: dosya türü **beyana değil içeriğe** bakılarak
+  doğrulanır (magic byte), 3 MB sınırı, dosya adı istemciden alınmaz (path traversal yok),
+  yükleme sadece müdür (`401`), servis `/api/uploads/[name]` üzerinden `nosniff` ve uzun
+  önbellekle. Test edildi: sahte "png" reddedildi, `../../.env` denemeleri 404, oturumsuz
+  yükleme 401.
+  **Dosyalar diskte (`UPLOAD_DIR`, varsayılan `./uploads`) tutulur — Docker'da volume
+  olarak bağlanmalı**, aksi halde container yenilenince görseller kaybolur (`Dockerfile`'da
+  `VOLUME` tanımlı). `scripts/backup.sh` görselleri de yedekler.
+
+- **Çok dilli menü** (`src/lib/locales.ts`): şube dilleri `/admin/ayarlar`'dan seçilir
+  (`Branch.supportedLocales`, ör. "tr,en"). **İlk dil ana dildir** — ürün/kategori adları
+  `Product`/`Category` üzerindeki temel alanlardır, çeviri tablosuna yazılmaz. Diğer diller
+  `ProductTranslation` / `CategoryTranslation`'da tutulur ve `/admin/urunler` → "Çeviriler"
+  bölümünden girilir; ad boş bırakılırsa çeviri silinir. **Çevirisi olmayan ürün ana dile
+  düşer**, yani kısmi çeviride bile menü eksiksiz görünür. Müşteri ekranında birden fazla dil
+  varsa dil seçici çıkar (`/api/masa/[qrToken]?lang=en`); desteklenmeyen dil ana dile düşer.
+  **Dil otomatik seçilir**: müşterinin telefon dili (`navigator.language`) kullanılır, turist
+  hiçbir şeye dokunmadan kendi dilinde görür. Elle seçim yapılırsa o cihaz için hatırlanır
+  (`localStorage`, erişilemezse sessizce otomatik algılamaya düşer).
+  Fiyatlar dilden bağımsızdır.
+
+- **Kaleme göre bölme** (müşteri ekranı → Hesap → "Kalem Seç"): müşteri hesaptaki
+  kalemlerden ne yediyse işaretler, sadece onları öder. Ödenen kalem masadaki diğer
+  kişilere "başkası üstlendi" olarak kilitli görünür (`OrderItem.settledPaymentId`).
+  **Tutar istemciden alınmaz** — sunucu seçilen kalemlerin kendi fiyatından hesaplar
+  (`priceSelectedItems`), böylece istek değiştirilerek eksik ödeme yapılamaz; test edildi
+  (1 kuruşluk istek gönderildi, ₺50 tahsil edildi). Kalemler ödeme oluşturulurken rezerve
+  edilir, ödeme başarısız olur ya da müdür iptal ederse tekrar boşa çıkar. Kalan hesaptan
+  fazlası alınmaz (masadan biri eşit bölmeyle ödemiş olabilir). Para hesabını etkilemez —
+  kalan tutar her zaman toplam eksi ödenen'dir.
+- **Koyu tema.** Tek tema, sistem tercihine göre değişmez (restoranın görünümü her müşteride
+  aynı olmalı). Uygulama açık tema sınıflarıyla yazıldığı için her dosyaya `dark:` varyantı
+  eklemek yerine Tailwind renk değişkenleri `globals.css`'te yeniden tanımlandı: gri skalası
+  ters (50 = en koyu), `white` = kart yüzeyi, `black` = birincil buton. Yeni yazılan kod da
+  otomatik uyar. Fiş yazdırmada `@media print` ile beyaz zemin/siyah yazıya döner.
+
+- **Müşteri siparişi şube bazında açılır/kapanır** (`Branch.customerOrderingEnabled`,
+  **varsayılan kapalı**, `/admin/ayarlar`). Kapalıyken QR sadece menü + hesap görüntüleme
+  olarak çalışır; müşteri sipariş veremez, "Ekle" butonları görünmez, siparişi personel girer.
+  Yeni kurulumlarda böyle başlatılması önerilir — işletme sisteme alıştıktan sonra açılır.
+  `/api/masa/[qrToken]/items` arayüzden bağımsız 403 döner.
+- **Abonelik takibi ve sahip paneli.** Üç rol var artık: `OWNER` (platform sahibi — biz),
+  `MANAGER`, `WAITER`. `/admin/isletmeler` (**sadece OWNER**) tüm işletmeleri, abonelik
+  durumlarını (`TRIAL`/`ACTIVE`/`SUSPENDED`), deneme bitiş tarihlerini ve aylık ücretleri
+  tek ekranda gösterir. Müdür panelinde kalan gün uyarı bandı çıkar (`src/lib/subscription.ts`).
+  **Tahsilat bilerek kodda değil** — fatura + EFT; otomatik kart çekme şirket ve ödeme
+  altyapısı gerektirir, bu ölçekte gereksiz. **Deneme dolunca sistem kilitlenmez**: servis
+  ortasında panelin kapanması işletmeyi kaybettirir, uyarı gösterilir ve `SUSPENDED`'a geçiş
+  elle yapılır. `OWNER` yalnızca sahip panelinde şubeler arası görür; diğer tüm sayfalar
+  eskisi gibi `branchId` ile filtrelenir.
+
+- **QR ile kartlı ödeme şube bazında açılır/kapanır** (`Branch.cardPaymentEnabled`,
+  **varsayılan kapalı**, `/admin/ayarlar`'dan değişir). Kapalıyken müşteri menüyü ve hesabı
+  görür, kişi başı payını hesaplar; tahsilatı personel alır (nakit/POS) — sistem para akışına
+  hiç girmez, bu yüzden 6493 sayılı Kanun kapsamında ödeme hizmeti sunulmuş olmaz. Pilot
+  kurulumların varsayılan modu budur. Ödeme uç noktası (`/api/masa/[qrToken]/pay`) arayüzden
+  bağımsız olarak 403 döner, yani doğrudan API'ye istek atılarak aşılamaz.
+  Açmadan önce o şube adına gerçek bir üye işyeri (iyzico vb.) anlaşması yapılmış olmalı.
+
+- **KVKK aydınlatma metni** (`/gizlilik`): metin artık şubeye özel — işletme unvanı,
+  adres, e-posta ve telefon `/admin/ayarlar`'dan girilir, `Branch.legalName` vb. alanlarda
+  saklanır. Bilgiler boşken sayfa "doldurulmamış şablon" uyarısı gösterir. Şube üç yoldan
+  bulunur: `?masa=<qrToken>` (müşteri masadan), `?fis=<orderId>` (fiş sayfası/e-postası),
+  `?sube=<branchId>` (panelden önizleme). Link müşteri ekranının altında, fiş sayfasında ve
+  fiş e-postasında yer alır (KVKK m.10 — verinin toplandığı yerde aydınlatma).
+- **Erişim ve işlem kaydı** (`/admin/kayitlar`, **sadece müdür**): KVKK m.12 veri güvenliği
+  tedbiri. Giriş denemeleri (başarılı/başarısız, IP ile), hesap iptali, ödeme iptali, personel
+  ekleme/pasifleştirme/şifre sıfırlama, şifre değişikliği, gün sonu, ayar değişikliği ve fiş
+  e-postası gönderimi kaydedilir (`src/lib/audit.ts`, `AuditLog`). Kayıtlar sadece eklenir —
+  uygulamada silme/güncelleme yolu yoktur. Fiş e-postasında adres maskelenerek loglanır.
+  Rutin sipariş işlemleri burada değil, `OrderItem.addedBy/removedBy`'da tutulur.
+- **Yedekleme**: `scripts/backup.sh` — günlük `pg_dump` + gzip, boş yedek kontrolü, eski
+  yedek temizliği, opsiyonel uzak kopya (`BACKUP_REMOTE`). Cron ile kurulur; **yedeği aynı
+  sunucuda bırakmayın**, disk kaybında işe yaramaz.
+
+- **Otomatik tazeleme**: Kasa (`/admin`) ve masa detay ekranı 10 saniyede bir kendini
+  yeniler (`src/components/AutoRefresh.tsx`) — müşteri QR'dan sipariş verdiğinde garsonun
+  ekranı elle yenilemeden güncellenir. Bir input/select odaktayken ve sekme arka plandayken
+  tazeleme atlanır, yazılan tutar/not uçmaz.
+- **Geri alınamaz işlemlerde onay**: hesap iptali, ödeme iptali, kalem/ürün/kategori/masa
+  silme ve personel pasifleştirme tarayıcı onayı ister (`src/components/ConfirmButton.tsx`).
+
 - **Sipariş notu**: garson ürün eklerken "az pişmiş", "acısız" gibi bir not girebilir
   (`OrderItem.note`) — hem garson ekranında hem müşterinin hesap görünümünde gösterilir.
 - **Fiş**: hesap kapandığında müşteri "Fişi Görüntüle" linkiyle yazdırılabilir bir fiş
@@ -183,5 +290,6 @@ edilmesi (Alpine Linux base image, `npm ci` adımı vb.) — ilk `docker build`'
 6. Hız sınırlayıcı bellek içi (`src/lib/rateLimit.ts`); birden fazla sunucu instance'ına
    çıkınca Redis/Upstash ile değiştirilmeli
 7. Müşteri kendi sipariş verirken not giremiyor (sadece garson ekranından not girilebiliyor)
-8. Ürün görseli dosya yükleme ile değil, sadece harici link (https) ile ekleniyor — hosting
-   bağımsız kalsın diye. Görsel yükleme istenirse S3/R2 gibi bir depo eklenmeli.
+8. Ürün görselleri artık yüklenebiliyor (yukarı bkz.), dosyalar sunucu diskinde tutuluyor.
+   Birden fazla sunucuya çıkılırsa ortak bir depoya (S3/R2) taşınmalı — değişmesi gereken
+   tek yer `src/lib/uploads.ts`.

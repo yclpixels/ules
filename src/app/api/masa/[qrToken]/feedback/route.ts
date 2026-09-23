@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
+import { notifyIfLowRating } from "@/lib/feedbackAlerts";
 
 const RATING_KEYS = [
   "foodRating",
@@ -24,8 +25,12 @@ export async function POST(
   { params }: { params: Promise<{ qrToken: string }> }
 ) {
   const { qrToken } = await params;
-  const rl = rateLimit(`masa:${clientIp(req)}`, { limit: 60, windowMs: 60 * 1000 });
-  if (!rl.ok) {
+  // Restoranın tüm müşterileri aynı WiFi/NAT IP'sinden gelir; sadece IP'ye
+  // bakan sınır bir masanın diğerlerini kilitlemesine yol açıyordu. Asıl sınır
+  // masa başına, IP sınırı ise yalnızca dışarıdan gelen kaba saldırılar için geniş.
+  const perTable = rateLimit(`masa:table:${qrToken}`, { limit: 40, windowMs: 60 * 1000 });
+  const perIp = rateLimit(`masa:ip:${clientIp(req)}`, { limit: 600, windowMs: 60 * 1000 });
+  if (!perTable.ok || !perIp.ok) {
     return NextResponse.json({ error: "Çok hızlı, biraz bekleyin" }, { status: 429 });
   }
   const table = await prisma.table.findUnique({ where: { qrToken } });
@@ -61,7 +66,7 @@ export async function POST(
 
   const [foodRating, serviceRating, ambianceRating, valueRating] =
     ratings as number[];
-  await prisma.feedback.create({
+  const feedback = await prisma.feedback.create({
     data: {
       orderId,
       branchId: table.branchId,
@@ -72,6 +77,10 @@ export async function POST(
       comment,
     },
   });
+
+  // Düşük puansa müdüre haber ver (panel bandı + varsa e-posta).
+  // Müşteriyi bekletmemek için sonucu beklemiyoruz; kendi içinde hata yutuyor.
+  void notifyIfLowRating(feedback.id);
 
   return NextResponse.json({ ok: true });
 }

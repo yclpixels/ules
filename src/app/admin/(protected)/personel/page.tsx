@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { verifyManagerSession } from "@/lib/dal";
+import { roleLabel } from "@/lib/roles";
+import ConfirmButton from "@/components/ConfirmButton";
 import {
   addStaffAction,
   toggleStaffActiveAction,
@@ -8,8 +10,13 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function PersonelPage() {
+export default async function PersonelPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ hata?: string }>;
+}) {
   const session = await verifyManagerSession();
+  const { hata } = await searchParams;
 
   const staff = await prisma.staffUser.findMany({
     where: { branchId: session.branchId },
@@ -18,6 +25,11 @@ export default async function PersonelPage() {
 
   return (
     <div className="space-y-6">
+      {hata === "kullanici-mevcut" && (
+        <p className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          Bu kullanıcı adı zaten kullanılıyor — başka bir tane deneyin.
+        </p>
+      )}
       <form
         action={addStaffAction}
         className="bg-white border rounded-xl p-4 flex gap-3 items-end flex-wrap"
@@ -78,7 +90,7 @@ export default async function PersonelPage() {
                 >
                   {s.name}{" "}
                   <span className="text-sm text-gray-500">
-                    @{s.username} · {s.role === "MANAGER" ? "Müdür" : "Garson"}
+                    @{s.username} · {roleLabel(s.role)}
                   </span>
                 </p>
               </div>
@@ -117,9 +129,16 @@ export default async function PersonelPage() {
                       name="isActive"
                       value={String(s.isActive)}
                     />
-                    <button className="text-sm underline">
+                    <ConfirmButton
+                      message={
+                        s.isActive
+                          ? `${s.name} pasifleştirilsin mi? Açık oturumu anında düşer.`
+                          : `${s.name} tekrar aktif edilsin mi?`
+                      }
+                      className="text-sm underline"
+                    >
                       {s.isActive ? "Pasifleştir" : "Aktif et"}
-                    </button>
+                    </ConfirmButton>
                   </form>
                 )}
               </div>

@@ -1,4 +1,5 @@
 import { verifyAdminSession } from "@/lib/dal";
+import { roleLabel } from "@/lib/roles";
 import ChangePasswordForm from "./ChangePasswordForm";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export default async function HesabimPage() {
         <p className="font-medium">{session.name}</p>
         <p className="text-sm text-gray-500">
           {session.branchName} ·{" "}
-          {session.role === "MANAGER" ? "Müdür" : "Garson"}
+          {roleLabel(session.role)}
         </p>
       </div>
 

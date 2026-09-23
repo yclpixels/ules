@@ -9,6 +9,7 @@ import {
 import { getBaseUrl } from "@/lib/baseUrl";
 import { byNaturalName } from "@/lib/money";
 import { verifyManagerSession } from "@/lib/dal";
+import ConfirmButton from "@/components/ConfirmButton";
 
 export const dynamic = "force-dynamic";
 
@@ -94,9 +95,12 @@ export default async function MasalarPage() {
               {table._count.orders === 0 ? (
                 <form action={deleteTableAction}>
                   <input type="hidden" name="id" value={table.id} />
-                  <button className="text-sm text-red-600 hover:underline">
+                  <ConfirmButton
+                    message={`"${table.name}" masası silinsin mi? Bastırılmış QR kodu geçersiz olur.`}
+                    className="text-sm text-red-600 hover:underline"
+                  >
                     Sil
-                  </button>
+                  </ConfirmButton>
                 </form>
               ) : (
                 <span

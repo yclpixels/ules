@@ -9,7 +9,7 @@ if (!secretKey) {
 }
 const encodedKey = new TextEncoder().encode(secretKey);
 
-export type StaffRole = "MANAGER" | "WAITER";
+export type StaffRole = "OWNER" | "MANAGER" | "WAITER";
 
 type SessionPayload = {
   staffId: string;

@@ -86,7 +86,7 @@ export default async function ReceiptPage({
           <EmailForm orderId={orderId} />
           <p className="text-xs text-gray-400 text-center">
             E-posta adresiniz sadece bu fişi göndermek için kullanılır.{" "}
-            <Link href="/gizlilik" className="underline">
+            <Link href={`/gizlilik?fis=${orderId}`} className="underline">
               Gizlilik
             </Link>
           </p>

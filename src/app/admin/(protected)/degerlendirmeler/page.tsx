@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { verifyManagerSession } from "@/lib/dal";
+import { acknowledgeFeedbackAction } from "@/lib/actions";
+import { isLowRating } from "@/lib/feedbackAlerts";
 
 export const dynamic = "force-dynamic";
 
@@ -79,25 +81,39 @@ export default async function FeedbackPage() {
 
       <div className="bg-white border rounded-xl divide-y">
         {feedbacks.map((f) => {
-          const avg =
-            (f.foodRating + f.serviceRating + f.ambianceRating + f.valueRating) /
-            4;
+          const low = isLowRating(f);
+          const needsAction = low && !f.acknowledgedAt;
           return (
             <div
               key={f.id}
-              className={`px-4 py-3 space-y-1 ${avg < 3 ? "bg-red-50" : ""}`}
+              className={`px-4 py-3 space-y-1 ${low ? "bg-red-50" : ""}`}
             >
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm gap-3">
                 <span className="font-medium">
                   {f.order.table.name}
-                  {avg < 3 && (
+                  {low && (
                     <span className="ml-2 text-xs text-red-600">
                       düşük puan
                     </span>
                   )}
+                  {low && f.acknowledgedAt && (
+                    <span className="ml-2 text-xs text-gray-400 font-normal">
+                      {f.acknowledgedBy} gördü
+                    </span>
+                  )}
                 </span>
-                <span className="text-gray-500">
-                  {dateTimeFormatter.format(f.createdAt)}
+                <span className="flex items-center gap-3 shrink-0">
+                  {needsAction && (
+                    <form action={acknowledgeFeedbackAction}>
+                      <input type="hidden" name="id" value={f.id} />
+                      <button className="text-xs border border-red-300 text-red-600 rounded-lg px-2 py-1 hover:bg-red-100">
+                        Gördüm
+                      </button>
+                    </form>
+                  )}
+                  <span className="text-gray-500">
+                    {dateTimeFormatter.format(f.createdAt)}
+                  </span>
                 </span>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">

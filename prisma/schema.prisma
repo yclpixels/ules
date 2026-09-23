@@ -22,12 +22,73 @@ model Branch {
   // Ödeme ekranında sunulan bahşiş yüzdeleri, virgülle: "5,10,15". Boşsa bahşiş adımı gizlenir.
   tipPresets      String  @default("5,10,15")
 
+  // Herkese açık menü sayfasının adresi: /menu/<menuSlug>.
+  // İşletme bunu kendi sitesine gömebilir, sitesi yoksa Instagram/WhatsApp'ta
+  // paylaşır. Boşsa sayfa yayında değildir.
+  menuSlug String? @unique
+
+  // İşletmenin kendi sitesi / Instagram adresi; müşteri ekranında link olarak görünür.
+  websiteUrl String?
+
+  // Menünün sunulduğu diller, virgülle: "tr,en". İlki ana dildir ve
+  // Product/Category üzerindeki temel alanlara karşılık gelir.
+  supportedLocales String @default("tr")
+
+  // Düşük puan geldiğinde uyarı gönderilecek e-posta (opsiyonel).
+  // Boşsa sadece panel içi uyarı gösterilir.
+  alertEmail String?
+
+  // Müşterinin QR'dan kendi siparişini verip veremeyeceği. Varsayılan KAPALI:
+  // pilotta QR sadece menü + hesap görüntüleme olarak başlar, siparişi garson
+  // girer. Restoran sisteme güvendikten sonra açılır.
+  customerOrderingEnabled Boolean @default(false)
+
+  // Abonelik durumu. Tahsilat kodda değil (fatura + EFT); burada sadece
+  // hangi şubenin ne durumda olduğu tutulur.
+  subscriptionStatus SubscriptionStatus @default(TRIAL)
+  trialEndsAt        DateTime?
+  monthlyFeeCents    Int? // anlaşılan aylık ücret (kuruş), bilgi amaçlı
+  subscriptionNote   String? // "3 Ekim'de ödendi", "2 hafta ek süre verildi" vb.
+
+  // Müşterinin QR'dan kartla ödeme yapıp yapamayacağı. Varsayılan KAPALI:
+  // kartlı ödeme açmak, o şube için gerçek bir üye işyeri (iyzico vb.)
+  // anlaşması gerektirir — para asla bizim hesabımızdan geçmez. Kapalıyken
+  // müşteri hesabı görür ve payını hesaplar, tahsilatı personel yapar.
+  cardPaymentEnabled Boolean @default(false)
+
+  // KVKK aydınlatma metni için işletme kimliği (veri sorumlusu). Boşsa
+  // /gizlilik sayfası "doldurulmamış şablon" uyarısıyla gösterilir.
+  legalName    String? // resmi unvan, ör. "Örnek Gıda San. Tic. Ltd. Şti."
+  legalAddress String?
+  contactEmail String?
+  contactPhone String?
+
   tables     Table[]
   categories Category[]
   products   Product[]
   staff      StaffUser[]
   feedbacks  Feedback[]
   dayCloses  DayClose[]
+  auditLogs  AuditLog[]
+}
+
+/// KVKK "veri güvenliği tedbirleri" kapsamında erişim/işlem kaydı.
+/// Kim, ne zaman, hangi hassas işlemi yaptı — silinmez, sadece eklenir.
+/// Sipariş kalemi ekleme gibi rutin işler burada tutulmaz (OrderItem.addedBy'da zaten var);
+/// burası oturum açma ve geri alınamaz/para etkileyen işlemler için.
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // LOGIN_SUCCESS, LOGIN_FAILED, ORDER_CANCELLED, ...
+  actorName String   // işlemi yapan personelin adı (başarısız girişte denenen kullanıcı adı)
+  actorId   String?  // StaffUser.id; başarısız girişte boş
+  detail    String?  // insan tarafından okunur kısa açıklama
+  ip        String?
+  createdAt DateTime @default(now())
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId, createdAt])
 }
 
 /// Ödeme sonrası müşteri değerlendirmesi (1–5 yıldız, 4 kriter + yorum).
@@ -39,6 +100,10 @@ model Feedback {
   valueRating   Int
   comment       String?
   createdAt     DateTime @default(now())
+
+  // Düşük puan uyarısı: müdür "Gördüm" deyince işaretlenir, uyarı bandından düşer.
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
 
   branchId String
   branch   Branch @relation(fields: [branchId], references: [id])
@@ -67,7 +132,20 @@ model Category {
   branchId String
   branch   Branch @relation(fields: [branchId], references: [id])
 
-  products Product[]
+  products     Product[]
+  translations CategoryTranslation[]
+}
+
+/// Kategorinin bir dildeki adı. Kayıt yoksa Category.name kullanılır.
+model CategoryTranslation {
+  id     String @id @default(cuid())
+  locale String
+  name   String
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, locale])
 }
 
 model Product {
@@ -86,7 +164,22 @@ model Product {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
 
-  orderItems OrderItem[]
+  orderItems   OrderItem[]
+  translations ProductTranslation[]
+}
+
+/// Ürünün bir dildeki karşılığı. Kayıt yoksa Product'taki temel alanlar kullanılır.
+model ProductTranslation {
+  id          String  @id @default(cuid())
+  locale      String // "en", "de", "ar" ...
+  name        String
+  description String?
+  allergens   String?
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locale])
 }
 
 enum OrderStatus {
@@ -125,6 +218,13 @@ model OrderItem {
   removedAt DateTime? // silinen ürünler hesaptan düşer ama kayıt (audit) için saklanır
   removedBy String?
 
+  // "Kalemleri seç" ile ödeme: bu kalemi hangi ödeme karşıladı. Ödeme
+  // oluşturulurken işaretlenir (aynı kalemi iki kişi seçemesin), ödeme
+  // başarısız olur ya da iptal edilirse tekrar boşa çıkar.
+  // Para hesabını ETKİLEMEZ — kalan tutar her zaman toplam eksi ödenen'dir;
+  // burası yalnızca "bu kalemi kim üstlendi" bilgisidir.
+  settledPaymentId String?
+
   orderId String
   order   Order  @relation(fields: [orderId], references: [id])
 
@@ -162,7 +262,15 @@ model Payment {
   order   Order  @relation(fields: [orderId], references: [id])
 }
 
+/// Şubenin bizimle olan ticari ilişkisi.
+enum SubscriptionStatus {
+  TRIAL     // ücretsiz deneme sürüyor
+  ACTIVE    // abonelik ödeniyor
+  SUSPENDED // ödeme yok / ilişki durduruldu (elle çevrilir)
+}
+
 enum StaffRole {
+  OWNER   // platform sahibi (biz): kendi şubesinde müdür yetkisi + tüm şubeleri görme
   MANAGER
   WAITER
 }

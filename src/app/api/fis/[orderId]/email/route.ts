@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getReceiptData, renderReceiptHtml } from "@/lib/receipt";
 import { sendEmail } from "@/lib/email";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
+import { getBaseUrl } from "@/lib/baseUrl";
+import { audit } from "@/lib/audit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -37,11 +39,22 @@ export async function POST(
     return NextResponse.json({ error: "Fiş bulunamadı" }, { status: 404 });
   }
 
-  const html = renderReceiptHtml(data);
+  const html = renderReceiptHtml(data, await getBaseUrl());
   const result = await sendEmail({
     to: email,
     subject: `${data.order.table.branch.name} — Fiş`,
     html,
+  });
+
+  // KVKK erişim kaydı: kişisel veri (e-posta) hangi siparişe, ne zaman gitti.
+  // E-posta adresinin tamamı loglanmaz — maskelenir.
+  const [local, domain] = email.split("@");
+  await audit({
+    branchId: data.order.table.branchId,
+    action: "RECEIPT_EMAILED",
+    actorName: "Müşteri",
+    detail: `${local.slice(0, 2)}***@${domain} — hesap no ${orderId}`,
+    ip,
   });
 
   return NextResponse.json({ ok: true, mocked: result.mocked });

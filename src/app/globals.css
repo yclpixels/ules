@@ -1,29 +1,98 @@
 @import "tailwindcss";
 
 /*
- * Bilinçli olarak tek (açık) tema: bu bir restoran hesap/kasa ekranı,
- * müşterinin telefonundaki sistem temasına göre değişmemeli. Sistem koyu
- * temadayken --foreground otomatik beyaza dönüp, renk sınıfı belirtilmeyen
- * yazıları (h1, p, span vb.) beyaz kartların üstünde görünmez yapıyordu.
+ * KOYU TEMA — tek tema, sistem tercihine göre değişmez.
+ *
+ * Uygulama baştan açık tema sınıflarıyla yazıldı (bg-white, text-gray-500,
+ * bg-black ...). Her dosyaya `dark:` varyantı eklemek yerine Tailwind'in renk
+ * değişkenlerini burada yeniden tanımlıyoruz: tek dosya değişiyor, tüm
+ * uygulama koyuya dönüyor ve yeni yazılan kod da otomatik uyuyor.
+ *
+ * Mantık: gri skalası ters çevrildi (50 = en koyu, 900 = en açık), white =
+ * kart yüzeyi, black = birincil buton (koyu temada açık renk buton). Vurgu
+ * renklerinin -50/-100 tonları koyu tint, -600/-700/-800 tonları açık yazı.
+ *
+ * Müşterinin telefonundaki sistem teması bilinçli olarak dikkate alınmıyor:
+ * restoranın görünümü her müşteride aynı olmalı.
  */
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Yüzeyler */
+  --color-white: #161619; /* kart / panel yüzeyi */
+  --color-black: #e9e9ee; /* birincil buton zemini (üstündeki text-white koyu olur) */
+
+  /* Gri skalası ters: 50 en koyu (sayfa zemini), 900 en açık (başlıklar) */
+  --color-gray-50: #0f0f12;
+  --color-gray-100: #17171b;
+  --color-gray-200: #27272e; /* varsayılan kenarlık */
+  --color-gray-300: #3d3d46;
+  --color-gray-400: #8b8b96;
+  --color-gray-500: #a3a3ae;
+  --color-gray-600: #b7b7c0;
+  --color-gray-700: #cbcbd2;
+  --color-gray-800: #e0e0e5;
+  --color-gray-900: #f2f2f5;
+  --color-gray-950: #fafafa;
+
+  /* Vurgular: açık tint → koyu tint, koyu yazı → açık yazı */
+  --color-green-50: #0d1f15;
+  --color-green-100: #123020;
+  --color-green-200: #1e4a31;
+  --color-green-600: #4ade80;
+  --color-green-700: #86efac;
+
+  --color-red-50: #250f13;
+  --color-red-100: #3b141a;
+  --color-red-200: #5e1e28;
+  --color-red-300: #7f2833;
+  --color-red-600: #f87171;
+  --color-red-700: #fca5a5;
+  --color-red-800: #fecaca;
+
+  --color-amber-50: #241c06;
+  --color-amber-100: #34270a;
+  --color-amber-200: #58420f;
+  --color-amber-400: #fbbf24;
+  --color-amber-600: #fbbf24;
+  --color-amber-700: #fcd34d;
+  --color-amber-800: #fde68a;
+
+  --color-blue-50: #0d1829;
+  --color-blue-200: #1f3c61;
+  --color-blue-700: #93c5fd;
+  --color-blue-800: #bfdbfe;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --background: #0f0f12;
+  --foreground: #f2f2f5;
 }
 
 html {
-  color-scheme: light;
+  /* Native kontroller (input, select, date picker, kaydırma çubuğu) da koyu render edilsin */
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/*
+ * Fiş yazdırma: koyu zemin kâğıda basılmaz (mürekkep israfı, okunmaz çıktı).
+ * Yazdırmada her şey beyaz zemin / siyah yazıya döner.
+ */
+@media print {
+  html {
+    color-scheme: light;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  * {
+    background-color: transparent !important;
+    color: #000000 !important;
+    border-color: #999999 !important;
+  }
 }

@@ -8,13 +8,24 @@ import {
   deleteProductAction,
   updateCategoryAction,
   deleteCategoryAction,
+  saveTranslationAction,
 } from "@/lib/actions";
+import { LOCALE_LABELS, parseLocales, pickTranslation } from "@/lib/locales";
 import { verifyManagerSession } from "@/lib/dal";
+import ConfirmButton from "@/components/ConfirmButton";
+import ImagePicker from "@/components/ImagePicker";
 
 export const dynamic = "force-dynamic";
 
 export default async function UrunlerPage() {
   const session = await verifyManagerSession();
+
+  const branch = await prisma.branch.findUniqueOrThrow({
+    where: { id: session.branchId },
+    select: { supportedLocales: true },
+  });
+  // İlk dil ana dildir (temel alanlar); çeviri formu yalnızca diğerleri için.
+  const [, ...extraLocales] = parseLocales(branch.supportedLocales);
 
   const categories = await prisma.category.findMany({
     where: { branchId: session.branchId },
@@ -23,7 +34,11 @@ export default async function UrunlerPage() {
   const products = await prisma.product.findMany({
     where: { branchId: session.branchId },
     orderBy: { name: "asc" },
-    include: { category: true, _count: { select: { orderItems: true } } },
+    include: {
+      category: true,
+      translations: true,
+      _count: { select: { orderItems: true } },
+    },
   });
 
   return (
@@ -75,9 +90,12 @@ export default async function UrunlerPage() {
                   </form>
                   <form action={deleteCategoryAction}>
                     <input type="hidden" name="id" value={c.id} />
-                    <button className="text-sm text-red-600 hover:underline">
+                    <ConfirmButton
+                      message={`"${c.name}" kategorisi silinsin mi? İçindeki ürünler silinmez, "kategorisiz" olur.`}
+                      className="text-sm text-red-600 hover:underline"
+                    >
                       Kategoriyi Sil
-                    </button>
+                    </ConfirmButton>
                   </form>
                 </div>
               </details>
@@ -140,13 +158,10 @@ export default async function UrunlerPage() {
             />
           </div>
           <div>
-            <label className="text-sm text-gray-500">Görsel linki (opsiyonel)</label>
-            <input
-              name="imageUrl"
-              type="url"
-              placeholder="https://.../ayran.jpg"
-              className="w-full mt-1 border rounded-lg px-3 py-2"
-            />
+            <label className="text-sm text-gray-500">Görsel (opsiyonel)</label>
+            <div className="mt-1">
+              <ImagePicker name="imageUrl" />
+            </div>
           </div>
         </div>
         <button className="bg-black text-white rounded-lg px-4 py-2 font-medium">
@@ -185,9 +200,71 @@ export default async function UrunlerPage() {
                   {p.allergens && (
                     <p className="text-xs text-amber-600">Alerjen: {p.allergens}</p>
                   )}
+                  {extraLocales.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Çeviri:{" "}
+                      {extraLocales
+                        .map(
+                          (code) =>
+                            `${LOCALE_LABELS[code] || code}: ${
+                              pickTranslation(p.translations, code)
+                                ? "var"
+                                : "yok"
+                            }`
+                        )
+                        .join(" · ")}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3">
+                {extraLocales.length > 0 && (
+                  <details className="relative">
+                    <summary className="text-sm underline cursor-pointer list-none">
+                      Çeviriler
+                    </summary>
+                    <div className="absolute right-0 mt-2 bg-white border rounded-lg p-3 shadow-lg z-10 w-72 space-y-3">
+                      {extraLocales.map((code) => {
+                        const t = pickTranslation(p.translations, code);
+                        return (
+                          <form
+                            key={code}
+                            action={saveTranslationAction}
+                            className="space-y-2 border-b last:border-b-0 pb-3 last:pb-0"
+                          >
+                            <input type="hidden" name="kind" value="product" />
+                            <input type="hidden" name="targetId" value={p.id} />
+                            <input type="hidden" name="locale" value={code} />
+                            <p className="text-xs font-medium text-gray-500">
+                              {LOCALE_LABELS[code] || code}
+                            </p>
+                            <input
+                              name="name"
+                              defaultValue={t?.name ?? ""}
+                              placeholder="Ürün adı (boş = çeviriyi sil)"
+                              className="w-full border rounded-lg px-2 py-1 text-sm"
+                            />
+                            <input
+                              name="description"
+                              defaultValue={t?.description ?? ""}
+                              placeholder="Açıklama"
+                              className="w-full border rounded-lg px-2 py-1 text-sm"
+                            />
+                            <input
+                              name="allergens"
+                              defaultValue={t?.allergens ?? ""}
+                              placeholder="Alerjenler"
+                              className="w-full border rounded-lg px-2 py-1 text-sm"
+                            />
+                            <button className="w-full bg-black text-white rounded-lg py-1 text-sm">
+                              Kaydet
+                            </button>
+                          </form>
+                        );
+                      })}
+                    </div>
+                  </details>
+                )}
                 <details className="relative">
                   <summary className="text-sm underline cursor-pointer list-none">
                     Düzenle
@@ -229,13 +306,7 @@ export default async function UrunlerPage() {
                         placeholder="Alerjenler"
                         className="w-full border rounded-lg px-2 py-1 text-sm"
                       />
-                      <input
-                        name="imageUrl"
-                        type="url"
-                        defaultValue={p.imageUrl ?? ""}
-                        placeholder="Görsel linki (https)"
-                        className="w-full border rounded-lg px-2 py-1 text-sm"
-                      />
+                      <ImagePicker name="imageUrl" defaultValue={p.imageUrl} />
                       <button className="w-full bg-black text-white rounded-lg px-2 py-1 text-sm">
                         Kaydet
                       </button>
@@ -243,9 +314,12 @@ export default async function UrunlerPage() {
                     {p._count.orderItems === 0 ? (
                       <form action={deleteProductAction}>
                         <input type="hidden" name="id" value={p.id} />
-                        <button className="text-sm text-red-600 hover:underline">
+                        <ConfirmButton
+                          message={`"${p.name}" ürünü kalıcı olarak silinsin mi?`}
+                          className="text-sm text-red-600 hover:underline"
+                        >
                           Ürünü Sil
-                        </button>
+                        </ConfirmButton>
                       </form>
                     ) : (
                       <p className="text-xs text-gray-400">

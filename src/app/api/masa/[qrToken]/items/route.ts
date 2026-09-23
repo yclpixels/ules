@@ -8,13 +8,28 @@ export async function POST(
   { params }: { params: Promise<{ qrToken: string }> }
 ) {
   const { qrToken } = await params;
-  const rl = rateLimit(`masa:${clientIp(req)}`, { limit: 60, windowMs: 60 * 1000 });
-  if (!rl.ok) {
+  // Restoranın tüm müşterileri aynı WiFi/NAT IP'sinden gelir; sadece IP'ye
+  // bakan sınır bir masanın diğerlerini kilitlemesine yol açıyordu. Asıl sınır
+  // masa başına, IP sınırı ise yalnızca dışarıdan gelen kaba saldırılar için geniş.
+  const perTable = rateLimit(`masa:table:${qrToken}`, { limit: 40, windowMs: 60 * 1000 });
+  const perIp = rateLimit(`masa:ip:${clientIp(req)}`, { limit: 600, windowMs: 60 * 1000 });
+  if (!perTable.ok || !perIp.ok) {
     return NextResponse.json({ error: "Çok hızlı, biraz bekleyin" }, { status: 429 });
   }
-  const table = await prisma.table.findUnique({ where: { qrToken } });
+  const table = await prisma.table.findUnique({
+    where: { qrToken },
+    include: { branch: { select: { customerOrderingEnabled: true } } },
+  });
   if (!table) {
     return NextResponse.json({ error: "Masa bulunamadı" }, { status: 404 });
+  }
+
+  // Şube müşteri siparişine kapalıysa (varsayılan) istek buradan öteye geçmez.
+  if (!table.branch.customerOrderingEnabled) {
+    return NextResponse.json(
+      { error: "Bu işletmede QR'dan sipariş kapalı, lütfen personele iletin" },
+      { status: 403 }
+    );
   }
 
   const body = await req.json().catch(() => null);

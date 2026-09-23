@@ -8,8 +8,16 @@ import {
   payTowardsOrderInstant,
   voidPayment,
 } from "@/lib/orders";
-import { parseTLInputToCents } from "@/lib/money";
-import { verifyAdminSession, verifyManagerSession } from "@/lib/dal";
+import { formatTL, parseTLInputToCents } from "@/lib/money";
+import {
+  verifyAdminSession,
+  verifyManagerSession,
+  verifyOwnerSession,
+} from "@/lib/dal";
+import { addDays, startOfDayInIstanbul } from "@/lib/dates";
+import { audit } from "@/lib/audit";
+import { parseLocales, SUPPORTED_LOCALES } from "@/lib/locales";
+import { isValidSlug, slugify } from "@/lib/slug";
 
 export async function addTableAction(formData: FormData) {
   const session = await verifyManagerSession();
@@ -54,7 +62,11 @@ function parseProductExtras(formData: FormData) {
     String(formData.get("allergens") || "").trim().slice(0, 120) || null;
   const imageInput = String(formData.get("imageUrl") || "").trim();
   let imageUrl: string | null = null;
-  if (imageInput) {
+  if (imageInput.startsWith("/api/uploads/")) {
+    // Kendi yüklediğimiz görsel: göreli yol olarak saklanır ki alan adı
+    // değişince (test → prod) linkler bozulmasın.
+    imageUrl = imageInput;
+  } else if (imageInput) {
     try {
       const u = new URL(imageInput);
       if (u.protocol === "https:" || u.protocol === "http:") imageUrl = u.toString();
@@ -146,8 +158,15 @@ export async function addCategoryAction(formData: FormData) {
   const session = await verifyManagerSession();
   const name = String(formData.get("name") || "").trim();
   if (!name) return;
+  // Sıra numarası verilmezse hepsi 0 olup menüde rastgele sıralanıyordu;
+  // yeni kategoriyi listenin sonuna koy.
+  const last = await prisma.category.findFirst({
+    where: { branchId: session.branchId },
+    orderBy: { sortOrder: "desc" },
+    select: { sortOrder: true },
+  });
   await prisma.category.create({
-    data: { name, branchId: session.branchId },
+    data: { name, branchId: session.branchId, sortOrder: (last?.sortOrder ?? 0) + 1 },
   });
   revalidatePath("/admin/urunler");
 }
@@ -255,8 +274,10 @@ export async function recordManualPaymentAction(formData: FormData) {
 
   if (!orderId || !amountCents || amountCents <= 0) return;
 
+  // status: "OPEN" şart — hesap bu arada başka bir garson tarafından
+  // kapatıldıysa payTowardsOrderInstant throw eder ve garson hata sayfası görür.
   const order = await prisma.order.findFirst({
-    where: { id: orderId, table: { branchId: session.branchId } },
+    where: { id: orderId, status: "OPEN", table: { branchId: session.branchId } },
   });
   if (!order) return;
 
@@ -288,7 +309,21 @@ export async function cancelOrderAction(formData: FormData) {
   });
   if (!order) return;
 
-  await cancelOrder(orderId, session.name);
+  const cancelled = await cancelOrder(orderId, session.name);
+
+  if (cancelled) {
+    const table = await prisma.table.findUnique({
+      where: { id: order.tableId },
+      select: { name: true },
+    });
+    await audit({
+      branchId: session.branchId,
+      action: "ORDER_CANCELLED",
+      actorName: session.name,
+      actorId: session.staffId,
+      detail: `${table?.name ?? order.tableId} — hesap no ${orderId}`,
+    });
+  }
 
   revalidatePath(`/admin/masalar/${tableId}`);
   revalidatePath("/admin");
@@ -306,10 +341,34 @@ export async function voidPaymentAction(formData: FormData) {
   });
   if (!payment) return;
 
-  await voidPayment(paymentId, session.name);
+  const voided = await voidPayment(paymentId, session.name);
+
+  if (voided) {
+    await audit({
+      branchId: session.branchId,
+      action: "PAYMENT_VOIDED",
+      actorName: session.name,
+      actorId: session.staffId,
+      detail: `${formatTL(payment.amountCents)} — ödeme no ${paymentId}`,
+    });
+  }
 
   revalidatePath(`/admin/masalar/${tableId}`);
   revalidatePath("/admin");
+}
+
+/** Sadece http(s) adreslerini kabul eder (javascript: vb. müşteri ekranına gitmesin). */
+function safeHttpUrl(input: string): string | null {
+  const value = input.trim();
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" || parsed.protocol === "http:"
+      ? parsed.toString()
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Şube ayarları: Google yorum linki ve bahşiş yüzdeleri (sadece müdür). */
@@ -338,11 +397,64 @@ export async function updateBranchSettingsAction(formData: FormData) {
     .slice(0, 4)
     .join(",");
 
+  // Kartlı ödeme yalnızca o şube için gerçek bir üye işyeri anlaşması
+  // varken açılmalı; varsayılan kapalı.
+  const cardPaymentEnabled = String(formData.get("cardPaymentEnabled")) === "on";
+  // Müşterinin QR'dan kendi siparişini verebilmesi; pilotta kapalı başlar.
+  const customerOrderingEnabled =
+    String(formData.get("customerOrderingEnabled")) === "on";
+
+  // Herkese açık menü adresi. Boş bırakılırsa sayfa yayından kalkar.
+  // Başka bir şube aynı adresi kullanıyorsa değişiklik yok sayılır.
+  const slugInput = String(formData.get("menuSlug") || "").trim().toLowerCase();
+  let menuSlug: string | null = null;
+  if (slugInput) {
+    const candidate = isValidSlug(slugInput) ? slugInput : slugify(slugInput);
+    if (isValidSlug(candidate)) {
+      const taken = await prisma.branch.findFirst({
+        where: { menuSlug: candidate, NOT: { id: session.branchId } },
+        select: { id: true },
+      });
+      if (!taken) menuSlug = candidate;
+    }
+  }
+
+  // Menü dilleri: ilki ana dil (Product/Category'deki temel alanlar).
+  const supportedLocales = parseLocales(
+    String(formData.getAll("locales").join(","))
+  ).join(",");
+
+  // KVKK aydınlatma metninde görünecek veri sorumlusu bilgileri.
+  const text = (key: string, max: number) =>
+    String(formData.get(key) || "").trim().slice(0, max) || null;
+
   await prisma.branch.update({
     where: { id: session.branchId },
-    data: { googleReviewUrl, tipPresets },
+    data: {
+      googleReviewUrl,
+      tipPresets,
+      cardPaymentEnabled,
+      customerOrderingEnabled,
+      supportedLocales,
+      menuSlug,
+      websiteUrl: safeHttpUrl(String(formData.get("websiteUrl") || "")),
+      alertEmail: text("alertEmail", 150),
+      legalName: text("legalName", 200),
+      legalAddress: text("legalAddress", 400),
+      contactEmail: text("contactEmail", 150),
+      contactPhone: text("contactPhone", 40),
+    },
   });
+
+  await audit({
+    branchId: session.branchId,
+    action: "SETTINGS_UPDATED",
+    actorName: session.name,
+    actorId: session.staffId,
+  });
+
   revalidatePath("/admin/ayarlar");
+  revalidatePath("/gizlilik");
 }
 
 /** Gün sonu kasa kapanışı (sadece müdür): sayılan nakit kaydedilir, fark hesaplanır. */
@@ -380,5 +492,135 @@ export async function closeDayAction(formData: FormData) {
       closedBy: session.name,
     },
   });
+  await audit({
+    branchId: session.branchId,
+    action: "DAY_CLOSED",
+    actorName: session.name,
+    actorId: session.staffId,
+    detail: `${date} — sayılan nakit ${formatTL(countedCents)}, sistemdeki ${formatTL(day.cashCents)}`,
+  });
+
   revalidatePath("/admin/gun-sonu");
+}
+
+/**
+ * Platform sahibi (biz) bir işletmenin abonelik durumunu günceller.
+ * Tahsilat kodda değil — burada sadece "hangi şube ne durumda" tutulur.
+ */
+export async function updateSubscriptionAction(formData: FormData) {
+  const session = await verifyOwnerSession();
+  const branchId = String(formData.get("branchId") || "");
+  if (!branchId) return;
+
+  const statusInput = String(formData.get("subscriptionStatus") || "");
+  const subscriptionStatus =
+    statusInput === "ACTIVE" || statusInput === "SUSPENDED" || statusInput === "TRIAL"
+      ? statusInput
+      : undefined;
+  if (!subscriptionStatus) return;
+
+  const trialInput = String(formData.get("trialEndsAt") || "").trim();
+  // Tarih İstanbul günü olarak girilir; günün sonuna kadar geçerli sayılır.
+  const trialStart = trialInput ? startOfDayInIstanbul(trialInput) : null;
+  const trialEndsAt = trialStart ? addDays(trialStart, 1) : null;
+
+  const feeCents = parseTLInputToCents(String(formData.get("monthlyFee") || ""));
+  const note =
+    String(formData.get("subscriptionNote") || "").trim().slice(0, 300) || null;
+
+  await prisma.branch.update({
+    where: { id: branchId },
+    data: {
+      subscriptionStatus,
+      trialEndsAt,
+      monthlyFeeCents: feeCents > 0 ? feeCents : null,
+      subscriptionNote: note,
+    },
+  });
+
+  await audit({
+    branchId,
+    action: "SETTINGS_UPDATED",
+    actorName: session.name,
+    actorId: session.staffId,
+    detail: `Abonelik durumu: ${subscriptionStatus}${
+      trialInput ? ` (deneme bitişi ${trialInput})` : ""
+    }`,
+  });
+
+  revalidatePath("/admin/isletmeler");
+}
+
+/** Müdür düşük puanı gördü olarak işaretler; uyarı bandından düşer. */
+export async function acknowledgeFeedbackAction(formData: FormData) {
+  const session = await verifyManagerSession();
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+
+  await prisma.feedback.updateMany({
+    where: { id, branchId: session.branchId, acknowledgedAt: null },
+    data: { acknowledgedAt: new Date(), acknowledgedBy: session.name },
+  });
+
+  revalidatePath("/admin/degerlendirmeler");
+  revalidatePath("/admin");
+}
+
+/**
+ * Bir ürünün ya da kategorinin çevirisini kaydeder (sadece müdür).
+ * Boş bırakılan alan çeviriyi siler — menü o dilde ana dile düşer.
+ */
+export async function saveTranslationAction(formData: FormData) {
+  const session = await verifyManagerSession();
+  const kind = String(formData.get("kind") || "");
+  const targetId = String(formData.get("targetId") || "");
+  const locale = String(formData.get("locale") || "").trim().toLowerCase();
+  if (!targetId || !SUPPORTED_LOCALES.includes(locale as never)) return;
+
+  const name = String(formData.get("name") || "").trim().slice(0, 120);
+
+  if (kind === "category") {
+    const category = await prisma.category.findFirst({
+      where: { id: targetId, branchId: session.branchId },
+    });
+    if (!category) return;
+
+    if (!name) {
+      await prisma.categoryTranslation.deleteMany({
+        where: { categoryId: targetId, locale },
+      });
+    } else {
+      await prisma.categoryTranslation.upsert({
+        where: { categoryId_locale: { categoryId: targetId, locale } },
+        create: { categoryId: targetId, locale, name },
+        update: { name },
+      });
+    }
+    revalidatePath("/admin/urunler");
+    return;
+  }
+
+  const product = await prisma.product.findFirst({
+    where: { id: targetId, branchId: session.branchId },
+  });
+  if (!product) return;
+
+  const description =
+    String(formData.get("description") || "").trim().slice(0, 300) || null;
+  const allergens =
+    String(formData.get("allergens") || "").trim().slice(0, 120) || null;
+
+  // Ad boşsa çeviri tamamen kaldırılır: yarım çeviri kafa karıştırır.
+  if (!name) {
+    await prisma.productTranslation.deleteMany({
+      where: { productId: targetId, locale },
+    });
+  } else {
+    await prisma.productTranslation.upsert({
+      where: { productId_locale: { productId: targetId, locale } },
+      create: { productId: targetId, locale, name, description, allergens },
+      update: { name, description, allergens },
+    });
+  }
+  revalidatePath("/admin/urunler");
 }

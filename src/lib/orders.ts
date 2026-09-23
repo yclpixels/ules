@@ -116,6 +116,9 @@ export async function voidPayment(paymentId: string, voidedBy: string) {
     data: { status: "VOIDED", voidedAt: new Date(), voidedBy },
   });
 
+  // İptal edilen ödemenin üstlendiği kalemler tekrar ödenebilir hale gelir.
+  await releaseItems(paymentId);
+
   if (payment.order.status === "CLOSED") {
     const otherOpen = await getOpenOrder(payment.order.tableId);
     // Masada bu arada yeni bir hesap açıldıysa eskisini tekrar açamayız;
@@ -136,6 +139,60 @@ export async function voidPayment(paymentId: string, voidedBy: string) {
   return true;
 }
 
+/**
+ * "Kalemleri seç" ile ödeme için: seçilen kalemlerin bu siparişe ait,
+ * silinmemiş ve henüz başka biri tarafından üstlenilmemiş olduğunu doğrular,
+ * toplam tutarı döner.
+ *
+ * Tutar istemciden gelmez — sunucuda kalemlerin kendi fiyatından hesaplanır,
+ * böylece istek değiştirilerek eksik ödeme yapılamaz.
+ */
+export async function priceSelectedItems(orderId: string, itemIds: string[]) {
+  const unique = [...new Set(itemIds)];
+  if (unique.length === 0) {
+    throw new Error("Hiç kalem seçilmedi");
+  }
+
+  const items = await prisma.orderItem.findMany({
+    where: {
+      id: { in: unique },
+      orderId,
+      removedAt: null,
+      settledPaymentId: null,
+    },
+  });
+
+  if (items.length !== unique.length) {
+    // Aradaki farkı açıklamaya çalışmıyoruz: kalem bu arada silinmiş de
+    // olabilir, masadaki başka biri aynı anda üstlenmiş de olabilir.
+    throw new Error(
+      "Seçtiğiniz kalemlerden bazıları artık uygun değil, listeyi yenileyip tekrar deneyin"
+    );
+  }
+
+  const cents = items.reduce(
+    (sum, i) => sum + i.unitPriceCents * i.quantity,
+    0
+  );
+  return { items, cents };
+}
+
+/** Seçilen kalemleri bir ödemeye bağlar (aynı kalemi ikinci kişi seçemesin). */
+async function reserveItems(itemIds: string[], paymentId: string) {
+  await prisma.orderItem.updateMany({
+    where: { id: { in: itemIds }, settledPaymentId: null },
+    data: { settledPaymentId: paymentId },
+  });
+}
+
+/** Ödeme başarısız/iptal olduğunda kalemleri tekrar boşa çıkarır. */
+async function releaseItems(paymentId: string) {
+  await prisma.orderItem.updateMany({
+    where: { settledPaymentId: paymentId },
+    data: { settledPaymentId: null },
+  });
+}
+
 function assertValidAmounts(amountCents: number, tipCents: number) {
   if (amountCents <= 0) {
     throw new Error("Ödeme tutarı sıfırdan büyük olmalı");
@@ -152,7 +209,8 @@ export async function payTowardsOrderInstant(
   payerName: string | undefined,
   method: "CARD" | "CASH" = "CARD",
   recordedBy?: string,
-  tipCents = 0
+  tipCents = 0,
+  settledItemIds?: string[]
 ) {
   assertValidAmounts(amountCents, tipCents);
 
@@ -174,6 +232,10 @@ export async function payTowardsOrderInstant(
       recordedBy: recordedBy || null,
     },
   });
+
+  if (settledItemIds?.length) {
+    await reserveItems(settledItemIds, payment.id);
+  }
 
   await notifyPos({
     type: "payment.completed",
@@ -197,12 +259,13 @@ export async function recordPendingPayment(
   amountCents: number,
   payerName: string | undefined,
   method: "CARD" | "CASH" = "CARD",
-  tipCents = 0
+  tipCents = 0,
+  settledItemIds?: string[]
 ) {
   assertValidAmounts(amountCents, tipCents);
 
   // Kalan hesaptan fazla girilen tutar kabul edilir (bahşiş olarak kalır).
-  return prisma.payment.create({
+  const payment = await prisma.payment.create({
     data: {
       orderId,
       amountCents,
@@ -212,6 +275,14 @@ export async function recordPendingPayment(
       status: "PENDING",
     },
   });
+
+  // Kalemler ödeme beklerken de rezerve edilir; ödeme başarısız olursa
+  // resolvePendingPayment tekrar serbest bırakır.
+  if (settledItemIds?.length) {
+    await reserveItems(settledItemIds, payment.id);
+  }
+
+  return payment;
 }
 
 /** iyzico callback'i doğrulandıktan sonra PENDING ödemeyi sonuçlandırır. */
@@ -230,6 +301,7 @@ export async function resolvePendingPayment(
       where: { id: paymentId },
       data: { status: "FAILED" },
     });
+    await releaseItems(paymentId);
     return payment;
   }
 

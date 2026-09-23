@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getOrderBill } from "@/lib/orders";
 import { byNaturalName, formatTL } from "@/lib/money";
 import { verifyAdminSession } from "@/lib/dal";
+import AutoRefresh from "@/components/AutoRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,8 @@ export default async function KasaPage() {
 
   return (
     <div className="space-y-6">
+      {/* Müşteri QR'dan sipariş verdiğinde kasa ekranı kendiliğinden güncellensin */}
+      <AutoRefresh />
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white border rounded-xl p-4">
           <p className="text-sm text-gray-500">Açık hesap - kalan toplam</p>

@@ -55,7 +55,10 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-export function renderReceiptHtml(data: ReceiptData): string {
+export function renderReceiptHtml(
+  data: ReceiptData,
+  baseUrl?: string
+): string {
   const { order, totalCents, paidCents, tipCents } = data;
   const rows = order.items
     .map(
@@ -120,6 +123,14 @@ export function renderReceiptHtml(data: ReceiptData): string {
           : ""
       }
       <p style="margin:20px 0 0; text-align:center; color:#999; font-size:12px;">Bizi tercih ettiğiniz için teşekkürler!</p>
+      ${
+        baseUrl
+          ? `<p style="margin:12px 0 0; text-align:center; color:#aaa; font-size:11px;">
+               E-posta adresiniz sadece bu fişi göndermek için kullanıldı.
+               <a href="${escapeHtml(baseUrl)}/gizlilik?fis=${escapeHtml(order.id)}" style="color:#aaa;">Aydınlatma metni</a>
+             </p>`
+          : ""
+      }
     </div>
   `;
 }

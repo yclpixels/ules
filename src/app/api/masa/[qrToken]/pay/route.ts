@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import {
   getOpenOrder,
+  getOrderBill,
   payTowardsOrderInstant,
+  priceSelectedItems,
   recordPendingPayment,
   resolvePendingPayment,
 } from "@/lib/orders";
@@ -15,16 +17,38 @@ export async function POST(
   { params }: { params: Promise<{ qrToken: string }> }
 ) {
   const { qrToken } = await params;
-  const rl = rateLimit(`masa:${clientIp(req)}`, { limit: 60, windowMs: 60 * 1000 });
-  if (!rl.ok) {
+  // Restoranın tüm müşterileri aynı WiFi/NAT IP'sinden gelir; sadece IP'ye
+  // bakan sınır bir masanın diğerlerini kilitlemesine yol açıyordu. Asıl sınır
+  // masa başına, IP sınırı ise yalnızca dışarıdan gelen kaba saldırılar için geniş.
+  const perTable = rateLimit(`masa:table:${qrToken}`, { limit: 40, windowMs: 60 * 1000 });
+  const perIp = rateLimit(`masa:ip:${clientIp(req)}`, { limit: 600, windowMs: 60 * 1000 });
+  if (!perTable.ok || !perIp.ok) {
     return NextResponse.json({ error: "Çok hızlı, biraz bekleyin" }, { status: 429 });
   }
-  const table = await prisma.table.findUnique({ where: { qrToken } });
+  const table = await prisma.table.findUnique({
+    where: { qrToken },
+    include: { branch: { select: { cardPaymentEnabled: true } } },
+  });
   if (!table) {
     return NextResponse.json({ error: "Masa bulunamadı" }, { status: 404 });
   }
 
+  // Şube kartlı ödemeye kapalıysa (varsayılan) istek buradan öteye geçmez.
+  // Arayüz zaten butonu göstermiyor; bu, doğrudan API'ye atılan isteğe karşı.
+  if (!table.branch.cardPaymentEnabled) {
+    return NextResponse.json(
+      { error: "Bu işletmede QR ile kartlı ödeme kapalı, lütfen personele ödeyin" },
+      { status: 403 }
+    );
+  }
+
   const body = await req.json().catch(() => null);
+
+  // "Kalemleri seç" modu: tutarı istemci göndermez, sunucu kalemlerden hesaplar.
+  const itemIds: string[] = Array.isArray(body?.itemIds)
+    ? body.itemIds.filter((x: unknown) => typeof x === "string").slice(0, 200)
+    : [];
+
   const amountCents = Math.round(Number(body?.amountCents));
   const payerName =
     typeof body?.payerName === "string"
@@ -39,7 +63,8 @@ export async function POST(
     amountCents <= 0 ||
     !Number.isFinite(tipCents) ||
     tipCents < 0 ||
-    tipCents >= amountCents
+    // tipCents === amountCents = hesap payı 0, sadece bahşiş bırakılıyor (geçerli)
+    tipCents > amountCents
   ) {
     return NextResponse.json(
       { error: "Geçersiz ödeme tutarı" },
@@ -54,6 +79,27 @@ export async function POST(
       { status: 400 }
     );
   }
+
+  // Kalem seçildiyse hesap payını kalemlerden hesapla; kalandan fazlasını
+  // tahsil etme (masadaki başkası eşit bölmeyle zaten ödemiş olabilir).
+  let shareCents = amountCents - tipCents;
+  if (itemIds.length > 0) {
+    try {
+      const { cents } = await priceSelectedItems(order.id, itemIds);
+      const { remainingCents } = await getOrderBill(order.id);
+      shareCents = Math.min(cents, remainingCents);
+      if (shareCents <= 0) {
+        return NextResponse.json(
+          { error: "Bu hesapta ödenecek tutar kalmadı" },
+          { status: 400 }
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Kalemler doğrulanamadı";
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
+  }
+  const chargeCents = shareCents + tipCents;
 
   const provider = getPaymentProvider();
 
@@ -75,21 +121,23 @@ export async function POST(
     if (process.env.PAYMENT_PROVIDER !== "iyzico") {
       await payTowardsOrderInstant(
         order.id,
-        amountCents,
+        chargeCents,
         payerName,
         "CARD",
         undefined,
-        tipCents
+        tipCents,
+        itemIds
       );
       return NextResponse.json({ mode: "instant", ok: true });
     }
 
     const payment = await recordPendingPayment(
       order.id,
-      amountCents,
+      chargeCents,
       payerName,
       "CARD",
-      tipCents
+      tipCents,
+      itemIds
     );
 
     const baseUrl = await getBaseUrl();
@@ -99,7 +147,7 @@ export async function POST(
 
     const result = await provider.startPayment({
       conversationId: payment.id,
-      amountCents,
+      amountCents: chargeCents,
       payerName,
       callbackUrl: `${baseUrl}/api/payments/iyzico-callback`,
       buyerIp,

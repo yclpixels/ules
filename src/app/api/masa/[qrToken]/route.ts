@@ -1,33 +1,62 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOpenOrder, getOrderBill } from "@/lib/orders";
+import {
+  LOCALE_LABELS,
+  parseLocales,
+  pickTranslation,
+  resolveLocale,
+} from "@/lib/locales";
 
-function toMenuProduct(p: {
+type ProductWithTranslations = {
   id: string;
   name: string;
   priceCents: number;
   description: string | null;
   allergens: string | null;
   imageUrl: string | null;
-}) {
+  translations: {
+    locale: string;
+    name: string;
+    description: string | null;
+    allergens: string | null;
+  }[];
+};
+
+/**
+ * Ürünü istenen dilde döner. Çeviri yoksa temel (ana dil) alanlara düşer —
+ * kısmi çeviride bile menü eksiksiz görünür. Fiyat dilden bağımsızdır.
+ */
+function toMenuProduct(p: ProductWithTranslations, locale: string) {
+  const t = pickTranslation(p.translations, locale);
   return {
     id: p.id,
-    name: p.name,
+    name: t?.name || p.name,
     priceCents: p.priceCents,
-    description: p.description,
-    allergens: p.allergens,
+    description: t?.description ?? p.description,
+    allergens: t?.allergens ?? p.allergens,
     imageUrl: p.imageUrl,
   };
 }
 
-async function getMenu(branchId: string) {
+const UNCATEGORIZED_LABEL: Record<string, string> = {
+  tr: "Diğer",
+  en: "Other",
+  de: "Sonstiges",
+  ru: "Другое",
+  ar: "أخرى",
+};
+
+async function getMenu(branchId: string, locale: string) {
   const categories = await prisma.category.findMany({
     where: { branchId },
     orderBy: { sortOrder: "asc" },
     include: {
+      translations: true,
       products: {
         where: { isAvailable: true },
         orderBy: { name: "asc" },
+        include: { translations: true },
       },
     },
   });
@@ -35,28 +64,38 @@ async function getMenu(branchId: string) {
   const uncategorized = await prisma.product.findMany({
     where: { isAvailable: true, categoryId: null, branchId },
     orderBy: { name: "asc" },
+    include: { translations: true },
   });
 
   const groups = categories
     .filter((c) => c.products.length > 0)
     .map((c) => ({
       id: c.id,
-      name: c.name,
-      products: c.products.map(toMenuProduct),
+      name: pickTranslation(c.translations, locale)?.name || c.name,
+      products: c.products.map((p) => toMenuProduct(p, locale)),
     }));
 
   if (uncategorized.length > 0) {
     groups.push({
       id: "uncategorized",
-      name: "Diğer",
-      products: uncategorized.map(toMenuProduct),
+      name: UNCATEGORIZED_LABEL[locale] || UNCATEGORIZED_LABEL.tr,
+      products: uncategorized.map((p) => toMenuProduct(p, locale)),
     });
   }
 
   return groups;
 }
 
-type BranchInfo = { tipPresets: number[]; googleReviewUrl: string | null };
+type BranchInfo = {
+  tipPresets: number[];
+  googleReviewUrl: string | null;
+  cardPaymentEnabled: boolean;
+  customerOrderingEnabled: boolean;
+  /** Bu şubede sunulan diller; tek dil varsa arayüzde seçici gösterilmez. */
+  locales: { code: string; label: string }[];
+  locale: string;
+  websiteUrl: string | null;
+};
 
 function parseTipPresets(raw: string): number[] {
   return raw
@@ -94,6 +133,10 @@ async function buildBillResponse(
       quantity: i.quantity,
       unitPriceCents: i.unitPriceCents,
       note: i.note,
+      // Bu kalemi masadan biri üstlendi mi (kaleme göre bölmede tekrar seçilemez).
+      // Boolean(): alan null da olabilir undefined de (eski istemci/önbellek);
+      // "!== null" yazımı undefined'ı yanlışlıkla "ödenmiş" sayıyordu.
+      settled: Boolean(i.settledPaymentId),
     })),
     payments: payments.map((p) => ({
       id: p.id,
@@ -112,7 +155,7 @@ async function buildBillResponse(
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ qrToken: string }> }
 ) {
   const { qrToken } = await params;
@@ -124,10 +167,24 @@ export async function GET(
     return NextResponse.json({ error: "Masa bulunamadı" }, { status: 404 });
   }
 
-  const menu = await getMenu(table.branchId);
+  const available = parseLocales(table.branch.supportedLocales);
+  const locale = resolveLocale(
+    new URL(req.url).searchParams.get("lang"),
+    available
+  );
+
+  const menu = await getMenu(table.branchId, locale);
   const branch: BranchInfo = {
     tipPresets: parseTipPresets(table.branch.tipPresets),
     googleReviewUrl: table.branch.googleReviewUrl,
+    cardPaymentEnabled: table.branch.cardPaymentEnabled,
+    customerOrderingEnabled: table.branch.customerOrderingEnabled,
+    locales: available.map((code) => ({
+      code,
+      label: LOCALE_LABELS[code] || code,
+    })),
+    locale,
+    websiteUrl: table.branch.websiteUrl,
   };
   const tableInfo = { id: table.id, name: table.name };
   const order = await getOpenOrder(table.id);

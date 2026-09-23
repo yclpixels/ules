@@ -47,3 +47,6 @@ yarn-error.log*
 # database
 /prisma/*.db
 /prisma/*.db-journal
+
+# Yüklenen ürün görselleri (Docker'da volume olarak bağlanır)
+/uploads

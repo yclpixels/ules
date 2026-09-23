@@ -1,6 +1,10 @@
 import Link from "next/link";
-import { logoutAction } from "@/lib/authActions";
 import { verifyAdminSession } from "@/lib/dal";
+import { prisma } from "@/lib/prisma";
+import { describeSubscription } from "@/lib/subscription";
+import AdminNav, { type NavGroup } from "@/components/AdminNav";
+import { roleLabel } from "@/lib/roles";
+import { countUnacknowledgedLowRatings } from "@/lib/feedbackAlerts";
 
 export default async function AdminLayout({
   children,
@@ -8,86 +12,116 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await verifyAdminSession();
-  const isManager = session.role === "MANAGER";
+  const isOwner = session.role === "OWNER";
+  const isManager = session.role === "MANAGER" || isOwner;
+
+  // Abonelik/deneme durumu bandı. Süre dolsa bile panel kilitlenmez —
+  // servis ortasında kapanma işletmeyi kaybettirir (bkz. lib/subscription.ts).
+  const branch = await prisma.branch.findUnique({
+    where: { id: session.branchId },
+    select: { subscriptionStatus: true, trialEndsAt: true },
+  });
+  const subscription = branch ? describeSubscription(branch) : null;
+
+  // Düşük puan uyarısı: müşteri hâlâ masadayken müdahale şansı için.
+  // Garsona gösterilmez — müdahale müdürün işi.
+  const lowRatingCount = isManager
+    ? await countUnacknowledgedLowRatings(session.branchId)
+    : 0;
+  const bannerTone = {
+    info: "bg-blue-50 border-blue-200 text-blue-800",
+    warn: "bg-amber-50 border-amber-200 text-amber-800",
+    danger: "bg-red-50 border-red-200 text-red-800",
+  } as const;
+
+  // Menü gruplanmış: garson sadece günlük işleri görür, müdüre yönetim ve
+  // rapor grupları eklenir, sahibe platform grubu.
+  const groups: NavGroup[] = [
+    {
+      title: "Günlük",
+      items: [
+        { href: "/admin", label: "Kasa" },
+        ...(isManager
+          ? [
+              { href: "/admin/masalar", label: "Masalar" },
+              { href: "/admin/siparisler", label: "Siparişler" },
+              { href: "/admin/gun-sonu", label: "Gün Sonu" },
+            ]
+          : []),
+      ],
+    },
+    ...(isManager
+      ? [
+          {
+            title: "Yönetim",
+            items: [
+              { href: "/admin/urunler", label: "Ürünler" },
+              { href: "/admin/personel", label: "Personel" },
+              { href: "/admin/ayarlar", label: "Ayarlar" },
+            ],
+          },
+          {
+            title: "Raporlar",
+            items: [
+              { href: "/admin/performans", label: "Personel Performansı" },
+              { href: "/admin/degerlendirmeler", label: "Değerlendirmeler" },
+              { href: "/admin/kayitlar", label: "Erişim Kayıtları" },
+            ],
+          },
+        ]
+      : []),
+    ...(isOwner
+      ? [
+          {
+            title: "Platform",
+            items: [{ href: "/admin/isletmeler", label: "İşletmeler" }],
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-4 py-3 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto flex items-center gap-6">
-          <span className="font-semibold">
-            Masa QR Yönetim
-            <span className="text-gray-400 font-normal"> · {session.branchName}</span>
-          </span>
-          <nav className="flex gap-x-4 gap-y-1 text-sm flex-1 flex-wrap">
-            <Link href="/admin" className="text-gray-600 hover:text-black">
-              Kasa
-            </Link>
-            {isManager && (
-              <>
-                <Link
-                  href="/admin/siparisler"
-                  className="text-gray-600 hover:text-black"
-                >
-                  Siparişler
-                </Link>
-                <Link
-                  href="/admin/masalar"
-                  className="text-gray-600 hover:text-black"
-                >
-                  Masalar
-                </Link>
-                <Link
-                  href="/admin/urunler"
-                  className="text-gray-600 hover:text-black"
-                >
-                  Ürünler
-                </Link>
-                <Link
-                  href="/admin/personel"
-                  className="text-gray-600 hover:text-black"
-                >
-                  Personel
-                </Link>
-                <Link
-                  href="/admin/gun-sonu"
-                  className="text-gray-600 hover:text-black"
-                >
-                  Gün Sonu
-                </Link>
-                <Link
-                  href="/admin/performans"
-                  className="text-gray-600 hover:text-black"
-                >
-                  Performans
-                </Link>
-                <Link
-                  href="/admin/degerlendirmeler"
-                  className="text-gray-600 hover:text-black"
-                >
-                  Değerlendirmeler
-                </Link>
-                <Link
-                  href="/admin/ayarlar"
-                  className="text-gray-600 hover:text-black"
-                >
-                  Ayarlar
-                </Link>
-              </>
-            )}
-          </nav>
-          <Link
-            href="/admin/hesabim"
-            className="text-sm text-gray-500 hover:text-black"
-          >
-            {session.name} · {isManager ? "Müdür" : "Garson"}
+      <header className="bg-white border-b px-4 py-3 sticky top-0 z-20">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+          <Link href="/admin" className="min-w-0">
+            <span className="font-semibold block truncate">Masa QR Yönetim</span>
+            <span className="text-xs text-gray-400 block truncate">
+              {session.branchName}
+            </span>
           </Link>
-          <form action={logoutAction}>
-            <button className="text-sm text-gray-500 hover:text-black">
-              Çıkış
-            </button>
-          </form>
+          <AdminNav
+            groups={groups}
+            userName={session.name}
+            roleLabel={roleLabel(session.role)}
+          />
         </div>
       </header>
+
+      {lowRatingCount > 0 && (
+        <div className="max-w-4xl mx-auto px-4 pt-4">
+          <Link
+            href="/admin/degerlendirmeler"
+            className="block border border-red-200 bg-red-50 text-red-700 rounded-xl px-4 py-3 text-sm hover:bg-red-100"
+          >
+            <strong>
+              {lowRatingCount} düşük puanlı değerlendirme
+            </strong>{" "}
+            bekliyor — müşteri hâlâ masada olabilir. Görüntüle →
+          </Link>
+        </div>
+      )}
+      {subscription?.banner && (
+        <div className="max-w-4xl mx-auto px-4 pt-4">
+          <p
+            className={`border rounded-xl px-4 py-3 text-sm ${
+              bannerTone[subscription.banner.tone]
+            }`}
+          >
+            {subscription.banner.text}
+          </p>
+        </div>
+      )}
       <main className="max-w-4xl mx-auto px-4 py-6">{children}</main>
     </div>
   );

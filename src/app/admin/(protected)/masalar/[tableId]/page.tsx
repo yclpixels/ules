@@ -10,6 +10,8 @@ import {
 } from "@/lib/actions";
 import { notFound } from "next/navigation";
 import { verifyAdminSession } from "@/lib/dal";
+import AutoRefresh from "@/components/AutoRefresh";
+import ConfirmButton from "@/components/ConfirmButton";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,8 @@ export default async function TableDetailPage({
 
   return (
     <div className="space-y-6">
+      {/* Müşteri QR'dan ürün eklediğinde garsonun ekranı kendiliğinden güncellensin */}
+      <AutoRefresh />
       <div>
         <h1 className="text-xl font-semibold">{table.name}</h1>
       </div>
@@ -120,12 +124,12 @@ export default async function TableDetailPage({
               <form action={removeOrderItemAction}>
                 <input type="hidden" name="id" value={item.id} />
                 <input type="hidden" name="tableId" value={tableId} />
-                <button
+                <ConfirmButton
+                  message={`"${item.product.name}" hesaptan silinsin mi?`}
                   className="text-sm text-red-600 hover:underline"
-                  type="submit"
                 >
                   Sil
-                </button>
+                </ConfirmButton>
               </form>
             </div>
           </div>
@@ -240,12 +244,12 @@ export default async function TableDetailPage({
                     <form action={voidPaymentAction}>
                       <input type="hidden" name="paymentId" value={p.id} />
                       <input type="hidden" name="tableId" value={tableId} />
-                      <button
-                        type="submit"
+                      <ConfirmButton
+                        message={`${formatTL(p.amountCents)} tutarındaki ödeme iptal edilsin mi? Bu işlem geri alınamaz.`}
                         className="text-xs text-red-600 hover:underline"
                       >
                         İptal
-                      </button>
+                      </ConfirmButton>
                     </form>
                   )}
                 </span>
@@ -269,12 +273,12 @@ export default async function TableDetailPage({
               Kalan {formatTL(remainingCents)} tahsil edilmemiş sayılır.
             </p>
           </div>
-          <button
-            type="submit"
+          <ConfirmButton
+            message={`${table.name} hesabı ödeme alınmadan kapatılsın mı? Kalan ${formatTL(remainingCents)} tahsil edilmemiş sayılacak.`}
             className="text-sm border border-red-300 text-red-600 rounded-lg px-4 py-2 hover:bg-red-50"
           >
             İptal Et / Kapat
-          </button>
+          </ConfirmButton>
         </form>
       )}
     </div>
