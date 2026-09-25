@@ -8,6 +8,8 @@ import {
   resetStaffPasswordAction,
 } from "@/lib/authActions";
 
+const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+
 export const dynamic = "force-dynamic";
 
 export default async function PersonelPage({
@@ -32,7 +34,7 @@ export default async function PersonelPage({
       )}
       <form
         action={addStaffAction}
-        className="bg-white border rounded-xl p-4 flex gap-3 items-end flex-wrap"
+        className="bg-white border rounded-2xl p-4 flex gap-3 items-end flex-wrap"
       >
         <div className="min-w-[140px]">
           <label className="text-sm text-gray-500">Ad Soyad</label>
@@ -73,28 +75,42 @@ export default async function PersonelPage({
             <option value="MANAGER">Müdür</option>
           </select>
         </div>
-        <button className="bg-black text-white rounded-lg px-4 py-2 font-medium">
+        <button
+          className="text-white rounded-lg px-4 py-2 font-medium shadow-md shadow-amber-600/20"
+          style={{ background: BRAND_GRADIENT }}
+        >
           Ekle
         </button>
       </form>
 
-      <div className="bg-white border rounded-xl divide-y">
+      <div className="bg-white border rounded-2xl divide-y overflow-hidden">
         {staff.map((s) => (
           <div key={s.id} className="px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p
-                  className={`font-medium ${
-                    !s.isActive ? "line-through text-gray-400" : ""
-                  }`}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0"
+                  style={{ background: BRAND_GRADIENT }}
                 >
-                  {s.name}{" "}
-                  <span className="text-sm text-gray-500">
-                    @{s.username} · {roleLabel(s.role)}
-                  </span>
-                </p>
+                  {s.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p
+                    className={`font-medium ${
+                      !s.isActive ? "line-through text-gray-400" : ""
+                    }`}
+                  >
+                    {s.name}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    @{s.username} ·{" "}
+                    <span className="inline-block text-xs rounded-full px-2 py-0.5 bg-amber-50 text-amber-700">
+                      {roleLabel(s.role)}
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <details className="relative">
                   <summary className="text-sm underline cursor-pointer list-none">
                     Şifre Sıfırla
@@ -116,7 +132,10 @@ export default async function PersonelPage({
                         className="w-full mt-1 border rounded-lg px-2 py-1 text-sm"
                       />
                     </div>
-                    <button className="bg-black text-white rounded-lg px-3 py-1 text-sm">
+                    <button
+                      className="text-white rounded-lg px-3 py-1 text-sm"
+                      style={{ background: BRAND_GRADIENT }}
+                    >
                       Kaydet
                     </button>
                   </form>

@@ -5,6 +5,9 @@ import {
   saveSubMerchantAction,
   type SubMerchantState,
 } from "@/lib/actions";
+import { CardIcon } from "@/components/icons";
+
+const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
 
 type Props = {
   legalName: string;
@@ -43,9 +46,13 @@ export default function SubMerchantForm({
   );
 
   return (
-    <form action={formAction} className="bg-white border rounded-xl p-4 space-y-4">
+    <div className="rounded-2xl p-[2px]" style={{ background: BRAND_GRADIENT }}>
+    <form action={formAction} className="bg-white rounded-[14px] p-4 space-y-4">
       <div>
-        <p className="text-sm font-medium">iyzico Pazaryeri — Alt Üye İşyeri</p>
+        <p className="text-sm font-semibold flex items-center gap-1.5">
+          <CardIcon className="w-4.5 h-4.5 text-amber-600" />
+          iyzico Pazaryeri — Alt Üye İşyeri
+        </p>
         <p className="text-xs text-gray-400 mt-1">
           Kaydedilince kartlı ödeme tahsilatı platformun değil, doğrudan bu
           şubenin IBAN&apos;ına düşer. Bu ancak iyzico hesabınız
@@ -140,10 +147,12 @@ export default function SubMerchantForm({
 
       <button
         disabled={pending}
-        className="bg-black text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+        className="text-white rounded-lg px-4 py-2 text-sm font-medium shadow-md shadow-amber-600/20 disabled:opacity-50"
+        style={{ background: BRAND_GRADIENT }}
       >
         {pending ? "Kaydediliyor..." : isRegistered ? "Bilgileri Güncelle" : "Alt Üye Oluştur"}
       </button>
     </form>
+    </div>
   );
 }

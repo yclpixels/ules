@@ -9,7 +9,7 @@ export default async function HesabimPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white border rounded-xl p-4">
+      <div className="bg-white border rounded-2xl p-4">
         <p className="font-medium">{session.name}</p>
         <p className="text-sm text-gray-500">
           {session.branchName} ·{" "}
@@ -17,7 +17,7 @@ export default async function HesabimPage() {
         </p>
       </div>
 
-      <div className="bg-white border rounded-xl p-4 space-y-3 max-w-sm">
+      <div className="bg-white border rounded-2xl p-4 space-y-3 max-w-sm">
         <p className="text-sm font-medium">Şifre Değiştir</p>
         <ChangePasswordForm />
       </div>

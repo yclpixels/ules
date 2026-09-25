@@ -6,6 +6,8 @@ import { getBaseUrl } from "@/lib/baseUrl";
 import { slugify } from "@/lib/slug";
 import SubMerchantForm from "@/components/SubMerchantForm";
 
+const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
@@ -26,7 +28,7 @@ export default async function SettingsPage() {
 
       <form
         action={updateBranchSettingsAction}
-        className="bg-white border rounded-xl p-4 space-y-4"
+        className="bg-white border rounded-2xl p-4 space-y-4"
       >
         <div>
           <label className="text-sm font-medium">Google yorum linki</label>
@@ -273,7 +275,10 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <button className="bg-black text-white rounded-lg px-4 py-2 font-medium">
+        <button
+          className="text-white rounded-lg px-4 py-2 font-medium shadow-md shadow-amber-600/20"
+          style={{ background: BRAND_GRADIENT }}
+        >
           Kaydet
         </button>
       </form>

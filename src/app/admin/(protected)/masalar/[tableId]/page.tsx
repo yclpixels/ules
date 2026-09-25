@@ -13,6 +13,9 @@ import { verifyAdminSession } from "@/lib/dal";
 import AutoRefresh from "@/components/AutoRefresh";
 import ConfirmButton from "@/components/ConfirmButton";
 import WaiterOrderPanel from "@/components/WaiterOrderPanel";
+import { CardIcon, WalletIcon } from "@/components/icons";
+
+const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +75,7 @@ export default async function TableDetailPage({
         }))}
       />
 
-      <div className="bg-white border rounded-xl divide-y">
+      <div className="bg-white border rounded-2xl divide-y overflow-hidden">
         {items.map((item) => (
           <div
             key={item.id}
@@ -113,7 +116,7 @@ export default async function TableDetailPage({
         )}
       </div>
 
-      <div className="bg-white border rounded-xl p-4 space-y-1">
+      <div className="bg-white border rounded-2xl p-4 space-y-1">
         <div className="flex justify-between text-sm text-gray-500">
           <span>Toplam</span>
           <span>{formatTL(totalCents)}</span>
@@ -128,18 +131,30 @@ export default async function TableDetailPage({
             <span>{formatTL(tipCents)}</span>
           </div>
         )}
-        <div className="flex justify-between font-semibold border-t pt-1 mt-1">
+        <div className="flex justify-between font-semibold border-t pt-2 mt-1">
           <span>Kalan</span>
-          <span>{formatTL(remainingCents)}</span>
+          <span
+            className="bg-clip-text text-transparent"
+            style={{ backgroundImage: BRAND_GRADIENT }}
+          >
+            {formatTL(remainingCents)}
+          </span>
         </div>
       </div>
 
       {order && remainingCents > 0 && (
+        <div
+          className="rounded-2xl p-[2px] shadow-lg shadow-amber-600/10"
+          style={{ background: BRAND_GRADIENT }}
+        >
         <form
           action={recordManualPaymentAction}
-          className="bg-white border rounded-xl p-4 space-y-3"
+          className="bg-white rounded-[14px] p-4 space-y-3"
         >
-          <p className="text-sm font-medium">Ödeme Al</p>
+          <p className="text-sm font-semibold flex items-center gap-1.5">
+            <WalletIcon className="w-4.5 h-4.5 text-amber-600" />
+            Ödeme Al
+          </p>
           <p className="text-xs text-gray-400">
             Müşteri masada nakit ödediyse ya da restoranın kendi POS/kart
             cihazıyla (temassız/NFC dahil) kart çektiyseniz buradan kaydedin.
@@ -185,15 +200,20 @@ export default async function TableDetailPage({
                 className="w-full mt-1 border rounded-lg px-3 py-2"
               />
             </div>
-            <button className="bg-black text-white rounded-lg px-4 py-2 font-medium">
+            <button
+              className="text-white rounded-lg px-4 py-2 font-medium shadow-md shadow-amber-600/20 flex items-center gap-1.5"
+              style={{ background: BRAND_GRADIENT }}
+            >
+              <CardIcon className="w-4 h-4" />
               Ödemeyi Kaydet
             </button>
           </div>
         </form>
+        </div>
       )}
 
       {payments.length > 0 && (
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm font-medium mb-2">Ödemeler</p>
           <div className="space-y-1">
             {payments.map((p) => (
@@ -234,7 +254,7 @@ export default async function TableDetailPage({
       {order && isManager && (
         <form
           action={cancelOrderAction}
-          className="bg-white border border-red-200 rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap"
+          className="bg-white border border-red-200 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap"
         >
           <input type="hidden" name="tableId" value={tableId} />
           <input type="hidden" name="orderId" value={order.id} />

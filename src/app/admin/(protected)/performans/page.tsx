@@ -46,13 +46,16 @@ export default async function PerformancePage({
             defaultValue={to}
             className="border rounded-lg px-2 py-1"
           />
-          <button className="bg-black text-white rounded-lg px-3 py-1">
+          <button
+            className="text-white rounded-lg px-3 py-1"
+            style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
+          >
             Göster
           </button>
         </form>
       </div>
 
-      <div className="bg-white border rounded-xl overflow-x-auto">
+      <div className="bg-white border rounded-2xl overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-gray-500 border-b">
             <tr>

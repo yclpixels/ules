@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BellIcon, CheckCircleIcon } from "@/components/icons";
+
+const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
 
 type KitchenItem = {
   id: string;
@@ -126,12 +129,17 @@ export default function KitchenBoard({
         {!soundOn ? (
           <button
             onClick={enableSound}
-            className="bg-black text-white rounded-lg px-4 py-2 text-sm font-medium"
+            className="text-white rounded-lg px-4 py-2 text-sm font-medium shadow-md shadow-amber-600/20 flex items-center gap-1.5"
+            style={{ background: BRAND_GRADIENT }}
           >
-            🔔 Sesli uyarıyı aç
+            <BellIcon className="w-4 h-4" />
+            Sesli uyarıyı aç
           </button>
         ) : (
-          <span className="text-sm text-green-600">Sesli uyarı açık</span>
+          <span className="flex items-center gap-1 text-sm text-green-600">
+            <CheckCircleIcon className="w-4 h-4" />
+            Sesli uyarı açık
+          </span>
         )}
       </div>
 
@@ -148,7 +156,7 @@ export default function KitchenBoard({
         {items?.map((item) => (
           <div
             key={item.id}
-            className="bg-white border rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+            className="bg-white border rounded-2xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap transition-shadow hover:shadow-md"
           >
             <div className="min-w-0">
               <p className="font-medium">
@@ -173,8 +181,9 @@ export default function KitchenBoard({
                     prev ? prev.filter((i) => i.id !== item.id) : prev
                   );
                 }}
-                className="bg-black text-white rounded-lg px-4 py-2 text-sm font-medium"
+                className="bg-green-600 text-white rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-1.5 shadow-sm"
               >
+                <CheckCircleIcon className="w-4 h-4" />
                 Hazır
               </button>
             </form>

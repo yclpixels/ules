@@ -75,7 +75,7 @@ export default async function SiparislerPage({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white border rounded-xl p-4 flex items-center gap-3 flex-wrap">
+      <div className="bg-white border rounded-2xl p-4 flex items-center gap-3 flex-wrap">
         <Link
           href={`/admin/siparisler?date=${toDateInputValue(
             addDays(selectedDate, -1)
@@ -91,7 +91,10 @@ export default async function SiparislerPage({
             defaultValue={toDateInputValue(selectedDate)}
             className="border rounded-lg px-3 py-2 text-sm"
           />
-          <button className="text-sm bg-black text-white rounded-lg px-3 py-2">
+          <button
+            className="text-sm text-white rounded-lg px-3 py-2"
+            style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
+          >
             Git
           </button>
         </form>
@@ -116,33 +119,33 @@ export default async function SiparislerPage({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Sipariş sayısı</p>
           <p className="text-2xl font-semibold">{rows.length}</p>
         </div>
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Toplam ciro</p>
           <p className="text-2xl font-semibold">{formatTL(dayTotalCents)}</p>
         </div>
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Ödenen</p>
           <p className="text-2xl font-semibold">{formatTL(dayPaidCents)}</p>
         </div>
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Nakit</p>
           <p className="text-2xl font-semibold">{formatTL(dayCashCents)}</p>
         </div>
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Kart</p>
           <p className="text-2xl font-semibold">{formatTL(dayCardCents)}</p>
         </div>
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Bahşiş</p>
           <p className="text-2xl font-semibold">{formatTL(dayTipCents)}</p>
         </div>
       </div>
 
-      <div className="bg-white border rounded-xl divide-y">
+      <div className="bg-white border rounded-2xl divide-y overflow-hidden">
         {rows.map(({ order, totalCents, paidCents }) => (
           <details key={order.id} className="group">
             <summary className="flex items-center justify-between px-4 py-3 cursor-pointer list-none">

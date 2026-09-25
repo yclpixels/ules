@@ -70,7 +70,7 @@ export default async function FeedbackPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {CRITERIA.map((c) => (
-          <div key={c.key} className="bg-white border rounded-xl p-4">
+          <div key={c.key} className="bg-white border rounded-2xl p-4">
             <p className="text-sm text-gray-500">{c.label}</p>
             <p className="text-2xl font-semibold">
               {agg._count > 0 ? (agg._avg[c.key] ?? 0).toFixed(1) : "—"}
@@ -79,7 +79,7 @@ export default async function FeedbackPage() {
         ))}
       </div>
 
-      <div className="bg-white border rounded-xl divide-y">
+      <div className="bg-white border rounded-2xl divide-y overflow-hidden">
         {feedbacks.map((f) => {
           const low = isLowRating(f);
           const needsAction = low && !f.acknowledgedAt;

@@ -6,6 +6,8 @@ import { getDayData } from "@/lib/reports";
 import { addDays, startOfDayInIstanbul, toDateInputValue } from "@/lib/dates";
 import { closeDayAction } from "@/lib/actions";
 
+const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+
 export const dynamic = "force-dynamic";
 
 const timeFormatter = new Intl.DateTimeFormat("tr-TR", {
@@ -65,25 +67,25 @@ export default async function DayClosePage({
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Nakit (kasada olmalı)</p>
           <p className="text-2xl font-semibold">{formatTL(day.cashCents)}</p>
         </div>
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Kart (POS cihazı)</p>
           <p className="text-2xl font-semibold">
             {formatTL(day.posCardCents)}
           </p>
         </div>
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Kart (QR / online)</p>
           <p className="text-2xl font-semibold">{formatTL(day.onlineCents)}</p>
         </div>
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Bahşiş (tümünün içinde)</p>
           <p className="text-2xl font-semibold">{formatTL(day.tipCents)}</p>
         </div>
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Toplam tahsilat</p>
           <p className="text-2xl font-semibold">{formatTL(day.totalCents)}</p>
         </div>
@@ -91,7 +93,7 @@ export default async function DayClosePage({
 
       <form
         action={closeDayAction}
-        className={`border rounded-xl p-4 space-y-3 ${
+        className={`border rounded-2xl p-4 space-y-3 ${
           existing ? "bg-green-50 border-green-200" : "bg-white"
         }`}
       >
@@ -118,7 +120,10 @@ export default async function DayClosePage({
               className="w-full mt-1 border rounded-lg px-3 py-2"
             />
           </div>
-          <button className="bg-black text-white rounded-lg px-4 py-2 font-medium">
+          <button
+            className="text-white rounded-lg px-4 py-2 font-medium shadow-md shadow-amber-600/20"
+            style={{ background: BRAND_GRADIENT }}
+          >
             {existing ? "Kapanışı Güncelle" : "Günü Kapat"}
           </button>
         </div>
@@ -150,7 +155,7 @@ export default async function DayClosePage({
         )}
       </form>
 
-      <div className="bg-white border rounded-xl divide-y">
+      <div className="bg-white border rounded-2xl divide-y overflow-hidden">
         <p className="px-4 py-2 text-sm font-medium">
           Günün ödemeleri ({day.payments.length})
         </p>
@@ -186,7 +191,7 @@ export default async function DayClosePage({
       </div>
 
       {recent.length > 0 && (
-        <div className="bg-white border rounded-xl divide-y">
+        <div className="bg-white border rounded-2xl divide-y overflow-hidden">
           <p className="px-4 py-2 text-sm font-medium">Son kapanışlar</p>
           {recent.map((c) => {
             const d = c.countedCashCents - c.expectedCashCents;

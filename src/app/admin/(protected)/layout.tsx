@@ -3,6 +3,8 @@ import { verifyAdminSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { describeSubscription } from "@/lib/subscription";
 import AdminNav, { type NavGroup } from "@/components/AdminNav";
+import Logo from "@/components/Logo";
+import { BellIcon } from "@/components/icons";
 import { roleLabel } from "@/lib/roles";
 import { countUnacknowledgedLowRatings } from "@/lib/feedbackAlerts";
 
@@ -86,10 +88,13 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-4 py-3 sticky top-0 z-20">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          <Link href="/admin" className="min-w-0">
-            <span className="font-semibold block truncate">Üleş</span>
-            <span className="text-xs text-gray-400 block truncate">
-              {session.branchName}
+          <Link href="/admin" className="min-w-0 flex items-center gap-2">
+            <Logo className="w-7 h-7 shrink-0" />
+            <span className="min-w-0">
+              <span className="font-semibold block truncate">Üleş</span>
+              <span className="text-xs text-gray-400 block truncate">
+                {session.branchName}
+              </span>
             </span>
           </Link>
           <AdminNav
@@ -104,12 +109,13 @@ export default async function AdminLayout({
         <div className="max-w-4xl mx-auto px-4 pt-4">
           <Link
             href="/admin/degerlendirmeler"
-            className="block border border-red-200 bg-red-50 text-red-700 rounded-xl px-4 py-3 text-sm hover:bg-red-100"
+            className="flex items-center gap-2 border border-red-200 bg-red-50 text-red-700 rounded-xl px-4 py-3 text-sm transition-colors hover:bg-red-100"
           >
-            <strong>
-              {lowRatingCount} düşük puanlı değerlendirme
-            </strong>{" "}
-            bekliyor — müşteri hâlâ masada olabilir. Görüntüle →
+            <BellIcon className="w-4 h-4 shrink-0" />
+            <span>
+              <strong>{lowRatingCount} düşük puanlı değerlendirme</strong>{" "}
+              bekliyor — müşteri hâlâ masada olabilir. Görüntüle →
+            </span>
           </Link>
         </div>
       )}

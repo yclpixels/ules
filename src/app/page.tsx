@@ -5,7 +5,7 @@ import ContactForm from "@/components/ContactForm";
 import MobileNav from "@/components/marketing/MobileNav";
 import HeroMockup from "@/components/marketing/HeroMockup";
 import LivePreviewFrame from "@/components/marketing/LivePreviewFrame";
-import Logo from "@/components/marketing/Logo";
+import Logo from "@/components/Logo";
 import {
   QrIcon,
   SplitIcon,
@@ -15,6 +15,7 @@ import {
   CodeIcon,
   BuildingIcon,
   ClipboardIcon,
+  CardIcon,
 } from "@/components/icons";
 
 // Sadece tanıtım sayfasında kullanılan başlık fontu — admin panelini
@@ -233,6 +234,46 @@ export default function Home() {
                   <p className="text-sm text-gray-500">{f.desc}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white border-b">
+          <div className="max-w-5xl mx-auto px-4 py-16 sm:py-20 text-center">
+            <p className="text-sm text-gray-500 uppercase tracking-wide">
+              Ödeme altyapısı
+            </p>
+            <h2
+              className="text-3xl mt-2"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Ödemeleriniz iyzico güvencesiyle
+            </h2>
+            <p className="text-gray-500 mt-3 max-w-xl mx-auto">
+              Kart bilgisi hiçbir zaman bizim ya da işletmenin sunucusuna
+              uğramaz — doğrudan iyzico&apos;nun PCI-DSS sertifikalı, 3D
+              Secure destekli altyapısına girilir. Tahsilat da doğrudan
+              işletmenin kendi hesabına gider.
+            </p>
+            <div className="mt-10 inline-flex flex-wrap items-center justify-center gap-4 sm:gap-8 bg-gray-50 border rounded-2xl px-6 sm:px-10 py-6">
+              <span
+                className="text-3xl italic text-gray-900"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                iyzico
+              </span>
+              <span className="hidden sm:block w-px h-8 bg-gray-200" />
+              <span className="flex items-center gap-1.5 text-sm text-gray-600">
+                <ShieldIcon className="w-4 h-4 text-amber-600" />
+                PCI-DSS
+              </span>
+              <span className="flex items-center gap-1.5 text-sm text-gray-600">
+                <CardIcon className="w-4 h-4 text-amber-600" />
+                3D Secure
+              </span>
+              <span className="text-sm text-gray-600">
+                Visa · Mastercard · Troy
+              </span>
             </div>
           </div>
         </section>

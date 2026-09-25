@@ -51,15 +51,15 @@ export default async function IsletmelerPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Toplam işletme</p>
           <p className="text-2xl font-semibold">{rows.length}</p>
         </div>
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Ödeyen</p>
           <p className="text-2xl font-semibold">{activeCount}</p>
         </div>
-        <div className="bg-white border rounded-xl p-4">
+        <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Aylık gelir</p>
           <p className="text-2xl font-semibold">{formatTL(monthlyTotal)}</p>
         </div>
@@ -69,7 +69,7 @@ export default async function IsletmelerPage() {
 
       <div className="space-y-3">
         {rows.map(({ branch, view }) => (
-          <details key={branch.id} className="bg-white border rounded-xl">
+          <details key={branch.id} className="bg-white border rounded-2xl overflow-hidden">
             <summary className="px-4 py-3 cursor-pointer flex items-center justify-between gap-3 flex-wrap">
               <span>
                 <span className="font-medium">{branch.name}</span>
@@ -175,14 +175,17 @@ export default async function IsletmelerPage() {
                   className="w-full mt-1 border rounded-lg px-3 py-2"
                 />
               </div>
-              <button className="bg-black text-white rounded-lg px-4 py-2 text-sm font-medium">
+              <button
+                className="text-white rounded-lg px-4 py-2 text-sm font-medium shadow-md shadow-amber-600/20"
+                style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
+              >
                 Kaydet
               </button>
             </form>
           </details>
         ))}
         {rows.length === 0 && (
-          <p className="bg-white border rounded-xl px-4 py-6 text-center text-gray-500">
+          <p className="bg-white border rounded-2xl px-4 py-6 text-center text-gray-500">
             Henüz işletme yok.
           </p>
         )}

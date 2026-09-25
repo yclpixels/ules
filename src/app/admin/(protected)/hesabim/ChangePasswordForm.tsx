@@ -40,7 +40,8 @@ export default function ChangePasswordForm() {
       <button
         type="submit"
         disabled={pending}
-        className="bg-black text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+        className="text-white rounded-lg px-4 py-2 text-sm font-medium shadow-md shadow-amber-600/20 disabled:opacity-50"
+        style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
       >
         {pending ? "Kaydediliyor..." : "Şifreyi Değiştir"}
       </button>

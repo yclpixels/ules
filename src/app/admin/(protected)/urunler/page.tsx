@@ -15,6 +15,8 @@ import { verifyManagerSession } from "@/lib/dal";
 import ConfirmButton from "@/components/ConfirmButton";
 import ImagePicker from "@/components/ImagePicker";
 
+const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+
 export const dynamic = "force-dynamic";
 
 export default async function UrunlerPage() {
@@ -43,7 +45,7 @@ export default async function UrunlerPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white border rounded-xl p-4 space-y-3">
+      <div className="bg-white border rounded-2xl p-4 space-y-3">
         <form
           action={addCategoryAction}
           className="flex gap-3 items-end"
@@ -57,7 +59,10 @@ export default async function UrunlerPage() {
               className="w-full mt-1 border rounded-lg px-3 py-2"
             />
           </div>
-          <button className="bg-black text-white rounded-lg px-4 py-2 font-medium">
+          <button
+            className="text-white rounded-lg px-4 py-2 font-medium shadow-md shadow-amber-600/20"
+            style={{ background: BRAND_GRADIENT }}
+          >
             Ekle
           </button>
         </form>
@@ -84,7 +89,10 @@ export default async function UrunlerPage() {
                       title="Sıra (küçük önce)"
                       className="w-14 border rounded-lg px-2 py-1 text-sm"
                     />
-                    <button className="text-sm bg-black text-white rounded-lg px-2 py-1">
+                    <button
+                      className="text-sm text-white rounded-lg px-2 py-1"
+                      style={{ background: BRAND_GRADIENT }}
+                    >
                       Kaydet
                     </button>
                   </form>
@@ -106,7 +114,7 @@ export default async function UrunlerPage() {
 
       <form
         action={addProductAction}
-        className="bg-white border rounded-xl p-4 flex gap-3 items-end flex-wrap"
+        className="bg-white border rounded-2xl p-4 flex gap-3 items-end flex-wrap"
       >
         <div className="flex-1 min-w-[160px]">
           <label className="text-sm text-gray-500">Ürün adı</label>
@@ -164,12 +172,15 @@ export default async function UrunlerPage() {
             </div>
           </div>
         </div>
-        <button className="bg-black text-white rounded-lg px-4 py-2 font-medium">
+        <button
+          className="text-white rounded-lg px-4 py-2 font-medium shadow-md shadow-amber-600/20"
+          style={{ background: BRAND_GRADIENT }}
+        >
           Ürün Ekle
         </button>
       </form>
 
-      <div className="bg-white border rounded-xl divide-y">
+      <div className="bg-white border rounded-2xl divide-y overflow-hidden">
         {products.map((p) => (
           <div key={p.id} className="px-4 py-3">
             <div className="flex items-center justify-between gap-3">
@@ -178,7 +189,7 @@ export default async function UrunlerPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={p.imageUrl}
-                    alt=""
+                    alt={p.name}
                     className="w-12 h-12 rounded-lg object-cover border shrink-0"
                   />
                 )}
@@ -256,7 +267,10 @@ export default async function UrunlerPage() {
                               placeholder="Alerjenler"
                               className="w-full border rounded-lg px-2 py-1 text-sm"
                             />
-                            <button className="w-full bg-black text-white rounded-lg py-1 text-sm">
+                            <button
+                              className="w-full text-white rounded-lg py-1 text-sm"
+                              style={{ background: BRAND_GRADIENT }}
+                            >
                               Kaydet
                             </button>
                           </form>
@@ -307,7 +321,10 @@ export default async function UrunlerPage() {
                         className="w-full border rounded-lg px-2 py-1 text-sm"
                       />
                       <ImagePicker name="imageUrl" defaultValue={p.imageUrl} />
-                      <button className="w-full bg-black text-white rounded-lg px-2 py-1 text-sm">
+                      <button
+                        className="w-full text-white rounded-lg px-2 py-1 text-sm"
+                        style={{ background: BRAND_GRADIENT }}
+                      >
                         Kaydet
                       </button>
                     </form>

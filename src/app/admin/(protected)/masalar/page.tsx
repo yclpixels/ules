@@ -36,7 +36,7 @@ export default async function MasalarPage() {
     <div className="space-y-6">
       <form
         action={addTableAction}
-        className="bg-white border rounded-xl p-4 flex gap-3 items-end"
+        className="bg-white border rounded-2xl p-4 flex gap-3 items-end"
       >
         <div className="flex-1">
           <label className="text-sm text-gray-500">Yeni masa adı</label>
@@ -47,7 +47,10 @@ export default async function MasalarPage() {
             className="w-full mt-1 border rounded-lg px-3 py-2"
           />
         </div>
-        <button className="bg-black text-white rounded-lg px-4 py-2 font-medium">
+        <button
+          className="text-white rounded-lg px-4 py-2 font-medium shadow-md shadow-amber-600/20"
+          style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
+        >
           Ekle
         </button>
       </form>
@@ -56,7 +59,7 @@ export default async function MasalarPage() {
         {tablesWithQr.map((table) => (
           <div
             key={table.id}
-            className="bg-white border rounded-xl p-4 text-center space-y-2"
+            className="bg-white border rounded-2xl p-4 text-center space-y-2 transition-shadow hover:shadow-lg hover:shadow-black/5"
           >
             <p className="font-medium">{table.name}</p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -68,7 +71,8 @@ export default async function MasalarPage() {
             <p className="text-xs text-gray-400 break-all">{table.url}</p>
             <Link
               href={`/admin/masalar/${table.id}`}
-              className="inline-block text-sm underline"
+              className="inline-block text-sm text-white rounded-lg px-3 py-1.5 font-medium transition-transform hover:scale-105"
+              style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
             >
               Hesabı yönet
             </Link>
@@ -87,7 +91,10 @@ export default async function MasalarPage() {
                     defaultValue={table.name}
                     className="flex-1 border rounded-lg px-2 py-1 text-sm"
                   />
-                  <button className="text-sm bg-black text-white rounded-lg px-2 py-1">
+                  <button
+                    className="text-sm text-white rounded-lg px-2 py-1"
+                    style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
+                  >
                     Kaydet
                   </button>
                 </form>

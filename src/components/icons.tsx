@@ -24,13 +24,14 @@ export function QrIcon(props: { className?: string }) {
   );
 }
 
-/** İki ayrı yarım daire, aralarında boşlukla — "bölünüp ayrıldı" anlamı tek
- * bir çizgili daireden çok daha net okunur. */
+/** Yarısı dolu, yarısı boş daire — "ikiye bölündü" anlamını küçük boyutta
+ * bile net veren klasik "pasta dilimi" motifi. Önceki iki-yarım-daire
+ * denemesi 44px rozet içinde neredeyse görünmez kaldığı için değiştirildi. */
 export function SplitIcon(props: { className?: string }) {
   return (
-    <svg {...base} {...props}>
-      <path d="M11 3a9 9 0 0 0 0 18" />
-      <path d="M13 3a9 9 0 0 1 0 18" />
+    <svg viewBox="0 0 24 24" className={props.className}>
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />
     </svg>
   );
 }

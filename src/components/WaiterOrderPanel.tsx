@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { formatTL } from "@/lib/money";
 
+const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+
 export type WaiterProduct = {
   id: string;
   name: string;
@@ -65,7 +67,7 @@ export default function WaiterOrderPanel({
   }, [products, query, category]);
 
   return (
-    <div className="bg-white border rounded-xl p-4 space-y-3">
+    <div className="bg-white border rounded-2xl p-4 space-y-3">
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -78,9 +80,10 @@ export default function WaiterOrderPanel({
           <button
             type="button"
             onClick={() => setCategory("all")}
-            className={`text-sm rounded-lg px-3 py-1 border ${
-              category === "all" ? "bg-black text-white border-black" : ""
+            className={`text-sm rounded-lg px-3 py-1 border transition-colors ${
+              category === "all" ? "text-white border-transparent" : ""
             }`}
+            style={category === "all" ? { background: BRAND_GRADIENT } : undefined}
           >
             Tümü
           </button>
@@ -89,9 +92,10 @@ export default function WaiterOrderPanel({
               key={id}
               type="button"
               onClick={() => setCategory(id)}
-              className={`text-sm rounded-lg px-3 py-1 border ${
-                category === id ? "bg-black text-white border-black" : ""
+              className={`text-sm rounded-lg px-3 py-1 border transition-colors ${
+                category === id ? "text-white border-transparent" : ""
               }`}
+              style={category === id ? { background: BRAND_GRADIENT } : undefined}
             >
               {name}
             </button>
@@ -155,7 +159,10 @@ export default function WaiterOrderPanel({
                     className="w-full border rounded-lg px-2 py-1"
                   />
                 </div>
-                <button className="bg-black text-white rounded-lg px-3 py-1.5 text-sm font-medium">
+                <button
+                  className="text-white rounded-lg px-3 py-1.5 text-sm font-medium"
+                  style={{ background: BRAND_GRADIENT }}
+                >
                   Ekle
                 </button>
               </form>

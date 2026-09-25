@@ -6,6 +6,8 @@ import {
   type CreateBranchState,
 } from "@/lib/actions";
 
+const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+
 /**
  * Yeni işletme açma formu. Katlanabilir: sahip panelinin ana işi mevcut
  * işletmeleri izlemek, yeni açmak ara sıra yapılan bir iş.
@@ -21,7 +23,8 @@ export default function NewBranchForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="bg-black text-white rounded-lg px-4 py-2 text-sm font-medium"
+        className="text-white rounded-lg px-4 py-2 text-sm font-medium shadow-md shadow-amber-600/20"
+        style={{ background: BRAND_GRADIENT }}
       >
         + Yeni işletme aç
       </button>
@@ -99,7 +102,8 @@ export default function NewBranchForm() {
 
       <button
         disabled={pending}
-        className="bg-black text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+        className="text-white rounded-lg px-4 py-2 text-sm font-medium shadow-md shadow-amber-600/20 disabled:opacity-50"
+        style={{ background: BRAND_GRADIENT }}
       >
         {pending ? "Açılıyor..." : "İşletmeyi Aç"}
       </button>

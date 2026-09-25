@@ -35,7 +35,8 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full bg-black text-white rounded-lg py-2 font-medium disabled:opacity-50"
+        className="w-full text-white rounded-lg py-2 font-medium shadow-md shadow-amber-600/20 disabled:opacity-50"
+        style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
       >
         {pending ? "Giriş yapılıyor..." : "Giriş yap"}
       </button>

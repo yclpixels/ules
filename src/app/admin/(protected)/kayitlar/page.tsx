@@ -50,7 +50,7 @@ export default async function KayitlarPage({
         </p>
       </div>
 
-      <div className="bg-white border rounded-xl divide-y">
+      <div className="bg-white border rounded-2xl divide-y overflow-hidden">
         {logs.map((log) => {
           const alert = ALERT_ACTIONS.has(log.action);
           return (
