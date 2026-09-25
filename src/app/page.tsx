@@ -151,11 +151,11 @@ export default function Home() {
           borderBottom: "1px solid #eeeeee",
         }}
       >
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <Logo className="w-8 h-8 shrink-0" />
+        <div className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between">
+          <span className="flex items-center gap-3">
+            <Logo className="w-14 h-14 shrink-0" />
             <span
-              className="text-xl"
+              className="text-2xl"
               style={{ fontFamily: "var(--font-display)", fontWeight: 800 }}
             >
               Üleş
