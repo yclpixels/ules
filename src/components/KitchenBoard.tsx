@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BellIcon, CheckCircleIcon } from "@/components/icons";
 
-const BRAND_GRADIENT = "linear-gradient(135deg, #E0233A, #E0233A)";
+const BRAND_GRADIENT = "linear-gradient(135deg, #1D126D, #1D126D)";
 
 type KitchenItem = {
   id: string;

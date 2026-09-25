@@ -162,27 +162,30 @@ export default function Home() {
             </span>
           </span>
           <nav
-            className="hidden sm:flex items-center gap-8 text-sm"
-            style={{ color: "#6b7280" }}
+            className="hidden sm:flex items-center gap-8 text-sm font-semibold"
+            style={{ color: "#0a0a0a" }}
           >
-            <a href="#ozellikler" className="transition-colors hover:text-black">
+            <a href="#ozellikler" className="transition-colors hover:opacity-60">
               Özellikler
             </a>
-            <a href="#nasil-calisir" className="transition-colors hover:text-black">
+            <a href="#nasil-calisir" className="transition-colors hover:opacity-60">
               Nasıl Çalışır
             </a>
-            <a href="#iletisim" className="transition-colors hover:text-black">
+            <a href="#iletisim" className="transition-colors hover:opacity-60">
               İletişim
             </a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/admin/login"
-              className="hidden sm:inline-block text-sm rounded-lg px-3 py-1.5 transition-colors hover:bg-[#fafafa]"
-              style={{ border: "1px solid #e5e7eb" }}
-            >
+            <Link href="/admin/login" className="transition-colors hover:opacity-60">
               Personel Girişi
             </Link>
+          </nav>
+          <div className="flex items-center gap-2">
+            <a
+              href="#iletisim"
+              className="hidden sm:inline-flex rounded-full px-6 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-105"
+              style={{ backgroundColor: "#1D126D" }}
+            >
+              Demo İsteyin
+            </a>
             <MobileNav />
           </div>
         </div>
@@ -200,11 +203,11 @@ export default function Home() {
                 letterSpacing: "0.05em",
               }}
             >
-              <ShieldIcon className="w-3.5 h-3.5 text-[#E0233A]" />
+              <ShieldIcon className="w-3.5 h-3.5 text-[#1D126D]" />
               iyzico ile PCI-DSS uyumlu güvenli ödeme
             </span>
             <h1
-              className="text-4xl sm:text-6xl leading-[1.08] tracking-tight text-balance"
+              className="text-5xl sm:text-7xl leading-[1.05] tracking-tight text-balance"
               style={{ fontFamily: "var(--font-display)", fontWeight: 800 }}
             >
               Masada QR ile sipariş verin, hesabı bölüşün, ödeyin.
@@ -221,7 +224,7 @@ export default function Home() {
               <a
                 href="#iletisim"
                 className="rounded-full px-7 py-3.5 font-medium text-white transition-transform hover:scale-105"
-                style={{ backgroundColor: "#E0233A" }}
+                style={{ backgroundColor: "#1D126D" }}
               >
                 Demo İsteyin
               </a>
@@ -247,9 +250,9 @@ export default function Home() {
           </div>
 
           {/* İki telefon üst üste — menü ve ödeme ekranı tek kompozisyonda */}
-          <div className="relative mx-auto mt-14 sm:mt-16 h-[380px] sm:h-[480px] max-w-xs sm:max-w-md px-4">
-            <HeroMockup className="absolute left-0 top-6 sm:top-8 w-[58%] -rotate-6 drop-shadow-2xl" />
-            <PaymentMockup className="absolute right-0 top-0 w-[58%] rotate-6 drop-shadow-2xl" />
+          <div className="relative mx-auto mt-14 sm:mt-16 h-[440px] sm:h-[620px] max-w-sm sm:max-w-xl px-4">
+            <HeroMockup className="absolute left-0 top-6 sm:top-10 w-[60%] -rotate-6 drop-shadow-2xl" />
+            <PaymentMockup className="absolute right-0 top-0 w-[60%] rotate-6 drop-shadow-2xl" />
           </div>
         </section>
 
@@ -272,7 +275,7 @@ export default function Home() {
                 <div key={f.title} className="space-y-3">
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center text-white"
-                    style={{ backgroundColor: "#E0233A" }}
+                    style={{ backgroundColor: "#1D126D" }}
                   >
                     <f.icon className="w-5 h-5" />
                   </div>
@@ -332,14 +335,14 @@ export default function Home() {
                   className="flex items-center gap-1.5 text-sm"
                   style={{ color: "#374151" }}
                 >
-                  <ShieldIcon className="w-4 h-4 text-[#E0233A]" />
+                  <ShieldIcon className="w-4 h-4 text-[#1D126D]" />
                   PCI-DSS
                 </span>
                 <span
                   className="flex items-center gap-1.5 text-sm"
                   style={{ color: "#374151" }}
                 >
-                  <CardIcon className="w-4 h-4 text-[#E0233A]" />
+                  <CardIcon className="w-4 h-4 text-[#1D126D]" />
                   3D Secure
                 </span>
               </div>
@@ -387,7 +390,7 @@ export default function Home() {
                   <div key={s.n} className="flex gap-4">
                     <div
                       className="w-10 h-10 shrink-0 rounded-full text-white flex items-center justify-center font-semibold"
-                      style={{ backgroundColor: "#E0233A" }}
+                      style={{ backgroundColor: "#1D126D" }}
                     >
                       {s.n}
                     </div>

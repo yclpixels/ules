@@ -1,7 +1,7 @@
 /**
  * Hero'daki ikinci telefon illüstrasyonu — ödeme/hesap bölüşme ekranı.
  * HeroMockup ile aynı gerçekçi iPhone çerçevesini kullanır; ekran içeriği
- * gerçek uygulamanın açık temasını (beyaz zemin, marka kırmızısı #E0233A)
+ * gerçek uygulamanın açık temasını (beyaz zemin, marka lacivert rengi #1D126D)
  * dürüstçe yansıtan wireframe teknikle çizilir.
  */
 export default function PaymentMockup({ className }: { className?: string }) {
@@ -44,7 +44,7 @@ export default function PaymentMockup({ className }: { className?: string }) {
         {/* Bölüşme sekmeleri */}
         <g>
           <rect x="34" y="104" width="234" height="40" rx="12" fill="#fafafa" />
-          <rect x="40" y="110" width="72" height="28" rx="9" fill="#E0233A" />
+          <rect x="40" y="110" width="72" height="28" rx="9" fill="#1D126D" />
           <rect x="118" y="116" width="60" height="9" rx="3" fill="#9ca3af" />
           <rect x="196" y="116" width="54" height="9" rx="3" fill="#9ca3af" />
         </g>
@@ -62,7 +62,7 @@ export default function PaymentMockup({ className }: { className?: string }) {
             y="304"
             fontSize="44"
             fontWeight="800"
-            fill="#E0233A"
+            fill="#1D126D"
             fontFamily="Arial, sans-serif"
           >
             ₺270,00
@@ -73,14 +73,14 @@ export default function PaymentMockup({ className }: { className?: string }) {
         <rect x="34" y="360" width="60" height="9" rx="3" fill="#6b7280" />
         <g>
           <rect x="34" y="378" width="50" height="30" rx="9" fill="none" stroke="#e5e7eb" strokeWidth="1.5" />
-          <rect x="92" y="378" width="50" height="30" rx="9" fill="#E0233A" />
+          <rect x="92" y="378" width="50" height="30" rx="9" fill="#1D126D" />
           <rect x="150" y="378" width="50" height="30" rx="9" fill="none" stroke="#e5e7eb" strokeWidth="1.5" />
           <rect x="208" y="378" width="60" height="30" rx="9" fill="none" stroke="#e5e7eb" strokeWidth="1.5" />
         </g>
 
         {/* Kartla öde butonu */}
         <g>
-          <rect x="18" y="524" width="284" height="90" rx="20" fill="#E0233A" />
+          <rect x="18" y="524" width="284" height="90" rx="20" fill="#1D126D" />
           <rect x="40" y="550" width="20" height="20" rx="5" fill="#ffffff" fillOpacity="0.8" />
           <rect x="70" y="556" width="120" height="12" rx="4" fill="#ffffff" />
           <circle cx="250" cy="569" r="18" fill="#ffffff" fillOpacity="0.8" />

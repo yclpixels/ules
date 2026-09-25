@@ -4,14 +4,13 @@
  * AÇIK TEMA — tek tema, sistem tercihine göre değişmez.
  *
  * Uygulama daha önce tek bir dosyadan (burası) koyuya çevrilen bir renk
- * eşlemesi kullanıyordu; pazarlama sitesiyle (marka rengi #E0233A, beyaz
+ * eşlemesi kullanıyordu; pazarlama sitesiyle (marka rengi #1D126D, beyaz
  * zemin) tutarlı olması için tüm uygulama (admin, masa/sipariş ekranı, menü,
  * fiş) buradan tekrar açık temaya döndürüldü — tek dosya değişince her yer
  * güncelleniyor, ayrı ayrı dark: varyantı eklemeye gerek yok.
  *
- * Vurgu rengi (amber/red-600 kullanan yerler) marka kırmızısına (#E0233A)
- * yakın tutuldu ki eski gradyan bileşenleri (BRAND_GRADIENT) yeni düz
- * kırmızıyla uyumlu görünsün.
+ * Vurgu rengi (amber-* token'ları) marka lacivertine (#1D126D) eşlendi ki
+ * eski gradyan bileşenleri (BRAND_GRADIENT) yeni düz renkle uyumlu görünsün.
  *
  * Müşterinin telefonundaki sistem teması bilinçli olarak dikkate alınmıyor:
  * restoranın görünümü her müşteride aynı olmalı.
@@ -49,14 +48,14 @@
   --color-red-800: #991b1b;
 
   /* amber-* uygulama genelinde marka vurgu rengi olarak kullanılıyor
-     (ikon tonları, aktif sekme rozetleri) — marka kırmızısına eşlendi. */
+     (ikon tonları, aktif sekme rozetleri) — marka lacivert rengina eşlendi. */
   --color-amber-50: #fdf1f2;
   --color-amber-100: #fce4e6;
   --color-amber-200: #f8c9ce;
-  --color-amber-400: #E0233A;
-  --color-amber-600: #E0233A;
-  --color-amber-700: #b91c2e;
-  --color-amber-800: #8f1624;
+  --color-amber-400: #1D126D;
+  --color-amber-600: #1D126D;
+  --color-amber-700: #150D52;
+  --color-amber-800: #0F0A3D;
 
   --color-blue-50: #eff6ff;
   --color-blue-200: #bfdbfe;

@@ -87,7 +87,7 @@ export default function ContactForm() {
       <button
         disabled={pending}
         className="w-full rounded-full px-4 py-3 font-medium text-white transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
-        style={{ backgroundColor: "#E0233A" }}
+        style={{ backgroundColor: "#1D126D" }}
       >
         {pending ? "Gönderiliyor..." : "Demo İsteyin"}
       </button>

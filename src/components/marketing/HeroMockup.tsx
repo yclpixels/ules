@@ -3,7 +3,7 @@
  * yerine elle çizilmiş SVG kullanılıyor: dışarıdan görsel/lisans bağımlılığı
  * yok, anında yüklenir. Çerçeve gerçekçi bir iPhone'u (Dynamic Island, ince
  * kenarlık, yan tuşlar, hafif cam yansıması) taklit eder; ekran içeriği ise
- * gerçek uygulamanın (açık tema, marka kırmızısı #E0233A) yapısını dürüstçe
+ * gerçek uygulamanın (açık tema, marka lacivert rengi #1D126D) yapısını dürüstçe
  * temsil eden soyut çizgilerle (wireframe) gösterilir — font/gerçek ekran
  * görüntüsü kullanılmıyor.
  */
@@ -48,7 +48,7 @@ export default function HeroMockup({ className }: { className?: string }) {
         <rect x="34" y="78" width="140" height="9" rx="3" fill="#9ca3af" />
 
         {/* Sekmeler */}
-        <rect x="34" y="102" width="120" height="32" rx="10" fill="#E0233A" />
+        <rect x="34" y="102" width="120" height="32" rx="10" fill="#1D126D" />
         <rect x="158" y="102" width="110" height="32" rx="10" fill="none" stroke="#e5e7eb" strokeWidth="1.5" />
 
         {/* Kategori başlığı */}
@@ -57,7 +57,7 @@ export default function HeroMockup({ className }: { className?: string }) {
         {/* Ürün kartı 1 — tabak ikonu */}
         <g>
           <rect x="34" y="174" width="234" height="86" rx="14" fill="none" stroke="#e5e7eb" strokeWidth="1.5" />
-          <rect x="46" y="186" width="62" height="62" rx="14" fill="#E0233A" />
+          <rect x="46" y="186" width="62" height="62" rx="14" fill="#1D126D" />
           <circle cx="77" cy="217" r="17" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="2.5" />
           <circle cx="77" cy="217" r="9" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="2" />
           <rect x="120" y="196" width="100" height="11" rx="3" fill="#0a0a0a" />
@@ -68,7 +68,7 @@ export default function HeroMockup({ className }: { className?: string }) {
         {/* Ürün kartı 2 — bardak ikonu */}
         <g>
           <rect x="34" y="270" width="234" height="60" rx="12" fill="none" stroke="#e5e7eb" strokeWidth="1.5" />
-          <rect x="46" y="280" width="40" height="40" rx="10" fill="#E0233A" />
+          <rect x="46" y="280" width="40" height="40" rx="10" fill="#1D126D" />
           <path d="M58 290h16l-2 20h-12z" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="2" strokeLinejoin="round" />
           <rect x="98" y="290" width="90" height="11" rx="3" fill="#0a0a0a" />
           <rect x="98" y="308" width="50" height="9" rx="3" fill="#9ca3af" />
@@ -78,16 +78,16 @@ export default function HeroMockup({ className }: { className?: string }) {
         {/* Ürün kartı 3 — tatlı dilimi ikonu */}
         <g>
           <rect x="34" y="340" width="234" height="60" rx="12" fill="none" stroke="#e5e7eb" strokeWidth="1.5" />
-          <rect x="46" y="350" width="40" height="40" rx="10" fill="#E0233A" />
+          <rect x="46" y="350" width="40" height="40" rx="10" fill="#1D126D" />
           <path d="M56 376l10-18 10 18z" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="2" strokeLinejoin="round" />
           <rect x="98" y="360" width="80" height="11" rx="3" fill="#0a0a0a" />
           <rect x="98" y="378" width="50" height="9" rx="3" fill="#9ca3af" />
           <rect x="216" y="360" width="40" height="26" rx="8" fill="#fafafa" />
         </g>
 
-        {/* Sepet çubuğu (marka kırmızısı) */}
+        {/* Sepet çubuğu (marka lacivert rengi) */}
         <g>
-          <rect x="18" y="524" width="284" height="90" rx="20" fill="#E0233A" />
+          <rect x="18" y="524" width="284" height="90" rx="20" fill="#1D126D" />
           <rect x="40" y="550" width="70" height="10" rx="3" fill="#ffffff" fillOpacity="0.75" />
           <rect x="40" y="570" width="110" height="14" rx="4" fill="#ffffff" />
           <rect x="200" y="556" width="80" height="34" rx="10" fill="#ffffff" />

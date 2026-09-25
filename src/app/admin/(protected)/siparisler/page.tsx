@@ -93,7 +93,7 @@ export default async function SiparislerPage({
           />
           <button
             className="text-sm text-white rounded-lg px-3 py-2"
-            style={{ background: "linear-gradient(135deg, #E0233A, #E0233A)" }}
+            style={{ background: "linear-gradient(135deg, #1D126D, #1D126D)" }}
           >
             Git
           </button>

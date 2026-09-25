@@ -49,7 +49,7 @@ export default async function MasalarPage() {
         </div>
         <button
           className="text-white rounded-lg px-4 py-2 font-medium shadow-md shadow-amber-600/20"
-          style={{ background: "linear-gradient(135deg, #E0233A, #E0233A)" }}
+          style={{ background: "linear-gradient(135deg, #1D126D, #1D126D)" }}
         >
           Ekle
         </button>
@@ -72,7 +72,7 @@ export default async function MasalarPage() {
             <Link
               href={`/admin/masalar/${table.id}`}
               className="inline-block text-sm text-white rounded-lg px-3 py-1.5 font-medium transition-transform hover:scale-105"
-              style={{ background: "linear-gradient(135deg, #E0233A, #E0233A)" }}
+              style={{ background: "linear-gradient(135deg, #1D126D, #1D126D)" }}
             >
               Hesabı yönet
             </Link>
@@ -93,7 +93,7 @@ export default async function MasalarPage() {
                   />
                   <button
                     className="text-sm text-white rounded-lg px-2 py-1"
-                    style={{ background: "linear-gradient(135deg, #E0233A, #E0233A)" }}
+                    style={{ background: "linear-gradient(135deg, #1D126D, #1D126D)" }}
                   >
                     Kaydet
                   </button>

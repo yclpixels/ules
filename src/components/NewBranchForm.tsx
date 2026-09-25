@@ -6,7 +6,7 @@ import {
   type CreateBranchState,
 } from "@/lib/actions";
 
-const BRAND_GRADIENT = "linear-gradient(135deg, #E0233A, #E0233A)";
+const BRAND_GRADIENT = "linear-gradient(135deg, #1D126D, #1D126D)";
 
 /**
  * Yeni işletme açma formu. Katlanabilir: sahip panelinin ana işi mevcut

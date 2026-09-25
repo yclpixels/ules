@@ -156,7 +156,7 @@ export default async function PublicMenuPage({
                   }`}
                   style={
                     locale === code
-                      ? { background: "linear-gradient(135deg, #E0233A, #E0233A)" }
+                      ? { background: "linear-gradient(135deg, #1D126D, #1D126D)" }
                       : undefined
                   }
                 >

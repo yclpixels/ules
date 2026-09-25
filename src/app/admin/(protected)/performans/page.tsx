@@ -48,7 +48,7 @@ export default async function PerformancePage({
           />
           <button
             className="text-white rounded-lg px-3 py-1"
-            style={{ background: "linear-gradient(135deg, #E0233A, #E0233A)" }}
+            style={{ background: "linear-gradient(135deg, #1D126D, #1D126D)" }}
           >
             Göster
           </button>

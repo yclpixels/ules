@@ -6,7 +6,7 @@ export const contentType = "image/png";
 /**
  * Sosyal medyada link paylaşılınca çıkan kapak görseli. Dışarıdan bir
  * tasarım dosyasına bağımlı olmasın diye kod ile (next/og) üretiliyor —
- * sitenin açık temasıyla ve marka kırmızısıyla (#E0233A) aynı kimlik.
+ * sitenin açık temasıyla ve marka lacivert rengiyla (#1D126D) aynı kimlik.
  */
 export default async function OgImage() {
   return new ImageResponse(
@@ -28,7 +28,7 @@ export default async function OgImage() {
             width: 96,
             height: 96,
             borderRadius: "50%",
-            background: "#E0233A",
+            background: "#1D126D",
             marginBottom: 32,
           }}
         />

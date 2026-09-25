@@ -6,7 +6,7 @@ import { getBaseUrl } from "@/lib/baseUrl";
 import { slugify } from "@/lib/slug";
 import SubMerchantForm from "@/components/SubMerchantForm";
 
-const BRAND_GRADIENT = "linear-gradient(135deg, #E0233A, #E0233A)";
+const BRAND_GRADIENT = "linear-gradient(135deg, #1D126D, #1D126D)";
 
 export const dynamic = "force-dynamic";
 

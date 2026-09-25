@@ -14,7 +14,7 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
         <button
           onClick={reset}
           className="text-white rounded-lg px-4 py-2 text-sm font-medium shadow-md shadow-amber-600/20"
-          style={{ background: "linear-gradient(135deg, #E0233A, #E0233A)" }}
+          style={{ background: "linear-gradient(135deg, #1D126D, #1D126D)" }}
         >
           Tekrar dene
         </button>
