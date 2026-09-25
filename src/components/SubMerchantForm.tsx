@@ -5,7 +5,6 @@ import {
   saveSubMerchantAction,
   type SubMerchantState,
 } from "@/lib/actions";
-import { CardIcon } from "@/components/icons";
 
 const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
 
@@ -49,9 +48,19 @@ export default function SubMerchantForm({
     <div className="rounded-2xl p-[2px]" style={{ background: BRAND_GRADIENT }}>
     <form action={formAction} className="bg-white rounded-[14px] p-4 space-y-4">
       <div>
-        <p className="text-sm font-semibold flex items-center gap-1.5">
-          <CardIcon className="w-4.5 h-4.5 text-amber-600" />
-          iyzico Pazaryeri — Alt Üye İşyeri
+        <p className="text-sm font-semibold flex items-center gap-2">
+          <span
+            className="inline-flex items-center rounded-md px-1.5 py-1"
+            style={{ backgroundColor: "#ffffff" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/iyzico-ile-ode.svg"
+              alt="iyzico"
+              className="h-3.5 w-auto"
+            />
+          </span>
+          Pazaryeri — Alt Üye İşyeri
         </p>
         <p className="text-xs text-gray-400 mt-1">
           Kaydedilince kartlı ödeme tahsilatı platformun değil, doğrudan bu

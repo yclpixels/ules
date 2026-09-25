@@ -202,6 +202,17 @@ export default function Home() {
                   Nasıl Çalışır?
                 </a>
               </div>
+              <span
+                className="mt-5 inline-flex items-center rounded-lg px-3 py-1.5"
+                style={{ backgroundColor: "#ffffff" }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/brand/payment-logos.svg"
+                  alt="iyzico ile Öde — Mastercard, Visa, American Express, Troy"
+                  className="h-4 sm:h-[18px] w-auto"
+                />
+              </span>
             </div>
             <HeroMockup className="w-full max-w-[260px] mx-auto sm:max-w-none" />
           </div>
