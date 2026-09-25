@@ -255,28 +255,32 @@ export default function Home() {
               Secure destekli altyapısına girilir. Tahsilat da doğrudan
               işletmenin kendi hesabına gider.
             </p>
-            <div className="mt-10 inline-flex flex-wrap items-center justify-center gap-4 sm:gap-8 bg-gray-50 border rounded-2xl px-6 sm:px-10 py-6">
-              {/* iyzico'nun kendi marka rengi (#1e64ff) ve düz sans-serif
-                  fontuyla — kendi italik/gradyan kimliğimizle karıştırılmasın,
-                  bu tanıdık marka burada net görünsün. */}
+            <div className="mt-10 inline-flex flex-col items-center gap-6 bg-gray-50 border rounded-2xl px-6 sm:px-10 py-8">
+              {/* iyzico'nun resmi logo paketindeki gerçek marka varlığı —
+                  docs.iyzico.com/en/add-ons/iyzico-logo-pack. Kartlı ağların
+                  kendi logoları uydurulmadı, iyzico'nun sağladığı orijinal
+                  görsel kullanıldı; bu yüzden beyaz zemine oturtuluyor. */}
               <span
-                className="text-3xl font-bold tracking-tight"
-                style={{ color: "#1e64ff", fontFamily: "var(--font-geist-sans), sans-serif" }}
+                className="rounded-xl px-6 py-4"
+                style={{ backgroundColor: "#ffffff" }}
               >
-                iyzico
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/brand/payment-logos.svg"
+                  alt="iyzico ile Öde — Mastercard, Visa, American Express, Troy"
+                  className="h-7 sm:h-8 w-auto"
+                />
               </span>
-              <span className="hidden sm:block w-px h-8 bg-gray-200" />
-              <span className="flex items-center gap-1.5 text-sm text-gray-600">
-                <ShieldIcon className="w-4 h-4 text-amber-600" />
-                PCI-DSS
-              </span>
-              <span className="flex items-center gap-1.5 text-sm text-gray-600">
-                <CardIcon className="w-4 h-4 text-amber-600" />
-                3D Secure
-              </span>
-              <span className="text-sm text-gray-600">
-                Visa · Mastercard · Troy
-              </span>
+              <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8">
+                <span className="flex items-center gap-1.5 text-sm text-gray-600">
+                  <ShieldIcon className="w-4 h-4 text-amber-600" />
+                  PCI-DSS
+                </span>
+                <span className="flex items-center gap-1.5 text-sm text-gray-600">
+                  <CardIcon className="w-4 h-4 text-amber-600" />
+                  3D Secure
+                </span>
+              </div>
             </div>
           </div>
         </section>

@@ -628,8 +628,16 @@ export default function BillView({
                     <CardIcon className="w-5 h-5 text-amber-600" />
                     Kartla Öde
                   </p>
-                  <span className="text-xs text-gray-400">
-                    Visa · Mastercard · Troy
+                  <span
+                    className="inline-flex items-center rounded-md px-2 py-1"
+                    style={{ backgroundColor: "#ffffff" }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/brand/payment-logos.svg"
+                      alt="Visa, Mastercard, American Express, Troy"
+                      className="h-3.5 w-auto"
+                    />
                   </span>
                 </div>
                 <div className="flex rounded-lg overflow-hidden border p-1 gap-1 bg-gray-100">
