@@ -17,14 +17,18 @@ export default function MobileNav() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Menü"
-        className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 border rounded-lg"
+        className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-lg"
+        style={{ border: "1px solid #e5e7eb" }}
       >
         <span className="w-4 h-0.5 bg-current" />
         <span className="w-4 h-0.5 bg-current" />
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full bg-white border-b px-4 py-3 flex flex-col gap-3 text-sm">
+        <div
+          className="absolute left-0 right-0 top-full px-4 py-3 flex flex-col gap-3 text-sm"
+          style={{ backgroundColor: "#ffffff", borderBottom: "1px solid #eeeeee" }}
+        >
           {LINKS.map((l) => (
             <a key={l.href} href={l.href} onClick={() => setOpen(false)}>
               {l.label}
