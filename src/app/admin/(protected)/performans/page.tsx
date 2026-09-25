@@ -31,23 +31,23 @@ export default async function PerformancePage({
         <h1 className="text-xl font-semibold">Personel Performansı</h1>
         <form
           action="/admin/performans"
-          className="flex items-center gap-2 text-sm"
+          className="flex items-center gap-2 text-sm flex-wrap"
         >
           <input
             type="date"
             name="from"
             defaultValue={from}
-            className="border rounded-lg px-2 py-1"
+            className="h-11 border rounded-lg px-2 min-w-0"
           />
           <span>–</span>
           <input
             type="date"
             name="to"
             defaultValue={to}
-            className="border rounded-lg px-2 py-1"
+            className="h-11 border rounded-lg px-2 min-w-0"
           />
           <button
-            className="text-white rounded-lg px-3 py-1"
+            className="h-11 text-white rounded-lg px-4"
             style={{ background: "linear-gradient(135deg, #1D126D, #1D126D)" }}
           >
             Göster

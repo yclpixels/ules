@@ -68,19 +68,21 @@ export default async function UrunlerPage() {
         </form>
 
         {categories.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1">
+          // Açılır düzenleme kutusu kategori çipine değil bu kapsayıcıya göre
+          // konumlanır: sağdaki çipte açılınca telefonda ekrandan taşıyordu.
+          <div className="relative flex flex-wrap gap-2 pt-1">
             {categories.map((c) => (
-              <details key={c.id} className="relative">
-                <summary className="text-sm border rounded-full px-3 py-1 cursor-pointer list-none hover:bg-gray-50">
+              <details key={c.id}>
+                <summary className="text-sm border rounded-full px-4 h-10 inline-flex items-center cursor-pointer list-none hover:bg-gray-50">
                   {c.name}
                 </summary>
-                <div className="absolute left-0 mt-2 bg-white border rounded-lg p-3 shadow-lg z-10 w-56 space-y-2">
-                  <form action={updateCategoryAction} className="flex gap-2">
+                <div className="absolute left-0 right-0 sm:right-auto sm:w-80 mt-2 bg-white border rounded-lg p-3 shadow-lg z-10 space-y-2">
+                  <form action={updateCategoryAction} className="flex gap-2 flex-wrap">
                     <input type="hidden" name="id" value={c.id} />
                     <input
                       name="name"
                       defaultValue={c.name}
-                      className="flex-1 border rounded-lg px-2 py-1 text-sm"
+                      className="flex-1 min-w-0 border rounded-lg px-2 py-1 text-sm"
                     />
                     <input
                       name="sortOrder"
@@ -180,9 +182,12 @@ export default async function UrunlerPage() {
         </button>
       </form>
 
-      <div className="bg-white border rounded-2xl divide-y overflow-hidden">
+      {/* overflow-hidden yok: son ürünlerin açılır düzenleme kutuları listenin
+          altında kesiliyordu. Telefonda kutular ürün satırının tam genişliğine
+          yayılır (satır relative), geniş ekranda düğmenin sağına hizalanır. */}
+      <div className="bg-white border rounded-2xl divide-y">
         {products.map((p) => (
-          <div key={p.id} className="px-4 py-3">
+          <div key={p.id} className="relative px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 {p.imageUrl && (
@@ -230,11 +235,11 @@ export default async function UrunlerPage() {
               </div>
               <div className="flex items-center gap-3">
                 {extraLocales.length > 0 && (
-                  <details className="relative">
-                    <summary className="text-sm underline cursor-pointer list-none">
+                  <details className="sm:relative">
+                    <summary className="text-sm underline cursor-pointer list-none h-10 inline-flex items-center">
                       Çeviriler
                     </summary>
-                    <div className="absolute right-0 mt-2 bg-white border rounded-lg p-3 shadow-lg z-10 w-72 space-y-3">
+                    <div className="absolute left-3 right-3 sm:left-auto sm:right-0 mt-2 bg-white border rounded-lg p-3 shadow-lg z-10 sm:w-72 space-y-3">
                       {extraLocales.map((code) => {
                         const t = pickTranslation(p.translations, code);
                         return (
@@ -279,11 +284,11 @@ export default async function UrunlerPage() {
                     </div>
                   </details>
                 )}
-                <details className="relative">
-                  <summary className="text-sm underline cursor-pointer list-none">
+                <details className="sm:relative">
+                  <summary className="text-sm underline cursor-pointer list-none h-10 inline-flex items-center">
                     Düzenle
                   </summary>
-                  <div className="absolute right-0 mt-2 bg-white border rounded-lg p-3 shadow-lg z-10 w-60 space-y-2">
+                  <div className="absolute left-3 right-3 sm:left-auto sm:right-0 mt-2 bg-white border rounded-lg p-3 shadow-lg z-10 sm:w-60 space-y-2">
                     <form action={updateProductAction} className="space-y-2">
                       <input type="hidden" name="id" value={p.id} />
                       <input

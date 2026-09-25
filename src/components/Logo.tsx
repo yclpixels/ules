@@ -1,19 +1,36 @@
 /**
- * Marka işareti: kullanıcının kendisi için özel ürettirdiği, iki kişiyi ve
- * aralarındaki gülen yüzü temsil eden logo — orijinal renkleriyle (turuncu/
- * lacivert) kullanılıyor, /public/logo.png. Kaynak dosya şeffaflık
- * önizlemesinin (satranç deseni) JPEG'e düz piksel olarak gömülmüş hâliydi;
- * bu yüzden gerçek alfa kanalı olan bir PNG'ye dönüştürülüp kırpıldı
- * (bkz. commit mesajı) — görsel içerik/renk değiştirilmedi.
+ * Marka işareti: iki kişiyi ve aralarındaki gülen yüzü temsil eden tek renkli
+ * (lacivert #1D126D) logo, /public/logo.png. Logonun yanına "Üleş" yazısı
+ * bilerek konmuyor — işaret tek başına kullanılıyor; erişilebilirlik için
+ * adı alt metninde duruyor.
+ *
+ * `tone="white"`: koyu zeminler (tanıtım sitesinin hero/footer'ı) için aynı
+ * görselin beyaz hâli — ayrı dosya yerine CSS filtresiyle üretiliyor, böylece
+ * logo değişince iki sürüm birbirinden kopmaz.
+ *
+ * `?v=`: logo aynı dosya adıyla değiştirildiğinde tarayıcı ve Cloudflare eski
+ * görseli önbellekten göstermeye devam ediyordu. Logo her değiştiğinde bu
+ * sürüm artırılmalı.
  */
-export default function Logo({ className }: { className?: string }) {
+const LOGO_SRC = "/logo.png?v=2";
+
+export default function Logo({
+  className,
+  tone = "brand",
+}: {
+  className?: string;
+  tone?: "brand" | "white";
+}) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/logo.png"
+      src={LOGO_SRC}
       alt="Üleş"
       className={className}
-      style={{ objectFit: "contain" }}
+      style={{
+        objectFit: "contain",
+        ...(tone === "white" ? { filter: "brightness(0) invert(1)" } : {}),
+      }}
     />
   );
 }

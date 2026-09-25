@@ -21,12 +21,12 @@ import { audit } from "@/lib/audit";
 import { hashPassword } from "@/lib/passwords";
 import { parseLocales, SUPPORTED_LOCALES } from "@/lib/locales";
 import { isValidSlug, slugify } from "@/lib/slug";
-import { sendEmail } from "@/lib/email";
+import { createSupportRequest } from "@/lib/support";
+import { roleLabel } from "@/lib/roles";
 import { clientIpFromHeaders, rateLimit } from "@/lib/rateLimit";
 import { headers } from "next/headers";
 import { createSubMerchant } from "@/lib/payments/iyzico";
 import { needsSubMerchant } from "@/lib/payments";
-import { escapeHtml } from "@/lib/receipt";
 import { MIN_PASSWORD_LENGTH } from "@/lib/passwordPolicy";
 import { encryptField, hasFieldEncryptionKey } from "@/lib/fieldCrypto";
 
@@ -750,14 +750,22 @@ export async function createBranchAction(
 }
 
 /** Mutfak: kalemi hazırlandı olarak işaretler (her personel yapabilir). */
+/**
+ * Mutfak: kalem(ler)i hazır işaretler. Tek "id" (tek kalem) ya da birden çok
+ * "id" (masanın tümü hazır) kabul eder.
+ */
 export async function markItemPreparedAction(formData: FormData) {
   const session = await verifyAdminSession();
-  const id = String(formData.get("id") || "");
-  if (!id) return;
+  const ids = formData
+    .getAll("id")
+    .map((v) => String(v))
+    .filter(Boolean)
+    .slice(0, 100);
+  if (ids.length === 0) return;
 
   await prisma.orderItem.updateMany({
     where: {
-      id,
+      id: { in: ids },
       preparedAt: null,
       removedAt: null,
       order: { table: { branchId: session.branchId } },
@@ -884,9 +892,8 @@ export type ContactRequestState = { error?: string; success?: boolean } | undefi
 
 /**
  * Tanıtım sitesindeki "Demo isteyin" formu. Girişli oturum gerektirmez,
- * bu yüzden IP başına hız sınırı var. Gönderilen e-posta CONTACT_EMAIL'e
- * gider; env tanımlı değilse (henüz gerçek bir adres yoksa) mock modda
- * konsola düşer — sendEmail() zaten bunu kendi başına hallediyor.
+ * bu yüzden IP başına hız sınırı var. Talep kaydedilir ve SUPPORT_EMAIL'e
+ * gönderilir (bkz. lib/support.ts).
  */
 export async function sendContactRequestAction(
   _prev: ContactRequestState,
@@ -912,17 +919,75 @@ export async function sendContactRequestAction(
     return { error: "İşletme adı ve iletişim bilgisi zorunlu" };
   }
 
-  // Form herkese açık: girdiler kaçışlanmadan HTML'e konursa gelen kutusunda
-  // sahte link/içerik (phishing) gösterilebilirdi.
-  await sendEmail({
-    to: process.env.CONTACT_EMAIL || "demo@ules.com.tr",
-    subject: `Demo talebi: ${businessName.replace(/[\r\n]+/g, " ")}`,
-    html: `
-      <p><strong>İşletme:</strong> ${escapeHtml(businessName)}</p>
-      <p><strong>İletişim:</strong> ${escapeHtml(contact)}</p>
-      <p><strong>Mesaj:</strong> ${message ? escapeHtml(message).replace(/\n/g, "<br>") : "(boş)"}</p>
-    `,
+  // Önce kaydedilir, sonra e-posta atılır (bkz. lib/support.ts): e-posta
+  // gitmese bile talep /admin/talepler'de görünür, kaybolmaz. Girdiler orada
+  // HTML kaçışından geçiyor (herkese açık form).
+  await createSupportRequest({ kind: "DEMO", name: businessName, contact, message });
+
+  return { success: true };
+}
+
+export type SupportFormState = { error?: string; success?: boolean } | undefined;
+
+/**
+ * Panelden destek talebi (müdür ve garson). Talep şubeye bağlı kaydedilir ve
+ * bize e-postayla gelir; "Yanıtla" şubenin iletişim e-postasına gider.
+ */
+export async function sendSupportRequestAction(
+  _prev: SupportFormState,
+  formData: FormData
+): Promise<SupportFormState> {
+  const session = await verifyAdminSession();
+
+  const limited = rateLimit(`support:staff:${session.staffId}`, {
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!limited.ok) {
+    return { error: "Çok fazla talep gönderdiniz, biraz sonra tekrar deneyin" };
+  }
+
+  const subject = String(formData.get("subject") || "").trim().slice(0, 150);
+  const message = String(formData.get("message") || "").trim().slice(0, 4000);
+  const contactInput = String(formData.get("contact") || "").trim().slice(0, 200);
+  if (!subject || !message) {
+    return { error: "Konu ve mesaj zorunlu" };
+  }
+
+  const branch = await prisma.branch.findUniqueOrThrow({
+    where: { id: session.branchId },
+    select: { name: true, contactEmail: true, contactPhone: true },
+  });
+  // Personel kendi iletişim bilgisini yazmadıysa şubenin bilgisi kullanılır.
+  const contact =
+    contactInput || branch.contactEmail || branch.contactPhone || "(iletişim bilgisi yok)";
+
+  await createSupportRequest({
+    kind: "SUPPORT",
+    name: `${session.name} (${roleLabel(session.role)})`,
+    contact,
+    subject,
+    message,
+    branchId: session.branchId,
+    branchName: branch.name,
+    replyTo: branch.contactEmail,
   });
 
   return { success: true };
+}
+
+/** Sahip panelinde talebi "çözüldü" işaretler ya da tekrar açar. */
+export async function toggleSupportHandledAction(formData: FormData) {
+  const session = await verifyOwnerSession();
+  const id = String(formData.get("id") || "");
+  const handled = String(formData.get("handled")) === "true";
+  if (!id) return;
+
+  await prisma.supportRequest.update({
+    where: { id },
+    data: handled
+      ? { handledAt: null, handledBy: null }
+      : { handledAt: new Date(), handledBy: session.name },
+  });
+  revalidatePath("/admin/talepler");
 }

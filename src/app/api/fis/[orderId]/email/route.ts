@@ -40,11 +40,20 @@ export async function POST(
   }
 
   const html = renderReceiptHtml(data, await getBaseUrl());
-  const result = await sendEmail({
-    to: email,
-    subject: `${data.order.table.branch.name} — Fiş`,
-    html,
-  });
+  let result;
+  try {
+    result = await sendEmail({
+      to: email,
+      subject: `${data.order.table.branch.name} — Fiş`,
+      html,
+    });
+  } catch (err) {
+    console.error("[fis-email] gönderilemedi", orderId, err);
+    return NextResponse.json(
+      { error: "E-posta şu an gönderilemedi, lütfen biraz sonra tekrar deneyin" },
+      { status: 502 }
+    );
+  }
 
   // KVKK erişim kaydı: kişisel veri (e-posta) hangi siparişe, ne zaman gitti.
   // E-posta adresinin tamamı loglanmaz — maskelenir.

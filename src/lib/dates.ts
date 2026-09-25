@@ -32,3 +32,8 @@ export function startOfDayInIstanbul(input: Date | string): Date | null {
 export function addDays(d: Date, days: number): Date {
   return new Date(d.getTime() + days * 24 * 60 * 60 * 1000);
 }
+
+/** Verilen andan bu yana geçen tam dakika (kasa ekranında masanın açık kalma süresi). */
+export function minutesSince(date: Date): number {
+  return Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+}

@@ -81,10 +81,17 @@ export default async function AdminLayout({
       ? [
           {
             title: "Platform",
-            items: [{ href: "/admin/isletmeler", label: "İşletmeler" }],
+            items: [
+              { href: "/admin/isletmeler", label: "İşletmeler" },
+              { href: "/admin/talepler", label: "Talepler" },
+            ],
           },
         ]
       : []),
+    {
+      title: "Yardım",
+      items: [{ href: "/admin/destek", label: "Destek" }],
+    },
   ];
 
   return (
@@ -93,11 +100,8 @@ export default async function AdminLayout({
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
           <Link href="/admin" className="min-w-0 flex items-center gap-2">
             <Logo className="w-7 h-7 shrink-0" />
-            <span className="min-w-0">
-              <span className="font-semibold block truncate">Üleş</span>
-              <span className="text-xs text-gray-400 block truncate">
-                {session.branchName}
-              </span>
+            <span className="text-sm font-semibold truncate">
+              {session.branchName}
             </span>
           </Link>
           <AdminNav

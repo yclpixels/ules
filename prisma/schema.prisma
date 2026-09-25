@@ -79,13 +79,14 @@ model Branch {
   // tahsilatın tamamı şubeye gider.
   platformCommissionBp Int              @default(0)
 
-  tables     Table[]
-  categories Category[]
-  products   Product[]
-  staff      StaffUser[]
-  feedbacks  Feedback[]
-  dayCloses  DayClose[]
-  auditLogs  AuditLog[]
+  tables          Table[]
+  categories      Category[]
+  products        Product[]
+  staff           StaffUser[]
+  feedbacks       Feedback[]
+  dayCloses       DayClose[]
+  auditLogs       AuditLog[]
+  supportRequests SupportRequest[]
 }
 
 /// KVKK "veri güvenliği tedbirleri" kapsamında erişim/işlem kaydı.
@@ -360,4 +361,35 @@ model DayClose {
   branch   Branch @relation(fields: [branchId], references: [id])
 
   @@unique([branchId, date])
+}
+
+enum SupportKind {
+  DEMO // tanıtım sitesindeki "Demo isteyin" formu (henüz müşteri değil)
+  SUPPORT // panelden gönderilen destek talebi (mevcut işletme)
+}
+
+/// Bize (platforma) gelen demo ve destek talepleri. E-posta da gönderilir ama
+/// asıl kayıt burası: e-posta yapılandırılmamış ya da gönderim başarısız olsa
+/// bile talep kaybolmaz, sahip panelinde (/admin/talepler) görünür.
+model SupportRequest {
+  id        String      @id @default(cuid())
+  kind      SupportKind
+  createdAt DateTime    @default(now())
+
+  name    String // işletme adı (demo) ya da gönderen personelin adı (destek)
+  contact String // e-posta veya telefon
+  subject String?
+  message String?
+
+  // Destek talebinde gönderen şube; demo talebinde boş.
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
+  emailSent Boolean @default(false)
+
+  // Sahip "Çözüldü" dediğinde.
+  handledAt DateTime?
+  handledBy String?
+
+  @@index([handledAt, createdAt])
 }

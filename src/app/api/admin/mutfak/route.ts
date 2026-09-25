@@ -18,12 +18,28 @@ export async function GET() {
       where: {
         preparedAt: null,
         removedAt: null,
-        order: { status: "OPEN", table: { branchId: session.branchId } },
+        order: {
+          table: { branchId: session.branchId },
+          // Hesap kapandı diye yemek hazırlanmış olmaz: müşteri önce ödeyip
+          // sonra bekleyebilir (kafe, QR ile hemen kartla ödeme). Önceden
+          // yalnızca açık hesaplar listeleniyordu ve ödenen masanın siparişi
+          // mutfaktan kayboluyordu. İptal edilen hesabın kalemleri gösterilmez;
+          // unutulmuş eski kalemler ekranı doldurmasın diye 6 saatle sınırlı.
+          OR: [
+            { status: "OPEN" },
+            {
+              status: "CLOSED",
+              closedAt: { gte: new Date(Date.now() - 6 * 60 * 60 * 1000) },
+            },
+          ],
+        },
       },
       orderBy: { createdAt: "asc" },
       include: {
-        product: { select: { name: true } },
-        order: { select: { table: { select: { name: true } } } },
+        product: {
+          select: { name: true, category: { select: { id: true, name: true } } },
+        },
+        order: { select: { id: true, status: true, table: { select: { name: true } } } },
       },
     });
 
@@ -34,6 +50,12 @@ export async function GET() {
         quantity: i.quantity,
         note: i.note,
         tableName: i.order.table.name,
+        orderId: i.order.id,
+        orderClosed: i.order.status === "CLOSED",
+        // Mutfak/bar ayrımı için: ekran hangi kategorileri göstereceğini
+        // cihaz bazında seçer (bar tableti sadece içecekler).
+        categoryId: i.product.category?.id ?? null,
+        categoryName: i.product.category?.name ?? "Kategorisiz",
         addedBy: i.addedBy,
         createdAt: i.createdAt.toISOString(),
       })),

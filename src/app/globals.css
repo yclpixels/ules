@@ -96,3 +96,26 @@ body {
     border-color: #999999 !important;
   }
 }
+
+/*
+ * Tanıtım sitesi (app/page.tsx) hareketleri. Hareket azaltma tercihi açık
+ * olan ziyaretçide hiç oynatılmaz — kartlar yerinde durur.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ules-float {
+    0%, 100% { transform: translateY(0) rotate(var(--ules-rot, 0deg)); }
+    50% { transform: translateY(-10px) rotate(var(--ules-rot, 0deg)); }
+  }
+  @keyframes ules-rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes ules-pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(255, 200, 87, 0.55); }
+    100% { box-shadow: 0 0 0 10px rgba(255, 200, 87, 0); }
+  }
+  .ules-float { animation: ules-float 6s ease-in-out infinite; }
+  .ules-float-slow { animation: ules-float 8s ease-in-out infinite; }
+  .ules-rise { animation: ules-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  .ules-pulse { animation: ules-pulse-ring 1.8s ease-out infinite; }
+}

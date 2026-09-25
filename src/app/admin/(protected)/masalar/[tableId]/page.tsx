@@ -13,6 +13,8 @@ import { verifyAdminSession } from "@/lib/dal";
 import AutoRefresh from "@/components/AutoRefresh";
 import ConfirmButton from "@/components/ConfirmButton";
 import WaiterOrderPanel from "@/components/WaiterOrderPanel";
+import AmountField from "@/components/AmountField";
+import Link from "next/link";
 import { CardIcon, WalletIcon } from "@/components/icons";
 
 const BRAND_GRADIENT = "linear-gradient(135deg, #1D126D, #1D126D)";
@@ -60,7 +62,14 @@ export default async function TableDetailPage({
     <div className="space-y-6">
       {/* Müşteri QR'dan ürün eklediğinde garsonun ekranı kendiliğinden güncellensin */}
       <AutoRefresh />
-      <div>
+      <div className="flex items-center gap-3">
+        <Link
+          href="/admin"
+          aria-label="Kasaya dön"
+          className="w-11 h-11 shrink-0 grid place-items-center rounded-full border bg-white text-lg"
+        >
+          ←
+        </Link>
         <h1 className="text-xl font-semibold">{table.name}</h1>
       </div>
 
@@ -107,7 +116,7 @@ export default async function TableDetailPage({
                   <input type="hidden" name="tableId" value={tableId} />
                   <ConfirmButton
                     message={`"${item.product.name}" hesaptan silinsin mi?`}
-                    className="text-sm text-red-600 hover:underline"
+                    className="h-11 px-3 rounded-lg text-sm text-red-600 hover:bg-red-50"
                   >
                     Sil
                   </ConfirmButton>
@@ -174,27 +183,20 @@ export default async function TableDetailPage({
               <select
                 name="method"
                 defaultValue="CASH"
-                className="w-full mt-1 border rounded-lg px-3 py-2"
+                className="w-full mt-1 h-12 border rounded-xl px-3 bg-white"
               >
                 <option value="CASH">Nakit</option>
                 <option value="CARD">Kart (POS ile)</option>
               </select>
             </div>
-            <div className="w-32">
-              <label className="text-sm text-gray-500">Tutar (TL)</label>
-              <input
-                name="amount"
-                required
-                placeholder={(remainingCents / 100).toFixed(2)}
-                className="w-full mt-1 border rounded-lg px-3 py-2"
-              />
-            </div>
+            <AmountField remainingCents={remainingCents} />
             <div className="w-28">
               <label className="text-sm text-gray-500">Bahşiş (TL)</label>
               <input
                 name="tip"
+                inputMode="decimal"
                 placeholder="0"
-                className="w-full mt-1 border rounded-lg px-3 py-2"
+                className="w-full mt-1 h-12 border rounded-xl px-3"
               />
             </div>
             <div className="flex-1 min-w-[160px]">
@@ -204,11 +206,11 @@ export default async function TableDetailPage({
               <input
                 name="payerName"
                 placeholder="Ör. Ahmet"
-                className="w-full mt-1 border rounded-lg px-3 py-2"
+                className="w-full mt-1 h-12 border rounded-xl px-3"
               />
             </div>
             <button
-              className="text-white rounded-lg px-4 py-2 font-medium shadow-md shadow-amber-600/20 flex items-center gap-1.5"
+              className="h-12 w-full sm:w-auto justify-center text-white rounded-xl px-5 font-medium shadow-md shadow-amber-600/20 flex items-center gap-1.5"
               style={{ background: BRAND_GRADIENT }}
             >
               <CardIcon className="w-4 h-4" />
@@ -245,7 +247,7 @@ export default async function TableDetailPage({
                       <input type="hidden" name="tableId" value={tableId} />
                       <ConfirmButton
                         message={`${formatTL(p.amountCents)} tutarındaki ödeme iptal edilsin mi? Bu işlem geri alınamaz.`}
-                        className="text-xs text-red-600 hover:underline"
+                        className="h-10 px-3 rounded-lg text-xs text-red-600 hover:bg-red-50"
                       >
                         İptal
                       </ConfirmButton>
@@ -274,7 +276,7 @@ export default async function TableDetailPage({
           </div>
           <ConfirmButton
             message={`${table.name} hesabı ödeme alınmadan kapatılsın mı? Kalan ${formatTL(remainingCents)} tahsil edilmemiş sayılacak.`}
-            className="text-sm border border-red-300 text-red-600 rounded-lg px-4 py-2 hover:bg-red-50"
+            className="h-11 text-sm border border-red-300 text-red-600 rounded-lg px-4 hover:bg-red-50"
           >
             İptal Et / Kapat
           </ConfirmButton>
