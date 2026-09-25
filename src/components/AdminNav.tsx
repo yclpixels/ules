@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { logoutAction } from "@/lib/authActions";
 
-const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+const BRAND_GRADIENT = "linear-gradient(135deg, #E0233A, #E0233A)";
 
 export type NavItem = { href: string; label: string };
 export type NavGroup = { title: string; items: NavItem[] };

@@ -54,7 +54,7 @@ export default function EmailForm({ orderId }: { orderId: string }) {
           onClick={handleSend}
           disabled={sending}
           className="text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
+          style={{ background: "linear-gradient(135deg, #E0233A, #E0233A)" }}
         >
           {sending ? "..." : "Gönder"}
         </button>

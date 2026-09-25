@@ -17,7 +17,7 @@ import {
 } from "@/components/icons";
 
 /** Marka gradyanı (amber → kırmızı) — tanıtım sitesiyle aynı imza renk. */
-const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+const BRAND_GRADIENT = "linear-gradient(135deg, #E0233A, #E0233A)";
 
 type BillItem = {
   id: string;

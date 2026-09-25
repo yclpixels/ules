@@ -15,7 +15,7 @@ import { verifyManagerSession } from "@/lib/dal";
 import ConfirmButton from "@/components/ConfirmButton";
 import ImagePicker from "@/components/ImagePicker";
 
-const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+const BRAND_GRADIENT = "linear-gradient(135deg, #E0233A, #E0233A)";
 
 export const dynamic = "force-dynamic";
 

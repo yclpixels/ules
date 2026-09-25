@@ -6,7 +6,7 @@ import { getDayData } from "@/lib/reports";
 import { addDays, startOfDayInIstanbul, toDateInputValue } from "@/lib/dates";
 import { closeDayAction } from "@/lib/actions";
 
-const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+const BRAND_GRADIENT = "linear-gradient(135deg, #E0233A, #E0233A)";
 
 export const dynamic = "force-dynamic";
 

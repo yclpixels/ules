@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { formatTL } from "@/lib/money";
 
-const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+const BRAND_GRADIENT = "linear-gradient(135deg, #E0233A, #E0233A)";
 
 export type WaiterProduct = {
   id: string;

@@ -6,7 +6,7 @@ import {
   type SubMerchantState,
 } from "@/lib/actions";
 
-const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+const BRAND_GRADIENT = "linear-gradient(135deg, #E0233A, #E0233A)";
 
 type Props = {
   legalName: string;

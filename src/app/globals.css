@@ -1,75 +1,76 @@
 @import "tailwindcss";
 
 /*
- * KOYU TEMA — tek tema, sistem tercihine göre değişmez.
+ * AÇIK TEMA — tek tema, sistem tercihine göre değişmez.
  *
- * Uygulama baştan açık tema sınıflarıyla yazıldı (bg-white, text-gray-500,
- * bg-black ...). Her dosyaya `dark:` varyantı eklemek yerine Tailwind'in renk
- * değişkenlerini burada yeniden tanımlıyoruz: tek dosya değişiyor, tüm
- * uygulama koyuya dönüyor ve yeni yazılan kod da otomatik uyuyor.
+ * Uygulama daha önce tek bir dosyadan (burası) koyuya çevrilen bir renk
+ * eşlemesi kullanıyordu; pazarlama sitesiyle (marka rengi #E0233A, beyaz
+ * zemin) tutarlı olması için tüm uygulama (admin, masa/sipariş ekranı, menü,
+ * fiş) buradan tekrar açık temaya döndürüldü — tek dosya değişince her yer
+ * güncelleniyor, ayrı ayrı dark: varyantı eklemeye gerek yok.
  *
- * Mantık: gri skalası ters çevrildi (50 = en koyu, 900 = en açık), white =
- * kart yüzeyi, black = birincil buton (koyu temada açık renk buton). Vurgu
- * renklerinin -50/-100 tonları koyu tint, -600/-700/-800 tonları açık yazı.
+ * Vurgu rengi (amber/red-600 kullanan yerler) marka kırmızısına (#E0233A)
+ * yakın tutuldu ki eski gradyan bileşenleri (BRAND_GRADIENT) yeni düz
+ * kırmızıyla uyumlu görünsün.
  *
  * Müşterinin telefonundaki sistem teması bilinçli olarak dikkate alınmıyor:
  * restoranın görünümü her müşteride aynı olmalı.
  */
 @theme {
-  /* Yüzeyler */
-  --color-white: #161619; /* kart / panel yüzeyi */
-  --color-black: #e9e9ee; /* birincil buton zemini (üstündeki text-white koyu olur) */
+  --color-white: #ffffff;
+  --color-black: #0a0a0a;
 
-  /* Gri skalası ters: 50 en koyu (sayfa zemini), 900 en açık (başlıklar) */
-  --color-gray-50: #0f0f12;
-  --color-gray-100: #17171b;
-  --color-gray-200: #27272e; /* varsayılan kenarlık */
-  --color-gray-300: #3d3d46;
-  --color-gray-400: #8b8b96;
-  --color-gray-500: #a3a3ae;
-  --color-gray-600: #b7b7c0;
-  --color-gray-700: #cbcbd2;
-  --color-gray-800: #e0e0e5;
-  --color-gray-900: #f2f2f5;
-  --color-gray-950: #fafafa;
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f5f5f5;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
 
-  /* Vurgular: açık tint → koyu tint, koyu yazı → açık yazı */
-  --color-green-50: #0d1f15;
-  --color-green-100: #123020;
-  --color-green-200: #1e4a31;
-  --color-green-600: #4ade80;
-  --color-green-700: #86efac;
+  --color-green-50: #f0fdf4;
+  --color-green-100: #dcfce7;
+  --color-green-200: #bbf7d0;
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
 
-  --color-red-50: #250f13;
-  --color-red-100: #3b141a;
-  --color-red-200: #5e1e28;
-  --color-red-300: #7f2833;
-  --color-red-600: #f87171;
-  --color-red-700: #fca5a5;
-  --color-red-800: #fecaca;
+  /* red-* hata/silme gibi anlamsal (tehlike) durumlar için standart kırmızı
+     kalıyor — marka rengiyle (aşağıdaki amber-*) karışmasın diye kasıtlı ayrı. */
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  --color-red-800: #991b1b;
 
-  --color-amber-50: #241c06;
-  --color-amber-100: #34270a;
-  --color-amber-200: #58420f;
-  --color-amber-400: #fbbf24;
-  --color-amber-600: #fbbf24;
-  --color-amber-700: #fcd34d;
-  --color-amber-800: #fde68a;
+  /* amber-* uygulama genelinde marka vurgu rengi olarak kullanılıyor
+     (ikon tonları, aktif sekme rozetleri) — marka kırmızısına eşlendi. */
+  --color-amber-50: #fdf1f2;
+  --color-amber-100: #fce4e6;
+  --color-amber-200: #f8c9ce;
+  --color-amber-400: #E0233A;
+  --color-amber-600: #E0233A;
+  --color-amber-700: #b91c2e;
+  --color-amber-800: #8f1624;
 
-  --color-blue-50: #0d1829;
-  --color-blue-200: #1f3c61;
-  --color-blue-700: #93c5fd;
-  --color-blue-800: #bfdbfe;
+  --color-blue-50: #eff6ff;
+  --color-blue-200: #bfdbfe;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
 }
 
 :root {
-  --background: #0f0f12;
-  --foreground: #f2f2f5;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
 }
 
 html {
-  /* Native kontroller (input, select, date picker, kaydırma çubuğu) da koyu render edilsin */
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {

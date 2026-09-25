@@ -31,7 +31,7 @@ export default async function OgImage() {
             width: 620,
             height: 620,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #fbbf24, #f87171)",
+            background: "linear-gradient(135deg, #E0233A, #E0233A)",
             opacity: 0.35,
             filter: "blur(80px)",
           }}
@@ -41,7 +41,7 @@ export default async function OgImage() {
             width: 96,
             height: 96,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #fbbf24, #f87171)",
+            background: "linear-gradient(135deg, #E0233A, #E0233A)",
             marginBottom: 32,
           }}
         />
