@@ -410,8 +410,21 @@ export default function Home() {
           </div>
         </div>
         <div className="border-t">
-          <div className="max-w-5xl mx-auto px-4 py-4 text-sm text-gray-500">
-            © {new Date().getFullYear()} Üleş
+          <div className="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">
+              © {new Date().getFullYear()} Üleş
+            </p>
+            <span
+              className="inline-flex items-center rounded-lg px-3 py-1.5"
+              style={{ backgroundColor: "#ffffff" }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/payment-logos.svg"
+                alt="iyzico ile Öde — Mastercard, Visa, American Express, Troy"
+                className="h-4 w-auto"
+              />
+            </span>
           </div>
         </div>
       </footer>
