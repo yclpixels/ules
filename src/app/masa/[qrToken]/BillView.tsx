@@ -844,6 +844,18 @@ export default function BillView({
                   <ShieldIcon className="w-3.5 h-3.5" />
                   iyzico güvencesiyle korunan ödeme
                 </p>
+                <p className="text-center text-xs text-gray-400">
+                  Ödeyerek{" "}
+                  <a
+                    href={`/on-bilgilendirme?masa=${qrToken}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    Ön Bilgilendirme Formu&apos;nu
+                  </a>{" "}
+                  kabul etmiş olursunuz.
+                </p>
                 {isDemo && (
                   <p className="text-xs text-gray-400 text-center">
                     Demo modu: gerçek kart tahsilatı yapılmıyor.

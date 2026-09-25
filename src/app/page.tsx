@@ -417,6 +417,11 @@ export default function Home() {
                   Kullanım Şartları
                 </Link>
               </li>
+              <li>
+                <Link href="/on-bilgilendirme" className="transition-colors hover:text-gray-900">
+                  Ön Bilgilendirme Formu
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
