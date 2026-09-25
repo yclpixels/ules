@@ -1,6 +1,6 @@
 import { verifyAdminSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
-import { supportInbox } from "@/lib/email";
+import { PUBLIC_SUPPORT_EMAIL, PUBLIC_SUPPORT_MAILTO } from "@/lib/contact";
 import SupportForm from "./SupportForm";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,6 @@ export default async function DestekPage() {
     where: { id: session.branchId },
     select: { contactEmail: true, contactPhone: true },
   });
-  const inbox = supportInbox();
 
   return (
     <div className="space-y-6 max-w-xl">
@@ -27,14 +26,12 @@ export default async function DestekPage() {
         <SupportForm defaultContact={branch.contactEmail ?? branch.contactPhone ?? ""} />
       </div>
 
-      {inbox && (
-        <p className="text-sm text-gray-500">
-          Doğrudan e-posta da atabilirsiniz:{" "}
-          <a href={`mailto:${inbox}`} className="underline text-gray-700">
-            {inbox}
-          </a>
-        </p>
-      )}
+      <p className="text-sm text-gray-500">
+        Doğrudan e-posta da atabilirsiniz:{" "}
+        <a href={PUBLIC_SUPPORT_MAILTO} className="underline text-gray-700">
+          {PUBLIC_SUPPORT_EMAIL}
+        </a>
+      </p>
     </div>
   );
 }

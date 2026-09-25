@@ -3,6 +3,7 @@ import { verifyOwnerSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { supportInbox } from "@/lib/email";
 import { toggleSupportHandledAction } from "@/lib/actions";
+import TestEmailButton from "./TestEmailButton";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,8 @@ export default async function TaleplerPage({
           ). Talepler yine de burada birikiyor.
         </p>
       )}
+
+      <TestEmailButton inbox={inbox} />
 
       {requests.length === 0 && (
         <p className="bg-white border rounded-2xl p-6 text-center text-sm text-gray-500">

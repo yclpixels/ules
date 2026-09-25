@@ -22,6 +22,8 @@ import { hashPassword } from "@/lib/passwords";
 import { parseLocales, SUPPORTED_LOCALES } from "@/lib/locales";
 import { isValidSlug, slugify } from "@/lib/slug";
 import { createSupportRequest } from "@/lib/support";
+import { CONTACT_ERROR, parseContact } from "@/lib/contact";
+import { sendEmail, supportInbox } from "@/lib/email";
 import { roleLabel } from "@/lib/roles";
 import { clientIpFromHeaders, rateLimit } from "@/lib/rateLimit";
 import { headers } from "next/headers";
@@ -888,7 +890,17 @@ export async function saveSubMerchantAction(
   return { success: "Alt üye işyeri kaydedildi. Kartlı ödemeler artık bu şubenin hesabına gidecek." };
 }
 
-export type ContactRequestState = { error?: string; success?: boolean } | undefined;
+export type ContactRequestState =
+  | {
+      error?: string;
+      success?: boolean;
+      /** Başarıda: müşteriye "şu adresten döneceğiz" demek için. */
+      contact?: string;
+      contactKind?: "email" | "phone";
+      /** Hatada: React 19 formu sıfırladığı için yazılanlar geri doldurulur. */
+      values?: { businessName: string; contact: string; message: string };
+    }
+  | undefined;
 
 /**
  * Tanıtım sitesindeki "Demo isteyin" formu. Girişli oturum gerektirmez,
@@ -904,27 +916,39 @@ export async function sendContactRequestAction(
     return { success: true };
   }
 
+  const businessName = String(formData.get("businessName") || "").trim().slice(0, 150);
+  const contactInput = String(formData.get("contact") || "").trim().slice(0, 200);
+  const message = String(formData.get("message") || "").trim().slice(0, 2000);
+  const values = { businessName, contact: contactInput, message };
+
   const h = await headers();
   const ip = clientIpFromHeaders(h);
   const limited = rateLimit(`contact:ip:${ip}`, { limit: 5, windowMs: 60 * 60 * 1000 });
   if (!limited.ok) {
-    return { error: "Çok fazla istek gönderildi, biraz sonra tekrar deneyin" };
+    return { error: "Çok fazla istek gönderildi, biraz sonra tekrar deneyin", values };
   }
 
-  const businessName = String(formData.get("businessName") || "").trim().slice(0, 150);
-  const contact = String(formData.get("contact") || "").trim().slice(0, 200);
-  const message = String(formData.get("message") || "").trim().slice(0, 2000);
-
-  if (!businessName || !contact) {
-    return { error: "İşletme adı ve iletişim bilgisi zorunlu" };
+  if (!businessName) {
+    return { error: "İşletme adı zorunlu", values };
+  }
+  // Geri dönebilmemiz için gerçek bir e-posta ya da telefon şart (canlıdaki
+  // ilk talepte iletişim "deneme" yazılmıştı).
+  const contact = parseContact(contactInput);
+  if (!contact) {
+    return { error: CONTACT_ERROR, values };
   }
 
   // Önce kaydedilir, sonra e-posta atılır (bkz. lib/support.ts): e-posta
   // gitmese bile talep /admin/talepler'de görünür, kaybolmaz. Girdiler orada
   // HTML kaçışından geçiyor (herkese açık form).
-  await createSupportRequest({ kind: "DEMO", name: businessName, contact, message });
+  await createSupportRequest({
+    kind: "DEMO",
+    name: businessName,
+    contact: contact.value,
+    message,
+  });
 
-  return { success: true };
+  return { success: true, contact: contact.value, contactKind: contact.kind };
 }
 
 export type SupportFormState = { error?: string; success?: boolean } | undefined;
@@ -958,9 +982,18 @@ export async function sendSupportRequestAction(
     where: { id: session.branchId },
     select: { name: true, contactEmail: true, contactPhone: true },
   });
-  // Personel kendi iletişim bilgisini yazmadıysa şubenin bilgisi kullanılır.
-  const contact =
-    contactInput || branch.contactEmail || branch.contactPhone || "(iletişim bilgisi yok)";
+  // Personel kendi iletişim bilgisini yazmadıysa şubenin bilgisi kullanılır;
+  // yazdıysa geçerli bir e-posta/telefon olmalı ki dönebilelim.
+  let contact: string;
+  if (contactInput) {
+    const parsed = parseContact(contactInput);
+    if (!parsed) return { error: CONTACT_ERROR };
+    contact = parsed.value;
+  } else if (branch.contactEmail || branch.contactPhone) {
+    contact = (branch.contactEmail || branch.contactPhone)!;
+  } else {
+    return { error: CONTACT_ERROR };
+  }
 
   await createSupportRequest({
     kind: "SUPPORT",
@@ -990,4 +1023,34 @@ export async function toggleSupportHandledAction(formData: FormData) {
       : { handledAt: new Date(), handledBy: session.name },
   });
   revalidatePath("/admin/talepler");
+}
+
+export type TestEmailState = { ok?: string; error?: string } | undefined;
+
+/**
+ * Sahip panelinden SUPPORT_EMAIL'e deneme e-postası. E-posta gitmediğinde
+ * sebebi (anahtar yok, alan adı doğrulanmamış, adres yanlış) Railway
+ * günlüğüne bakmadan doğrudan ekranda görülsün diye hata olduğu gibi döner.
+ */
+export async function sendTestEmailAction(): Promise<TestEmailState> {
+  await verifyOwnerSession();
+  const to = supportInbox();
+  if (!to) {
+    return { error: "SUPPORT_EMAIL tanımlı değil (Railway → Variables)." };
+  }
+  try {
+    const result = await sendEmail({
+      to,
+      subject: "Üleş — deneme e-postası",
+      html: "<p>Bu bir deneme e-postasıdır. Demo ve destek talepleri bu adrese gelecek.</p>",
+    });
+    if (result.mocked) {
+      return {
+        error: "RESEND_API_KEY tanımlı değil — e-posta gönderilmedi, sadece günlüğe yazıldı.",
+      };
+    }
+    return { ok: `Deneme e-postası ${to} adresine gönderildi. Gelen kutusuna ve spam klasörüne bakın.` };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Gönderilemedi" };
+  }
 }

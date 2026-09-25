@@ -46,7 +46,7 @@ export default function SupportForm({ defaultContact }: { defaultContact: string
           name="contact"
           defaultValue={defaultContact}
           maxLength={200}
-          placeholder="E-posta veya telefon"
+          placeholder="ornek@gmail.com veya 0555 123 45 67"
           className="w-full mt-1 border rounded-lg px-3 py-2"
         />
       </div>

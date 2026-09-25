@@ -10,6 +10,7 @@ import KitchenMockup from "@/components/marketing/KitchenMockup";
 import LivePreviewFrame from "@/components/marketing/LivePreviewFrame";
 import Faq from "@/components/marketing/Faq";
 import Logo from "@/components/Logo";
+import { PUBLIC_SUPPORT_EMAIL, PUBLIC_SUPPORT_MAILTO } from "@/lib/contact";
 import {
   QrIcon,
   SplitIcon,
@@ -843,6 +844,15 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
+              <p className="mt-10 text-sm" style={{ color: ON_DARK_MUTED }}>
+                Form yerine e-posta mı tercih edersiniz?
+              </p>
+              <a
+                href={PUBLIC_SUPPORT_MAILTO}
+                className="mt-1 inline-block text-lg font-semibold underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white"
+              >
+                {PUBLIC_SUPPORT_EMAIL}
+              </a>
             </div>
             <ContactForm />
           </div>
@@ -858,6 +868,12 @@ export default function Home() {
               Restoran ve kafeler için QR ile sipariş, hesap bölüşme ve iyzico
               güvenceli ödeme.
             </p>
+            <a
+              href={PUBLIC_SUPPORT_MAILTO}
+              className="mt-4 inline-block text-sm font-medium transition-opacity hover:opacity-70"
+            >
+              {PUBLIC_SUPPORT_EMAIL}
+            </a>
           </div>
           <div>
             <p className="text-[11px] uppercase" style={{ ...monoFont, letterSpacing: "0.22em", color: ON_DARK_MUTED }}>

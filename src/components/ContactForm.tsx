@@ -1,13 +1,20 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { sendContactRequestAction, type ContactRequestState } from "@/lib/actions";
+import { CONTACT_ERROR, parseContact } from "@/lib/contact";
+
+const fieldClass =
+  "w-full mt-1.5 rounded-xl px-4 py-3 outline-none transition-shadow focus:ring-2 focus:ring-[#7C6CFF]";
+const fieldStyle = { border: "1px solid #E7E5F4", background: "#F7F6FC" };
 
 export default function ContactForm() {
   const [state, formAction, pending] = useActionState<
     ContactRequestState,
     FormData
   >(sendContactRequestAction, undefined);
+  // Alandan çıkınca anında uyar; asıl doğrulama sunucuda (lib/contact.ts).
+  const [contactHint, setContactHint] = useState<string | null>(null);
 
   if (state?.success) {
     return (
@@ -15,13 +22,19 @@ export default function ContactForm() {
         className="rounded-3xl p-8 text-center shadow-2xl"
         style={{ backgroundColor: "#ffffff", color: "#08061A" }}
       >
-        <p className="font-semibold">Teşekkürler, talebiniz alındı.</p>
-        <p className="text-sm mt-1" style={{ color: "#6b7280" }}>
-          En kısa sürede size dönüş yapacağız.
+        <p className="text-lg font-semibold">Teşekkürler, talebiniz alındı.</p>
+        <p className="text-sm mt-2" style={{ color: "#5B5B72" }}>
+          Yazdığınız {state.contactKind === "phone" ? "numaradan" : "e-posta adresinden"}{" "}
+          <strong style={{ color: "#08061A" }}>{state.contact}</strong> en kısa
+          sürede size dönüş yapacağız.
         </p>
       </div>
     );
   }
+
+  // React 19 form gönderiminden sonra alanları sıfırlıyor; hata dönerse
+  // müşterinin yazdıkları kaybolmasın diye değerler state'ten geri doluyor.
+  const values = state?.values;
 
   return (
     <form
@@ -40,46 +53,70 @@ export default function ContactForm() {
       />
 
       <div>
-        <label className="text-sm font-medium" style={{ color: "#5B5B72" }}>
+        <label htmlFor="cf-business" className="text-sm font-medium" style={{ color: "#5B5B72" }}>
           İşletme adı
         </label>
         <input
+          id="cf-business"
           name="businessName"
           required
+          maxLength={150}
+          defaultValue={values?.businessName}
           placeholder="Ör. Sahil Cafe"
-          className="w-full mt-1.5 rounded-xl px-4 py-3 outline-none transition-shadow focus:ring-2 focus:ring-[#7C6CFF]"
-          style={{ border: "1px solid #E7E5F4", background: "#F7F6FC" }}
+          className={fieldClass}
+          style={fieldStyle}
         />
       </div>
 
       <div>
-        <label className="text-sm font-medium" style={{ color: "#5B5B72" }}>
-          E-posta veya telefon
+        <label htmlFor="cf-contact" className="text-sm font-medium" style={{ color: "#5B5B72" }}>
+          Size nasıl dönelim? (e-posta veya telefon)
         </label>
         <input
+          id="cf-contact"
           name="contact"
           required
-          placeholder="ornek@eposta.com veya 05xx..."
-          className="w-full mt-1.5 rounded-xl px-4 py-3 outline-none transition-shadow focus:ring-2 focus:ring-[#7C6CFF]"
-          style={{ border: "1px solid #E7E5F4", background: "#F7F6FC" }}
+          maxLength={200}
+          autoComplete="email"
+          defaultValue={values?.contact}
+          placeholder="ornek@gmail.com veya 0555 123 45 67"
+          aria-describedby="cf-contact-hint"
+          onBlur={(e) =>
+            setContactHint(
+              e.target.value.trim() && !parseContact(e.target.value) ? CONTACT_ERROR : null
+            )
+          }
+          onChange={() => contactHint && setContactHint(null)}
+          className={fieldClass}
+          style={fieldStyle}
         />
+        <p
+          id="cf-contact-hint"
+          className="text-xs mt-1.5"
+          style={{ color: contactHint ? "#dc2626" : "#8A8AA0" }}
+        >
+          {contactHint ?? "Yazdığınız e-postaya ya da numaraya biz dönüş yapacağız."}
+        </p>
       </div>
 
       <div>
-        <label className="text-sm font-medium" style={{ color: "#5B5B72" }}>
+        <label htmlFor="cf-message" className="text-sm font-medium" style={{ color: "#5B5B72" }}>
           Mesaj (opsiyonel)
         </label>
         <textarea
+          id="cf-message"
           name="message"
           rows={3}
+          maxLength={2000}
+          defaultValue={values?.message}
           placeholder="Kaç masa, hangi şehir vb. kısaca yazabilirsiniz"
-          className="w-full mt-1.5 rounded-xl px-4 py-3 outline-none transition-shadow focus:ring-2 focus:ring-[#7C6CFF]"
-          style={{ border: "1px solid #E7E5F4", background: "#F7F6FC" }}
+          className={fieldClass}
+          style={fieldStyle}
         />
       </div>
 
       {state?.error && (
-        <p className="text-sm" style={{ color: "#dc2626" }}>
+        <p className="text-sm" style={{ color: "#dc2626" }} role="alert">
           {state.error}
         </p>
       )}
