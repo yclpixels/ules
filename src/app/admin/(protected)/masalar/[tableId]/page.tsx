@@ -12,6 +12,7 @@ import { notFound } from "next/navigation";
 import { verifyAdminSession } from "@/lib/dal";
 import AutoRefresh from "@/components/AutoRefresh";
 import ConfirmButton from "@/components/ConfirmButton";
+import WaiterOrderPanel from "@/components/WaiterOrderPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,7 @@ export default async function TableDetailPage({
   const products = await prisma.product.findMany({
     where: { isAvailable: true, branchId: session.branchId },
     orderBy: { name: "asc" },
+    include: { category: { select: { id: true, name: true } } },
   });
 
   return (
@@ -58,47 +60,17 @@ export default async function TableDetailPage({
         <h1 className="text-xl font-semibold">{table.name}</h1>
       </div>
 
-      <form
+      <WaiterOrderPanel
+        tableId={tableId}
         action={addOrderItemAction}
-        className="bg-white border rounded-xl p-4 flex gap-3 items-end flex-wrap"
-      >
-        <input type="hidden" name="tableId" value={tableId} />
-        <div className="flex-1 min-w-[160px]">
-          <label className="text-sm text-gray-500">Ürün</label>
-          <select
-            name="productId"
-            required
-            className="w-full mt-1 border rounded-lg px-3 py-2"
-          >
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} — {formatTL(p.priceCents)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="w-24">
-          <label className="text-sm text-gray-500">Adet</label>
-          <input
-            type="number"
-            name="quantity"
-            defaultValue={1}
-            min={1}
-            className="w-full mt-1 border rounded-lg px-3 py-2"
-          />
-        </div>
-        <div className="flex-1 min-w-[160px]">
-          <label className="text-sm text-gray-500">Not (opsiyonel)</label>
-          <input
-            name="note"
-            placeholder="Ör. az pişmiş, acısız"
-            className="w-full mt-1 border rounded-lg px-3 py-2"
-          />
-        </div>
-        <button className="bg-black text-white rounded-lg px-4 py-2 font-medium">
-          Siparişe Ekle
-        </button>
-      </form>
+        products={products.map((p) => ({
+          id: p.id,
+          name: p.name,
+          priceCents: p.priceCents,
+          categoryId: p.category?.id ?? null,
+          categoryName: p.category?.name ?? "Kategorisiz",
+        }))}
+      />
 
       <div className="bg-white border rounded-xl divide-y">
         {items.map((item) => (

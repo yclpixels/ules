@@ -4,6 +4,10 @@ export type StartPaymentInput = {
   payerName?: string;
   callbackUrl: string;
   buyerIp: string;
+  // Verilirse ödeme iyzico Pazaryeri ile şubenin kendi hesabına bölünerek
+  // gönderilir (merchantPriceCents şubeye, kalanı platform komisyonuna
+  // gider). Verilmezse tüm tutar platformun tek merkezi hesabında kalır.
+  subMerchant?: { key: string; merchantPriceCents: number };
 };
 
 export type StartPaymentResult =

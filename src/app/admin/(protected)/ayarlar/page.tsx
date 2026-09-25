@@ -4,6 +4,7 @@ import { updateBranchSettingsAction } from "@/lib/actions";
 import { LOCALE_LABELS, parseLocales, SUPPORTED_LOCALES } from "@/lib/locales";
 import { getBaseUrl } from "@/lib/baseUrl";
 import { slugify } from "@/lib/slug";
+import SubMerchantForm from "@/components/SubMerchantForm";
 
 export const dynamic = "force-dynamic";
 
@@ -91,12 +92,13 @@ export default async function SettingsPage() {
               </p>
               <div>
                 <p className="text-xs text-gray-400 mb-1">
-                  Kendi sitenize gömmek için bu kodu sayfanıza yapıştırın:
+                  Kendi sitenize gömmek için bu kodu sayfanıza yapıştırın —
+                  menü uzunluğuna göre yüksekliği kendiliğinden ayarlanır:
                 </p>
                 <textarea
                   readOnly
-                  rows={2}
-                  value={`<iframe src="${publicMenuUrl}" style="width:100%;height:800px;border:0" title="Menü"></iframe>`}
+                  rows={5}
+                  value={`<iframe id="ules-menu" src="${publicMenuUrl}" style="width:100%;height:600px;border:0" title="Menü"></iframe>\n<script>\nwindow.addEventListener("message", function(e) {\n  if (e.data && e.data.type === "ules-menu-height") {\n    var f = document.getElementById("ules-menu");\n    if (f) f.style.height = e.data.height + "px";\n  }\n});\n</script>`}
                   className="w-full border rounded-lg px-2 py-1 text-xs font-mono"
                 />
               </div>
@@ -275,6 +277,19 @@ export default async function SettingsPage() {
           Kaydet
         </button>
       </form>
+
+      <SubMerchantForm
+        legalName={branch.legalName ?? ""}
+        contactEmail={branch.contactEmail ?? ""}
+        contactPhone={branch.contactPhone ?? ""}
+        legalAddress={branch.legalAddress ?? ""}
+        subMerchantType={branch.subMerchantType ?? ""}
+        ibanNumber={branch.ibanNumber ?? ""}
+        taxOffice={branch.taxOffice ?? ""}
+        taxNumber={branch.taxNumber ?? ""}
+        identityNumber={branch.identityNumber ?? ""}
+        isRegistered={!!branch.subMerchantKey}
+      />
     </div>
   );
 }

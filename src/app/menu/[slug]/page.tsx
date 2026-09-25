@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatTL } from "@/lib/money";
+import { getBaseUrl } from "@/lib/baseUrl";
+import EmbedAutoHeight from "@/components/EmbedAutoHeight";
 import {
   LOCALE_LABELS,
   parseLocales,
@@ -40,12 +42,17 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const branch = await getBranch((await params).slug);
+  const { slug } = await params;
+  const branch = await getBranch(slug);
   if (!branch) return { title: "Menü bulunamadı" };
+  const title = `${branch.name} — Menü`;
+  const description = `${branch.name} güncel menü ve fiyatlar.`;
   return {
-    title: `${branch.name} — Menü`,
-    description: `${branch.name} güncel menü ve fiyatlar.`,
+    title,
+    description,
     robots: { index: true, follow: true },
+    alternates: { canonical: `/menu/${slug}` },
+    openGraph: { title, description, type: "website", url: `/menu/${slug}` },
   };
 }
 
@@ -95,8 +102,44 @@ export default async function PublicMenuPage({
       : []),
   ];
 
+  // Google'ın menü zengin sonuçları için yapılandırılmış veri (Restaurant/Menu).
+  const baseUrl = await getBaseUrl();
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    name: branch.name,
+    url: `${baseUrl}/menu/${slug}`,
+    hasMenu: {
+      "@type": "Menu",
+      hasMenuSection: groups.map((g) => ({
+        "@type": "MenuSection",
+        name: g.name,
+        hasMenuItem: g.products.map((p) => {
+          const t = pickTranslation(p.translations, locale);
+          return {
+            "@type": "MenuItem",
+            name: t?.name || p.name,
+            ...((t?.description ?? p.description) && {
+              description: t?.description ?? p.description,
+            }),
+            offers: {
+              "@type": "Offer",
+              price: (p.priceCents / 100).toFixed(2),
+              priceCurrency: "TRY",
+            },
+          };
+        }),
+      })),
+    },
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <EmbedAutoHeight />
       <header className="bg-white border-b px-4 py-5">
         <div className="max-w-2xl mx-auto space-y-3">
           <h1 className="text-2xl font-semibold">{branch.name}</h1>
@@ -136,35 +179,32 @@ export default async function PublicMenuPage({
               {group.products.map((p) => {
                 const t = pickTranslation(p.translations, locale);
                 return (
-                  <div
-                    key={p.id}
-                    className="flex items-center gap-3 px-4 py-3"
-                  >
+                  <div key={p.id} className="flex items-center gap-3 px-4 py-3">
                     {p.imageUrl && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={p.imageUrl}
-                        alt=""
+                        alt={t?.name || p.name}
                         loading="lazy"
-                        className="w-16 h-16 rounded-lg object-cover border shrink-0"
+                        className="w-20 h-20 rounded-xl object-cover border shrink-0"
                       />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium">{t?.name || p.name}</p>
+                      <p className="font-semibold">{t?.name || p.name}</p>
                       {(t?.description ?? p.description) && (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 line-clamp-2 mt-0.5">
                           {t?.description ?? p.description}
                         </p>
                       )}
                       {(t?.allergens ?? p.allergens) && (
-                        <p className="text-xs text-amber-600">
+                        <p className="text-xs text-amber-600 mt-0.5">
                           {t?.allergens ?? p.allergens}
                         </p>
                       )}
+                      <p className="text-sm font-medium mt-1">
+                        {formatTL(p.priceCents)}
+                      </p>
                     </div>
-                    <p className="font-medium shrink-0">
-                      {formatTL(p.priceCents)}
-                    </p>
                   </div>
                 );
               })}

@@ -50,6 +50,7 @@ edildi).
 - `/admin/hesabim` — Kendi şifreni değiştirme (her iki rol de)
 - `/admin/degerlendirmeler` — Müşteri puanları (yemek/servis/ortam/fiyat, 30 günlük ortalama, düşük puanlar kırmızı) (**sadece müdür**)
 - `/admin/isletmeler` — Tüm işletmeler ve abonelik durumları (**sadece OWNER**)
+- `/admin/mutfak` — Mutfak/bar ekranı, sesli yeni sipariş uyarısı (her iki rol)
 - `/admin/kayitlar` — Erişim ve işlem kayıtları (KVKK) (**sadece müdür**)
 - `/admin/ayarlar` — Google yorum linki, bahşiş yüzdeleri ve KVKK işletme bilgileri (**sadece müdür**)
 - `/admin/gun-sonu` — Z raporu: sistemdeki nakit / POS kart / QR kart / bahşiş; sayılan nakit girilir,
@@ -61,6 +62,7 @@ edildi).
 - `/fis/[orderId]` — Herkese açık, yazdırılabilir fiş sayfası + e-posta ile gönderme
 - `/menu/[slug]` — Herkese açık, paylaşılabilir/gömülebilir menü (arama motorlarına açık)
 - `/gizlilik` — KVKK aydınlatma metni şablonu (fiş e-postasında bağlantısı var)
+- `/kullanim-sartlari` — Üleş ile işletme arasındaki SaaS hizmet şartları şablonu
 
 ## Kapsam
 
@@ -106,6 +108,27 @@ edildi).
   müdahale edebilmek. Müdür `/admin/degerlendirmeler`'den "Gördüm" deyince bant düşer
   (`Feedback.acknowledgedAt/By`). Garsona gösterilmez. Bildirim en iyi çaba — e-posta
   gönderilemese de müşteri akışı bozulmaz; SMTP yoksa demo modda konsola düşer.
+- **Garson sipariş ekranı**: kategori filtresi + arama + ürüne dokunarak ekleme
+  (`src/components/WaiterOrderPanel.tsx`). Önceden tüm ürünler tek bir `<select>` içindeydi
+  ve 60-80 ürünlü menüde kullanılamıyordu. Arama Türkçe karakter duyarsız ("kofte" → "Köfte").
+  Adet/not gerekiyorsa ürünün yanındaki "⋯" ile açılır — en sık yapılan iş (tek adet ekle)
+  tek dokunuş kalsın diye varsayılan olarak gizli. Ekleme normal `<form>` + server action.
+- **İşletme açma paneli** (`/admin/isletmeler` → "Yeni işletme aç", **sadece OWNER**):
+  şube + ilk müdür hesabı tek transaction'da oluşturulur (müdürsüz yarım şube kalmasın).
+  Örnek ürün/masa **oluşturulmaz** — seed bunu yapıyordu ve restoran tek tek siliyordu.
+  Artık sunucuya SSH'lemeye gerek yok.
+- **Müşteri sepeti**: ürüne dokunmak artık siparişi anında hesaba düşürmüyor. Müşteri
+  sepetini toplar, adetleri değiştirir, **not yazar** (daha önce sadece garson not girebiliyordu),
+  sonra "Siparişi Gönder" ile tek istekte yollar. `POST /api/masa/[qrToken]/items` hem eski
+  tek kalem biçimini hem `{items:[...]}` sepet biçimini kabul eder; fiyat her zaman sunucuda
+  üründen okunur.
+- **Mutfak ekranı** (`/admin/mutfak`, garson ve müdüre açık): açık hesaplardaki hazırlanmamış
+  kalemler, masa adı ve bekleme süresiyle. 5 saniyede bir yenilenir ve **yeni sipariş gelince
+  sesli uyarı** verir — mutfağın ekrana bakmasını beklemez. Ses tarayıcı politikası gereği
+  vardiya başında bir kez "Sesli uyarıyı aç" ile etkinleştirilir; ses dosyası yok, kısa ton
+  Web Audio ile üretilir. "Hazır" ile kalem listeden düşer (`OrderItem.preparedAt/By`) —
+  ödemeyle ilgisi yoktur.
+
 - **Herkese açık menü sayfası** (`/menu/[slug]`): masaya bağlı olmayan, paylaşılabilir
   menü. Adres `/admin/ayarlar`'dan verilir (`Branch.menuSlug`, Türkçe karakterler ve
   boşluklar otomatik temizlenir: "Ana Şube" → `ana-sube`); boş bırakılırsa sayfa yayına

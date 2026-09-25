@@ -12,11 +12,25 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Prod'da NEXT_PUBLIC_APP_URL tanımlı olmalı — OG görselleri ve sitemap/robots
+// mutlak URL üretirken buna düşer (bkz. .env.example).
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: { default: "Masa QR Ödeme", template: "%s · Masa QR Ödeme" },
+  metadataBase: new URL(siteUrl),
+  title: { default: "Üleş", template: "%s · Üleş" },
   description: "Masadan QR ile sipariş ver, hesabı böl, öde.",
-  // Masa/admin/fiş sayfaları arama motorlarına düşmesin (QR linkleri özel)
+  // Masa/admin/fiş sayfaları arama motorlarına düşmesin (QR linkleri özel);
+  // tanıtım sitesi ve /menu bu varsayılanı kendi metadata'sında geçersiz kılar.
   robots: { index: false, follow: false },
+  openGraph: {
+    siteName: "Üleş",
+    locale: "tr_TR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export const viewport = {
@@ -30,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="tr"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
+
 const CRITERIA = [
   { key: "foodRating", label: "Yemek" },
   { key: "serviceRating", label: "Servis" },
@@ -110,7 +112,8 @@ export default function FeedbackPanel({
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setStage("hidden")}
-              className="inline-block w-full bg-black text-white rounded-lg py-3 font-medium"
+              className="inline-block w-full text-white rounded-lg py-3 font-medium shadow-lg shadow-amber-600/20"
+              style={{ background: BRAND_GRADIENT }}
             >
               Google&apos;da Yorum Yap
             </a>
@@ -180,7 +183,8 @@ export default function FeedbackPanel({
           type="button"
           onClick={submit}
           disabled={sending}
-          className="flex-[2] bg-black text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+          className="flex-[2] text-white rounded-lg py-2 text-sm font-medium shadow-md shadow-amber-600/20 disabled:opacity-50"
+          style={{ background: BRAND_GRADIENT }}
         >
           {sending ? "Gönderiliyor..." : "Gönder"}
         </button>

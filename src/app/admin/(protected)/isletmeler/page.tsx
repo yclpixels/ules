@@ -4,6 +4,7 @@ import { updateSubscriptionAction } from "@/lib/actions";
 import { describeSubscription, SUBSCRIPTION_LABELS } from "@/lib/subscription";
 import { formatTL } from "@/lib/money";
 import { toDateInputValue } from "@/lib/dates";
+import NewBranchForm from "@/components/NewBranchForm";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,8 @@ export default async function IsletmelerPage() {
           <p className="text-2xl font-semibold">{formatTL(monthlyTotal)}</p>
         </div>
       </div>
+
+      <NewBranchForm />
 
       <div className="space-y-3">
         {rows.map(({ branch, view }) => (
@@ -139,7 +142,30 @@ export default async function IsletmelerPage() {
                     className="w-full mt-1 border rounded-lg px-3 py-2"
                   />
                 </div>
+                <div className="w-36">
+                  <label className="text-sm text-gray-500">
+                    Platform komisyonu (%)
+                  </label>
+                  <input
+                    name="platformCommissionPercent"
+                    defaultValue={
+                      branch.platformCommissionBp
+                        ? (branch.platformCommissionBp / 100).toString()
+                        : ""
+                    }
+                    placeholder="0"
+                    className="w-full mt-1 border rounded-lg px-3 py-2"
+                  />
+                </div>
               </div>
+              {!branch.subMerchantKey && (
+                <p className="text-xs text-amber-600">
+                  Bu şube henüz iyzico alt üye işyeri olarak kayıtlı değil —
+                  komisyon oranı girilse bile kartlı ödeme platformun merkezi
+                  hesabında kalır. Şube kendi Ayarlar sayfasından alt üye
+                  kaydını tamamlamalı.
+                </p>
+              )}
               <div>
                 <label className="text-sm text-gray-500">Not</label>
                 <input

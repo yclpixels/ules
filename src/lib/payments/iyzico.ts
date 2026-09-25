@@ -25,7 +25,21 @@ function getClient() {
 
 export const iyzicoProvider: PaymentProvider = {
   async startPayment(input: StartPaymentInput): Promise<StartPaymentResult> {
-    const client = getClient();
+    // Iyzipay constructor'ı env değişkenleri boşken senkron throw atıyor;
+    // yakalanmazsa tüm istek 500'e düşer. Bunun yerine düzgün bir hata dönülür.
+    let client: ReturnType<typeof getClient>;
+    try {
+      client = getClient();
+    } catch (err) {
+      return {
+        mode: "redirect",
+        success: false,
+        error:
+          err instanceof Error
+            ? `iyzico yapılandırma hatası: ${err.message}`
+            : "iyzico yapılandırma hatası",
+      };
+    }
     const price = (input.amountCents / 100).toFixed(2);
     const [firstName, ...rest] = (input.payerName || "Misafir Müşteri").split(
       " "
@@ -75,6 +89,15 @@ export const iyzicoProvider: PaymentProvider = {
           category1: "Yeme-icme",
           itemType: Iyzipay.BASKET_ITEM_TYPE.VIRTUAL,
           price,
+          // Şube alt üye işyeri olarak kayıtlıysa tahsilat doğrudan onun
+          // hesabına düşer (bkz. createSubMerchant); yoksa bu iki alan
+          // gönderilmez ve tutar platformun merkezi hesabında kalır.
+          ...(input.subMerchant
+            ? {
+                subMerchantKey: input.subMerchant.key,
+                subMerchantPrice: (input.subMerchant.merchantPriceCents / 100).toFixed(2),
+              }
+            : {}),
         },
       ],
     };
@@ -120,6 +143,91 @@ export async function retrieveCheckoutFormResult(token: string) {
       (err: unknown, result: Record<string, unknown>) => {
         if (err) reject(err);
         else resolve(result);
+      }
+    );
+  });
+}
+
+export type SubMerchantInput = {
+  branchId: string;
+  subMerchantType: "PERSONAL" | "PRIVATE_COMPANY" | "LIMITED_OR_JOINT_STOCK_COMPANY";
+  name: string;
+  email: string;
+  gsmNumber: string;
+  address: string;
+  iban: string;
+  contactName?: string;
+  contactSurname?: string;
+  legalCompanyTitle?: string;
+  taxOffice?: string;
+  taxNumber?: string;
+  identityNumber?: string;
+};
+
+export type SubMerchantResult =
+  | { success: true; subMerchantKey: string }
+  | { success: false; error: string };
+
+/**
+ * iyzico Pazaryeri: şubeyi "alt üye işyeri" olarak kaydeder. Dönen
+ * subMerchantKey ödeme isteklerinde kullanılır — tahsilat o andan itibaren
+ * platformun değil, doğrudan şubenin hesabına düşer.
+ *
+ * DİKKAT: Bu çağrı ancak iyzico hesabınız Pazaryeri'ne onaylandıktan sonra
+ * çalışır (bkz. entegrasyon@iyzico.com). Onay öncesi "yetkisiz istek" hatası
+ * beklenir — bu normaldir, onboarding tamamlanınca tekrar denenmelidir.
+ */
+export async function createSubMerchant(
+  input: SubMerchantInput
+): Promise<SubMerchantResult> {
+  let client: ReturnType<typeof getClient>;
+  try {
+    client = getClient();
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? `iyzico yapılandırma hatası: ${err.message}`
+          : "iyzico yapılandırma hatası",
+    };
+  }
+  return new Promise((resolve) => {
+    client.subMerchant.create(
+      {
+        locale: Iyzipay.LOCALE.TR,
+        conversationId: input.branchId,
+        subMerchantExternalId: input.branchId,
+        subMerchantType: input.subMerchantType,
+        address: input.address,
+        contactName: input.contactName,
+        contactSurname: input.contactSurname,
+        legalCompanyTitle: input.legalCompanyTitle,
+        taxOffice: input.taxOffice,
+        taxNumber: input.taxNumber,
+        identityNumber: input.identityNumber,
+        email: input.email,
+        gsmNumber: input.gsmNumber,
+        name: input.name,
+        iban: input.iban,
+        currency: Iyzipay.CURRENCY.TRY,
+      },
+      (err: unknown, result: Record<string, unknown>) => {
+        if (err) {
+          resolve({
+            success: false,
+            error: err instanceof Error ? err.message : "iyzico bağlantı hatası",
+          });
+          return;
+        }
+        if (result?.status !== "success") {
+          resolve({
+            success: false,
+            error: (result?.errorMessage as string) || "Alt üye oluşturulamadı",
+          });
+          return;
+        }
+        resolve({ success: true, subMerchantKey: result.subMerchantKey as string });
       }
     );
   });

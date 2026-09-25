@@ -63,6 +63,22 @@ model Branch {
   contactEmail String?
   contactPhone String?
 
+  // iyzico Pazaryeri (alt üye işyeri): kartlı ödeme tahsilatının doğrudan bu
+  // şubenin kendi hesabına düşmesi için gerekli. subMerchantKey iyzico'dan
+  // dönen ve ödeme isteklerinde kullanılan anahtardır; boşsa bu şube için alt
+  // üye kaydı henüz yapılmamış demektir — para o zamana kadar tahsil edilmez.
+  subMerchantType     SubMerchantType?
+  ibanNumber          String?
+  taxOffice           String?
+  taxNumber           String?
+  identityNumber      String? // PERSONAL tipinde TC kimlik no
+  subMerchantKey      String?
+  subMerchantSyncedAt DateTime?
+  // Platformun bu şubeden aldığı komisyon (baz puan, 100 = %1). Sözleşmeyle
+  // belirlenip burada girilene kadar 0'dır — yani platform hiçbir pay almaz,
+  // tahsilatın tamamı şubeye gider.
+  platformCommissionBp Int @default(0)
+
   tables     Table[]
   categories Category[]
   products   Product[]
@@ -218,6 +234,10 @@ model OrderItem {
   removedAt DateTime? // silinen ürünler hesaptan düşer ama kayıt (audit) için saklanır
   removedBy String?
 
+  // Mutfak ekranı: hazırlanan kalem listeden düşer. Ödemeyle ilgisi yoktur.
+  preparedAt DateTime?
+  preparedBy String?
+
   // "Kalemleri seç" ile ödeme: bu kalemi hangi ödeme karşıladı. Ödeme
   // oluşturulurken işaretlenir (aynı kalemi iki kişi seçemesin), ödeme
   // başarısız olur ya da iptal edilirse tekrar boşa çıkar.
@@ -267,6 +287,13 @@ enum SubscriptionStatus {
   TRIAL     // ücretsiz deneme sürüyor
   ACTIVE    // abonelik ödeniyor
   SUSPENDED // ödeme yok / ilişki durduruldu (elle çevrilir)
+}
+
+// iyzico'nun alt üye işyeri (subMerchant) tiplerine birebir karşılık gelir.
+enum SubMerchantType {
+  PERSONAL                       // şahıs (TC kimlik no ile)
+  PRIVATE_COMPANY                // şahıs şirketi
+  LIMITED_OR_JOINT_STOCK_COMPANY // limited / anonim şirket
 }
 
 enum StaffRole {

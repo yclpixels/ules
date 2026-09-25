@@ -16,8 +16,13 @@ import {
 } from "@/lib/dal";
 import { addDays, startOfDayInIstanbul } from "@/lib/dates";
 import { audit } from "@/lib/audit";
+import { hashPassword } from "@/lib/passwords";
 import { parseLocales, SUPPORTED_LOCALES } from "@/lib/locales";
 import { isValidSlug, slugify } from "@/lib/slug";
+import { sendEmail } from "@/lib/email";
+import { rateLimit } from "@/lib/rateLimit";
+import { headers } from "next/headers";
+import { createSubMerchant } from "@/lib/payments/iyzico";
 
 export async function addTableAction(formData: FormData) {
   const session = await verifyManagerSession();
@@ -528,6 +533,18 @@ export async function updateSubscriptionAction(formData: FormData) {
   const note =
     String(formData.get("subscriptionNote") || "").trim().slice(0, 300) || null;
 
+  // Platform komisyonu: yüzde olarak girilir, baz puana çevrilir (%2,5 → 250).
+  // Sözleşmeyle belirlenene kadar 0 kalır — o zamana kadar tahsilatın
+  // tamamı şubeye gider (bkz. pay/route.ts).
+  const commissionInput = String(formData.get("platformCommissionPercent") || "")
+    .trim()
+    .replace(",", ".");
+  const commissionPercent = Number.parseFloat(commissionInput);
+  const platformCommissionBp =
+    Number.isFinite(commissionPercent) && commissionPercent >= 0 && commissionPercent <= 100
+      ? Math.round(commissionPercent * 100)
+      : 0;
+
   await prisma.branch.update({
     where: { id: branchId },
     data: {
@@ -535,6 +552,7 @@ export async function updateSubscriptionAction(formData: FormData) {
       trialEndsAt,
       monthlyFeeCents: feeCents > 0 ? feeCents : null,
       subscriptionNote: note,
+      platformCommissionBp,
     },
   });
 
@@ -623,4 +641,237 @@ export async function saveTranslationAction(formData: FormData) {
     });
   }
   revalidatePath("/admin/urunler");
+}
+
+export type CreateBranchState = { error?: string; success?: string } | undefined;
+
+/**
+ * Yeni işletme (şube) açar ve ilk müdür hesabını oluşturur — sadece sahip.
+ *
+ * Daha önce bu iş `npm run db:seed`'i farklı env değerleriyle çalıştırmayı
+ * gerektiriyordu; üstelik seed örnek ürünleri de ekliyordu ve restoran onları
+ * tek tek silmek zorunda kalıyordu. Burada demo veri oluşturulmaz.
+ */
+export async function createBranchAction(
+  _prev: CreateBranchState,
+  formData: FormData
+): Promise<CreateBranchState> {
+  const session = await verifyOwnerSession();
+
+  const name = String(formData.get("name") || "").trim();
+  const managerName = String(formData.get("managerName") || "").trim();
+  const username = String(formData.get("username") || "").trim().toLowerCase();
+  const password = String(formData.get("password") || "");
+
+  if (!name || !managerName || !username) {
+    return { error: "İşletme adı, müdür adı ve kullanıcı adı zorunlu" };
+  }
+  if (password.length < 6) {
+    return { error: "Şifre en az 6 karakter olmalı" };
+  }
+  if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
+    return {
+      error: "Kullanıcı adı 3-30 karakter olmalı ve harf/rakam/nokta içermeli",
+    };
+  }
+
+  const taken = await prisma.staffUser.findUnique({ where: { username } });
+  if (taken) {
+    return { error: "Bu kullanıcı adı zaten kullanılıyor" };
+  }
+
+  // Şube ve ilk müdür tek işlemde: yarım kalmış şube (müdürsüz) bırakmayalım.
+  const branch = await prisma.$transaction(async (tx) => {
+    const created = await tx.branch.create({ data: { name } });
+    await tx.staffUser.create({
+      data: {
+        name: managerName,
+        username,
+        passwordHash: hashPassword(password),
+        role: "MANAGER",
+        branchId: created.id,
+      },
+    });
+    return created;
+  });
+
+  await audit({
+    branchId: branch.id,
+    action: "STAFF_ADDED",
+    actorName: session.name,
+    actorId: session.staffId,
+    detail: `Yeni işletme açıldı: ${name} — müdür ${managerName} (${username})`,
+  });
+
+  revalidatePath("/admin/isletmeler");
+  return {
+    success: `"${name}" açıldı. Müdür girişi: ${username}`,
+  };
+}
+
+/** Mutfak: kalemi hazırlandı olarak işaretler (her personel yapabilir). */
+export async function markItemPreparedAction(formData: FormData) {
+  const session = await verifyAdminSession();
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+
+  await prisma.orderItem.updateMany({
+    where: {
+      id,
+      preparedAt: null,
+      removedAt: null,
+      order: { table: { branchId: session.branchId } },
+    },
+    data: { preparedAt: new Date(), preparedBy: session.name },
+  });
+
+  revalidatePath("/admin/mutfak");
+}
+
+export type SubMerchantState = { error?: string; success?: string } | undefined;
+
+/**
+ * Şubeyi iyzico Pazaryeri'nde "alt üye işyeri" olarak kaydeder/günceller.
+ * Bundan sonra kartlı ödeme tahsilatı platformun değil, doğrudan bu şubenin
+ * hesabına düşer (bkz. lib/payments/iyzico.ts createSubMerchant).
+ *
+ * DİKKAT: iyzico hesabı Pazaryeri'ne onaylanmadan bu çağrı hata döner —
+ * bu beklenen bir durumdur, onay sonrası tekrar denenmelidir.
+ */
+export async function saveSubMerchantAction(
+  _prev: SubMerchantState,
+  formData: FormData
+): Promise<SubMerchantState> {
+  const session = await verifyManagerSession();
+
+  const subMerchantType = String(formData.get("subMerchantType") || "");
+  if (
+    subMerchantType !== "PERSONAL" &&
+    subMerchantType !== "PRIVATE_COMPANY" &&
+    subMerchantType !== "LIMITED_OR_JOINT_STOCK_COMPANY"
+  ) {
+    return { error: "İşletme türü seçilmeli" };
+  }
+
+  const iban = String(formData.get("ibanNumber") || "").trim();
+  const email = String(formData.get("contactEmail") || "").trim();
+  const gsmNumber = String(formData.get("contactPhone") || "").trim();
+  const address = String(formData.get("legalAddress") || "").trim();
+  const name = String(formData.get("legalName") || "").trim();
+  const taxOffice = String(formData.get("taxOffice") || "").trim() || undefined;
+  const taxNumber = String(formData.get("taxNumber") || "").trim() || undefined;
+  const identityNumber =
+    String(formData.get("identityNumber") || "").trim() || undefined;
+
+  if (!iban || !email || !gsmNumber || !address || !name) {
+    return {
+      error:
+        "IBAN, iletişim e-postası, telefon, adres ve işletme unvanı zorunlu",
+    };
+  }
+  if (subMerchantType === "PERSONAL" && !identityNumber) {
+    return { error: "Şahıs işletmesi için TC kimlik no zorunlu" };
+  }
+  if (
+    (subMerchantType === "PRIVATE_COMPANY" ||
+      subMerchantType === "LIMITED_OR_JOINT_STOCK_COMPANY") &&
+    !taxOffice
+  ) {
+    return { error: "Şirket için vergi dairesi zorunlu" };
+  }
+  if (subMerchantType === "LIMITED_OR_JOINT_STOCK_COMPANY" && !taxNumber) {
+    return { error: "Limited/anonim şirket için vergi numarası zorunlu" };
+  }
+
+  const [contactName, ...rest] = name.split(" ");
+  const contactSurname = rest.join(" ") || contactName;
+
+  const result = await createSubMerchant({
+    branchId: session.branchId,
+    subMerchantType,
+    name,
+    email,
+    gsmNumber,
+    address,
+    iban,
+    legalCompanyTitle: name,
+    contactName,
+    contactSurname,
+    taxOffice,
+    taxNumber,
+    identityNumber,
+  });
+
+  if (!result.success) {
+    return { error: result.error };
+  }
+
+  await prisma.branch.update({
+    where: { id: session.branchId },
+    data: {
+      subMerchantType,
+      ibanNumber: iban,
+      taxOffice: taxOffice ?? null,
+      taxNumber: taxNumber ?? null,
+      identityNumber: identityNumber ?? null,
+      subMerchantKey: result.subMerchantKey,
+      subMerchantSyncedAt: new Date(),
+    },
+  });
+
+  await audit({
+    branchId: session.branchId,
+    action: "SETTINGS_UPDATED",
+    actorName: session.name,
+    actorId: session.staffId,
+    detail: "iyzico alt üye işyeri kaydedildi",
+  });
+
+  revalidatePath("/admin/ayarlar");
+  return { success: "Alt üye işyeri kaydedildi. Kartlı ödemeler artık bu şubenin hesabına gidecek." };
+}
+
+export type ContactRequestState = { error?: string; success?: boolean } | undefined;
+
+/**
+ * Tanıtım sitesindeki "Demo isteyin" formu. Girişli oturum gerektirmez,
+ * bu yüzden IP başına hız sınırı var. Gönderilen e-posta CONTACT_EMAIL'e
+ * gider; env tanımlı değilse (henüz gerçek bir adres yoksa) mock modda
+ * konsola düşer — sendEmail() zaten bunu kendi başına hallediyor.
+ */
+export async function sendContactRequestAction(
+  _prev: ContactRequestState,
+  formData: FormData
+): Promise<ContactRequestState> {
+  // Botlar genelde bu alanı da doldurur; insan kullanıcı görmez (bkz. form).
+  if (String(formData.get("website") || "").trim()) {
+    return { success: true };
+  }
+
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const limited = rateLimit(`contact:ip:${ip}`, { limit: 5, windowMs: 60 * 60 * 1000 });
+  if (!limited.ok) {
+    return { error: "Çok fazla istek gönderildi, biraz sonra tekrar deneyin" };
+  }
+
+  const businessName = String(formData.get("businessName") || "").trim();
+  const contact = String(formData.get("contact") || "").trim();
+  const message = String(formData.get("message") || "").trim().slice(0, 2000);
+
+  if (!businessName || !contact) {
+    return { error: "İşletme adı ve iletişim bilgisi zorunlu" };
+  }
+
+  await sendEmail({
+    to: process.env.CONTACT_EMAIL || "demo@ules.com.tr",
+    subject: `Demo talebi: ${businessName}`,
+    html: `
+      <p><strong>İşletme:</strong> ${businessName}</p>
+      <p><strong>İletişim:</strong> ${contact}</p>
+      <p><strong>Mesaj:</strong> ${message || "(boş)"}</p>
+    `,
+  });
+
+  return { success: true };
 }

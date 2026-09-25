@@ -4,6 +4,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { formatTL } from "@/lib/money";
 import FeedbackPanel from "./FeedbackPanel";
+import {
+  CardIcon,
+  CartIcon,
+  CheckCircleIcon,
+  ListChecksIcon,
+  ReceiptIcon,
+  ShieldIcon,
+  SplitIcon,
+  UsersIcon,
+  WalletIcon,
+} from "@/components/icons";
+
+/** Marka gradyanı (amber → kırmızı) — tanıtım sitesiyle aynı imza renk. */
+const BRAND_GRADIENT = "linear-gradient(135deg, #fbbf24, #f87171)";
 
 type BillItem = {
   id: string;
@@ -110,7 +124,18 @@ export default function BillView({
   const [justPaid, setJustPaid] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
-  const [addingProductId, setAddingProductId] = useState<string | null>(null);
+  /**
+   * Sepet. Önceden "Ekle"ye dokunulduğu anda sipariş hesaba düşüyordu:
+   * yanlış dokunuş doğrudan mutfağa gidiyor, geri alınamıyordu. Artık müşteri
+   * sepetini toplar, kontrol eder, sonra gönderir.
+   */
+  const [cart, setCart] = useState<{ productId: string; quantity: number }[]>(
+    []
+  );
+  const [cartNote, setCartNote] = useState("");
+  const [sending, setSending] = useState(false);
+  const [cartError, setCartError] = useState<string | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
   const [checkoutFormContent, setCheckoutFormContent] = useState<
     string | null
   >(null);
@@ -201,22 +226,75 @@ export default function BillView({
         )
       : Math.round((shareCents * tipChoice) / 100);
   const amountToPayCents = shareCents + tipCents;
+  const menuById = new Map(
+    bill.menu.flatMap((g) => g.products).map((p) => [p.id, p])
+  );
+  const cartLines = cart
+    .map((l) => ({ ...l, product: menuById.get(l.productId) }))
+    .filter((l) => l.product);
+  const cartCount = cart.reduce((n, l) => n + l.quantity, 0);
+  const cartTotalCents = cartLines.reduce(
+    (sum, l) => sum + l.product!.priceCents * l.quantity,
+    0
+  );
+
   const showFeedback =
     (justPaid || paymentStatus === "success" || bill.closed) && !!bill.orderId;
 
-  async function handleAddItem(productId: string) {
-    setAddingProductId(productId);
+  function addToCart(productId: string) {
+    setCartError(null);
+    setCart((prev) => {
+      const found = prev.find((l) => l.productId === productId);
+      return found
+        ? prev.map((l) =>
+            l.productId === productId ? { ...l, quantity: l.quantity + 1 } : l
+          )
+        : [...prev, { productId, quantity: 1 }];
+    });
+  }
+
+  function changeCartQty(productId: string, delta: number) {
+    setCart((prev) =>
+      prev
+        .map((l) =>
+          l.productId === productId
+            ? { ...l, quantity: l.quantity + delta }
+            : l
+        )
+        .filter((l) => l.quantity > 0)
+    );
+  }
+
+  /** Sepeti tek istekte gönderir; başarılıysa sepet boşalır ve hesap yenilenir. */
+  async function sendCart() {
+    if (cart.length === 0) return;
+    setCartError(null);
+    setSending(true);
     try {
       const res = await fetch(`/api/masa/${qrToken}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, quantity: 1 }),
+        body: JSON.stringify({
+          items: cart.map((l) => ({
+            ...l,
+            note: cartNote.trim() || null,
+          })),
+        }),
       });
-      if (res.ok) {
-        await load();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setCartError(data.error || "Sipariş gönderilemedi");
+        return;
       }
+      setCart([]);
+      setCartNote("");
+      setCartOpen(false);
+      await load();
+      setTab("bill");
+    } catch {
+      setCartError("Bağlantı hatası, tekrar deneyin");
     } finally {
-      setAddingProductId(null);
+      setSending(false);
     }
   }
 
@@ -280,7 +358,7 @@ export default function BillView({
               <button
                 key={l.code}
                 onClick={() => chooseLang(l.code)}
-                className={`text-xs rounded-lg px-2 py-1 border ${
+                className={`text-xs rounded-lg px-2 py-1 border transition-colors ${
                   bill.branch.locale === l.code
                     ? "bg-black text-white border-black"
                     : "bg-white text-gray-600"
@@ -291,21 +369,25 @@ export default function BillView({
             ))}
           </div>
         )}
-        <div className="flex rounded-lg overflow-hidden border">
+        <div className="flex rounded-lg overflow-hidden border p-1 gap-1 bg-gray-100">
           <button
-            className={`flex-1 py-2 text-sm font-medium ${
-              tab === "menu" ? "bg-black text-white" : "bg-white text-gray-700"
+            className={`flex-1 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${
+              tab === "menu" ? "text-white shadow-sm" : "text-gray-600"
             }`}
+            style={tab === "menu" ? { background: BRAND_GRADIENT } : undefined}
             onClick={() => setTab("menu")}
           >
+            <CartIcon className="w-4 h-4" />
             Menü
           </button>
           <button
-            className={`flex-1 py-2 text-sm font-medium relative ${
-              tab === "bill" ? "bg-black text-white" : "bg-white text-gray-700"
+            className={`flex-1 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${
+              tab === "bill" ? "text-white shadow-sm" : "text-gray-600"
             }`}
+            style={tab === "bill" ? { background: BRAND_GRADIENT } : undefined}
             onClick={() => setTab("bill")}
           >
+            <ReceiptIcon className="w-4 h-4" />
             Hesap{bill.items.length > 0 ? ` (${bill.items.length})` : ""}
           </button>
         </div>
@@ -342,42 +424,38 @@ export default function BillView({
                   </h2>
                   <div className="bg-white rounded-xl border divide-y">
                     {group.products.map((p) => (
-                      <div
-                        key={p.id}
-                        className="flex items-center justify-between gap-3 px-4 py-3"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          {p.imageUrl && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={p.imageUrl}
-                              alt=""
-                              loading="lazy"
-                              className="w-14 h-14 rounded-lg object-cover border shrink-0"
-                            />
-                          )}
-                          <div className="min-w-0">
-                            <p className="font-medium">{p.name}</p>
-                            {p.description && (
-                              <p className="text-xs text-gray-500">{p.description}</p>
-                            )}
-                            {p.allergens && (
-                              <p className="text-xs text-amber-600">
-                                Alerjen: {p.allergens}
-                              </p>
-                            )}
-                            <p className="text-sm text-gray-700 mt-0.5">
-                              {formatTL(p.priceCents)}
+                      <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+                        {p.imageUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={p.imageUrl}
+                            alt={p.name}
+                            loading="lazy"
+                            className="w-20 h-20 rounded-xl object-cover border shrink-0"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold">{p.name}</p>
+                          {p.description && (
+                            <p className="text-sm text-gray-500 line-clamp-2 mt-0.5">
+                              {p.description}
                             </p>
-                          </div>
+                          )}
+                          {p.allergens && (
+                            <p className="text-xs text-amber-600 mt-0.5">
+                              Alerjen: {p.allergens}
+                            </p>
+                          )}
+                          <p className="text-sm font-medium mt-1">
+                            {formatTL(p.priceCents)}
+                          </p>
                         </div>
                         {bill.branch.customerOrderingEnabled && (
                           <button
-                            onClick={() => handleAddItem(p.id)}
-                            disabled={addingProductId === p.id}
-                            className="bg-black text-white text-sm rounded-lg px-3 py-1.5 disabled:opacity-50"
+                            onClick={() => addToCart(p.id)}
+                            className="bg-black text-white text-sm rounded-lg px-3 py-1.5 shrink-0 self-center"
                           >
-                            {addingProductId === p.id ? "..." : "Ekle"}
+                            Ekle
                           </button>
                         )}
                       </div>
@@ -401,10 +479,11 @@ export default function BillView({
                     className="flex items-center justify-between px-4 py-3"
                   >
                     <div>
-                      <p className="font-medium">
+                      <p className="font-medium flex items-center gap-1.5">
                         {item.name}
                         {item.settled && (
-                          <span className="ml-2 text-xs text-green-600 font-normal">
+                          <span className="inline-flex items-center gap-0.5 text-xs text-green-600 font-normal">
+                            <CheckCircleIcon className="w-3.5 h-3.5" />
                             ödendi
                           </span>
                         )}
@@ -441,9 +520,14 @@ export default function BillView({
                   <span>{formatTL(bill.tipCents)}</span>
                 </div>
               )}
-              <div className="flex justify-between font-semibold text-base pt-1 border-t mt-1">
+              <div className="flex justify-between font-semibold text-base pt-2 mt-1 border-t">
                 <span>Kalan</span>
-                <span>{formatTL(bill.remainingCents)}</span>
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: BRAND_GRADIENT }}
+                >
+                  {formatTL(bill.remainingCents)}
+                </span>
               </div>
             </div>
 
@@ -478,7 +562,8 @@ export default function BillView({
 
             {bill.closed ? (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center space-y-2">
-                <p className="text-green-700 font-medium">
+                <p className="text-green-700 font-medium flex items-center justify-center gap-1.5">
+                  <CheckCircleIcon className="w-5 h-5" />
                   Hesap tamamen ödendi. Teşekkürler!
                 </p>
                 {bill.orderId && (
@@ -496,7 +581,10 @@ export default function BillView({
               /* Kartlı ödeme kapalı: müşteri payını hesaplasın, tahsilatı
                  personel alsın. Hesabı bölme değeri burada da duruyor. */
               <div className="bg-white rounded-xl border p-4 space-y-3">
-                <p className="text-sm font-medium">Hesabı bölüşün</p>
+                <p className="text-sm font-medium flex items-center gap-1.5">
+                  <UsersIcon className="w-4 h-4 text-amber-600" />
+                  Hesabı bölüşün
+                </p>
                 <div>
                   <label className="text-sm text-gray-500">Kişi sayısı</label>
                   <input
@@ -509,9 +597,12 @@ export default function BillView({
                     className="w-full mt-1 border rounded-lg px-3 py-2"
                   />
                 </div>
-                <div className="bg-gray-50 border rounded-lg p-3 text-center">
+                <div className="border rounded-lg p-4 text-center">
                   <p className="text-sm text-gray-500">Kişi başı</p>
-                  <p className="text-2xl font-semibold">
+                  <p
+                    className="text-3xl font-semibold bg-clip-text text-transparent"
+                    style={{ backgroundImage: BRAND_GRADIENT }}
+                  >
                     {formatTL(equalShareCents)}
                   </p>
                 </div>
@@ -521,24 +612,37 @@ export default function BillView({
                 </p>
               </div>
             ) : bill.remainingCents > 0 ? (
-              <div className="bg-white rounded-xl border p-4 space-y-3">
-                <div className="flex rounded-lg overflow-hidden border">
+              <div
+                className="rounded-2xl p-[2px] shadow-xl shadow-amber-600/10"
+                style={{ background: BRAND_GRADIENT }}
+              >
+              <div className="bg-white rounded-[14px] p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold flex items-center gap-1.5">
+                    <CardIcon className="w-5 h-5 text-amber-600" />
+                    Kartla Öde
+                  </p>
+                  <span className="text-xs text-gray-400">
+                    Visa · Mastercard · Troy
+                  </span>
+                </div>
+                <div className="flex rounded-lg overflow-hidden border p-1 gap-1 bg-gray-100">
                   {(
                     [
-                      ["equal", "Eşit Böl"],
-                      ["items", "Kalem Seç"],
-                      ["custom", "Tutar Gir"],
+                      ["equal", "Eşit Böl", SplitIcon],
+                      ["items", "Kalem Seç", ListChecksIcon],
+                      ["custom", "Tutar Gir", WalletIcon],
                     ] as const
-                  ).map(([key, label]) => (
+                  ).map(([key, label, Icon]) => (
                     <button
                       key={key}
-                      className={`flex-1 py-2 text-sm font-medium ${
-                        mode === key
-                          ? "bg-black text-white"
-                          : "bg-white text-gray-700"
+                      className={`flex-1 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${
+                        mode === key ? "text-white shadow-sm" : "text-gray-700"
                       }`}
+                      style={mode === key ? { background: BRAND_GRADIENT } : undefined}
                       onClick={() => setMode(key)}
                     >
+                      <Icon className="w-4 h-4" />
                       {label}
                     </button>
                   ))}
@@ -579,7 +683,8 @@ export default function BillView({
                                 {item.name} x{item.quantity}
                               </span>
                               {item.settled && (
-                                <span className="block text-xs text-green-600">
+                                <span className="flex items-center gap-0.5 text-xs text-green-600">
+                                  <CheckCircleIcon className="w-3.5 h-3.5" />
                                   başkası üstlendi
                                 </span>
                               )}
@@ -657,11 +762,12 @@ export default function BillView({
                           key={pct}
                           type="button"
                           onClick={() => setTipChoice(pct)}
-                          className={`flex-1 py-2 text-sm rounded-lg border ${
+                          className={`flex-1 py-2 text-sm rounded-lg border transition-all ${
                             tipChoice === pct
-                              ? "bg-black text-white border-black"
+                              ? "text-white border-transparent shadow-sm"
                               : "bg-white text-gray-700"
                           }`}
+                          style={tipChoice === pct ? { background: BRAND_GRADIENT } : undefined}
                         >
                           {pct === 0 ? "Yok" : `%${pct}`}
                         </button>
@@ -669,11 +775,12 @@ export default function BillView({
                       <button
                         type="button"
                         onClick={() => setTipChoice("custom")}
-                        className={`flex-1 py-2 text-sm rounded-lg border ${
+                        className={`flex-1 py-2 text-sm rounded-lg border transition-all ${
                           tipChoice === "custom"
-                            ? "bg-black text-white border-black"
+                            ? "text-white border-transparent shadow-sm"
                             : "bg-white text-gray-700"
                         }`}
+                        style={tipChoice === "custom" ? { background: BRAND_GRADIENT } : undefined}
                       >
                         Diğer
                       </button>
@@ -701,20 +808,34 @@ export default function BillView({
                   <p className="text-sm text-red-600">{payError}</p>
                 )}
 
+                <div className="flex items-center justify-between border-t pt-3">
+                  <span className="text-sm text-gray-500">Ödenecek tutar</span>
+                  <span
+                    className="text-2xl font-semibold bg-clip-text text-transparent"
+                    style={{ backgroundImage: BRAND_GRADIENT }}
+                  >
+                    {formatTL(amountToPayCents || 0)}
+                  </span>
+                </div>
+
                 <button
                   onClick={handlePay}
                   disabled={paying}
-                  className="w-full bg-black text-white rounded-lg py-3 font-medium disabled:opacity-50"
+                  className="w-full text-white rounded-lg py-3.5 font-medium text-base shadow-lg shadow-amber-600/20 transition-transform hover:scale-[1.01] disabled:opacity-50 disabled:hover:scale-100"
+                  style={{ background: BRAND_GRADIENT }}
                 >
-                  {paying
-                    ? "İşleniyor..."
-                    : `${formatTL(amountToPayCents || 0)} Öde`}
+                  {paying ? "İşleniyor..." : "Şimdi Öde"}
                 </button>
+                <p className="flex items-center justify-center gap-1 text-xs text-gray-400 text-center">
+                  <ShieldIcon className="w-3.5 h-3.5" />
+                  iyzico güvencesiyle korunan ödeme
+                </p>
                 {isDemo && (
                   <p className="text-xs text-gray-400 text-center">
                     Demo modu: gerçek kart tahsilatı yapılmıyor.
                   </p>
                 )}
+              </div>
               </div>
             ) : null}
           </>
@@ -738,6 +859,72 @@ export default function BillView({
           </a>
         </p>
       </main>
+
+      {/* Sepet çubuğu: ürün seçildiği anda görünür, gönderilene kadar kalır */}
+      {cartCount > 0 && (
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t p-3">
+          <div className="max-w-md mx-auto space-y-3">
+            {cartOpen && (
+              <div className="space-y-2 max-h-64 overflow-auto">
+                {cartLines.map((l) => (
+                  <div
+                    key={l.productId}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <span className="flex-1 min-w-0 truncate">
+                      {l.product!.name}
+                    </span>
+                    <button
+                      onClick={() => changeCartQty(l.productId, -1)}
+                      aria-label="Azalt"
+                      className="w-7 h-7 border rounded-lg"
+                    >
+                      −
+                    </button>
+                    <span className="w-6 text-center">{l.quantity}</span>
+                    <button
+                      onClick={() => changeCartQty(l.productId, 1)}
+                      aria-label="Artır"
+                      className="w-7 h-7 border rounded-lg"
+                    >
+                      +
+                    </button>
+                    <span className="w-20 text-right">
+                      {formatTL(l.product!.priceCents * l.quantity)}
+                    </span>
+                  </div>
+                ))}
+                <input
+                  value={cartNote}
+                  onChange={(e) => setCartNote(e.target.value)}
+                  placeholder="Sipariş notu (ör. acısız olsun)"
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+            )}
+
+            {cartError && <p className="text-sm text-red-600">{cartError}</p>}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCartOpen((v) => !v)}
+                className="flex-1 border rounded-lg py-3 text-sm font-medium flex items-center justify-center gap-1.5"
+              >
+                <CartIcon className="w-4 h-4" />
+                {cartOpen ? "Gizle" : `Sepet (${cartCount}) · ${formatTL(cartTotalCents)}`}
+              </button>
+              <button
+                onClick={sendCart}
+                disabled={sending}
+                className="flex-1 text-white rounded-lg py-3 font-medium shadow-lg shadow-amber-600/20 disabled:opacity-50"
+                style={{ background: BRAND_GRADIENT }}
+              >
+                {sending ? "Gönderiliyor..." : "Siparişi Gönder"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {checkoutFormContent && (
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">

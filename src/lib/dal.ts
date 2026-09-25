@@ -9,21 +9,20 @@ import { readAdminSessionCookie } from "@/lib/session";
  * bakılır: pasifleştirilen/silinen personel, cookie'si 30 gün daha geçerli
  * olsa da içeri giremez. `cache` sayesinde bir istek içinde tek sorgu atılır.
  */
-export const verifyAdminSession = cache(async () => {
+/**
+ * Oturumu döner, yoksa null — yönlendirme YAPMAZ.
+ * Route handler'larda bunu kullanın: orada `redirect()` bir istisna fırlatır
+ * ve gerçek hatalarla karışıp yanıltıcı 401'lere yol açar.
+ */
+export const getAdminSession = cache(async () => {
   const session = await readAdminSessionCookie();
-  if (!session?.staffId) {
-    redirect("/admin/login");
-  }
+  if (!session?.staffId) return null;
 
   const staff = await prisma.staffUser.findUnique({
     where: { id: session.staffId },
     select: { isActive: true, role: true, branchId: true, name: true },
   });
-  // Sayfa render'ı sırasında cookie silinemez (Next kısıtı); eski cookie
-  // her istekte buraya takılıp login'e döner, kullanıcı tekrar giriş yapınca yenilenir.
-  if (!staff || !staff.isActive) {
-    redirect("/admin/login");
-  }
+  if (!staff || !staff.isActive) return null;
 
   // Rol/isim/şube sonradan değişmiş olabilir; cookie'deki eski değeri değil
   // veritabanındaki güncel değeri kullan.
@@ -33,6 +32,16 @@ export const verifyAdminSession = cache(async () => {
     branchId: staff.branchId,
     name: staff.name,
   };
+});
+
+export const verifyAdminSession = cache(async () => {
+  const session = await getAdminSession();
+  // Sayfa render'ı sırasında cookie silinemez (Next kısıtı); eski cookie
+  // her istekte buraya takılıp login'e döner, kullanıcı tekrar giriş yapınca yenilenir.
+  if (!session) {
+    redirect("/admin/login");
+  }
+  return session;
 });
 
 /**

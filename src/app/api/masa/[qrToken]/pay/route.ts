@@ -27,7 +27,15 @@ export async function POST(
   }
   const table = await prisma.table.findUnique({
     where: { qrToken },
-    include: { branch: { select: { cardPaymentEnabled: true } } },
+    include: {
+      branch: {
+        select: {
+          cardPaymentEnabled: true,
+          subMerchantKey: true,
+          platformCommissionBp: true,
+        },
+      },
+    },
   });
   if (!table) {
     return NextResponse.json({ error: "Masa bulunamadı" }, { status: 404 });
@@ -145,12 +153,24 @@ export async function POST(
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       "127.0.0.1";
 
+    // Şube alt üye işyeri olarak kayıtlıysa (bkz. saveSubMerchantAction)
+    // tahsilat doğrudan onun hesabına, komisyon hariç tutarla gider.
+    const subMerchant = table.branch.subMerchantKey
+      ? {
+          key: table.branch.subMerchantKey,
+          merchantPriceCents:
+            chargeCents -
+            Math.round((chargeCents * table.branch.platformCommissionBp) / 10000),
+        }
+      : undefined;
+
     const result = await provider.startPayment({
       conversationId: payment.id,
       amountCents: chargeCents,
       payerName,
       callbackUrl: `${baseUrl}/api/payments/iyzico-callback`,
       buyerIp,
+      subMerchant,
     });
 
     if (!result.success || result.mode !== "redirect") {

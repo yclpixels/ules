@@ -41,6 +41,8 @@ export default async function AdminLayout({
       title: "Günlük",
       items: [
         { href: "/admin", label: "Kasa" },
+        // Mutfak garsona da açık: küçük işletmede aynı kişi hem servis hem mutfak.
+        { href: "/admin/mutfak", label: "Mutfak" },
         ...(isManager
           ? [
               { href: "/admin/masalar", label: "Masalar" },
@@ -85,7 +87,7 @@ export default async function AdminLayout({
       <header className="bg-white border-b px-4 py-3 sticky top-0 z-20">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
           <Link href="/admin" className="min-w-0">
-            <span className="font-semibold block truncate">Masa QR Yönetim</span>
+            <span className="font-semibold block truncate">Üleş</span>
             <span className="text-xs text-gray-400 block truncate">
               {session.branchName}
             </span>
