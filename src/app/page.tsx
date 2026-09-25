@@ -422,7 +422,21 @@ export default function Home() {
                   Ön Bilgilendirme Formu
                 </Link>
               </li>
+              <li>
+                <Link href="/cerez-politikasi" className="transition-colors hover:text-gray-900">
+                  Çerez Politikası
+                </Link>
+              </li>
             </ul>
+          </div>
+        </div>
+        <div className="border-t">
+          <div className="max-w-5xl mx-auto px-4 py-3 text-xs text-gray-400">
+            Üleş bir ödeme kuruluşu veya aracı kurum değildir. Restoran ve
+            kafeler için QR tabanlı sipariş, hesap bölüşme ve ödeme
+            yönlendirme yazılımı sağlar; kartlı tahsilat iyzico&apos;nun
+            lisanslı altyapısı üzerinden doğrudan işletmenin hesabına
+            yapılır.
           </div>
         </div>
         <div className="border-t">
