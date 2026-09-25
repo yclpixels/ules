@@ -30,7 +30,8 @@ export default async function TableDetailPage({
     where: { id: tableId, branchId: session.branchId },
   });
   if (!table) notFound();
-  const isManager = session.role === "MANAGER";
+  // OWNER kendi şubesinde müdür sayılır (bkz. verifyManagerSession).
+  const isManager = session.role === "MANAGER" || session.role === "OWNER";
 
   const order = await getOpenOrder(tableId);
   const { totalCents, paidCents, tipCents, remainingCents } = order
@@ -96,16 +97,22 @@ export default async function TableDetailPage({
               <p className="font-medium">
                 {formatTL(item.unitPriceCents * item.quantity)}
               </p>
-              <form action={removeOrderItemAction}>
-                <input type="hidden" name="id" value={item.id} />
-                <input type="hidden" name="tableId" value={tableId} />
-                <ConfirmButton
-                  message={`"${item.product.name}" hesaptan silinsin mi?`}
-                  className="text-sm text-red-600 hover:underline"
-                >
-                  Sil
-                </ConfirmButton>
-              </form>
+              {item.settledPaymentId ? (
+                // Müşteri bu kalemi "Kalem Seç" ile ödedi; silinirse ödenmiş
+                // para boşa düşer. Gerekirse önce ödeme iptal edilmeli.
+                <span className="text-xs text-gray-400">Ödendi</span>
+              ) : (
+                <form action={removeOrderItemAction}>
+                  <input type="hidden" name="id" value={item.id} />
+                  <input type="hidden" name="tableId" value={tableId} />
+                  <ConfirmButton
+                    message={`"${item.product.name}" hesaptan silinsin mi?`}
+                    className="text-sm text-red-600 hover:underline"
+                  >
+                    Sil
+                  </ConfirmButton>
+                </form>
+              )}
             </div>
           </div>
         ))}

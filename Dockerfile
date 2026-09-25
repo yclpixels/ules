@@ -23,6 +23,13 @@ ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
 # statik analiz ederken tetikleniyor; gerçek imzalama anahtarı runtime'da
 # Railway'in env'inden gelir, buradaki değer sadece build'i geçirmek için.
 ENV SESSION_SECRET="build-time-placeholder-not-used-at-runtime"
+# NEXT_PUBLIC_* değişkenleri `next build` sırasında koda GÖMÜLÜR (sunucu
+# kodunda da) — runtime'da verilmeleri yetmez. ARG olarak tanımlanınca
+# Railway servis değişkenini build'e otomatik geçirir; tanımlanmazsa canlıda
+# site adresi boş kalır (SEO etiketleri localhost'u gösterir). Sunucu kodu
+# ayrıca runtime'da APP_URL'i okur (bkz. src/lib/baseUrl.ts).
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate

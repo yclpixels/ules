@@ -1,6 +1,10 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { notifyPos } from "@/lib/posWebhook";
+import {
+  isVerifiedCheckoutResult,
+  retrieveCheckoutFormResult,
+} from "@/lib/payments/iyzico";
 
 export async function getOpenOrder(tableId: string) {
   return prisma.order.findFirst({
@@ -177,11 +181,39 @@ export async function priceSelectedItems(orderId: string, itemIds: string[]) {
   return { items, cents };
 }
 
-/** Seçilen kalemleri bir ödemeye bağlar (aynı kalemi ikinci kişi seçemesin). */
-async function reserveItems(itemIds: string[], paymentId: string) {
-  await prisma.orderItem.updateMany({
-    where: { id: { in: itemIds }, settledPaymentId: null },
-    data: { settledPaymentId: paymentId },
+/**
+ * Ödemeyi oluşturur ve seçilen kalemleri aynı transaction içinde bu ödemeye
+ * bağlar. Kalemler `FOR UPDATE` ile kilitlenir: masadaki iki kişi aynı kalemi
+ * aynı anda seçerse ikincisi kilidi bekler, kalemi dolu bulur ve ödemesi
+ * hiç oluşmadan geri alınır (aynı kalem iki kez tahsil edilmez).
+ */
+async function createPaymentReservingItems(
+  data: Prisma.PaymentUncheckedCreateInput,
+  settledItemIds?: string[]
+) {
+  const itemIds = [...new Set(settledItemIds ?? [])];
+  return prisma.$transaction(async (tx) => {
+    if (itemIds.length > 0) {
+      await tx.$queryRaw`SELECT "id" FROM "OrderItem" WHERE "id" IN (${Prisma.join(itemIds)}) FOR UPDATE`;
+    }
+    const payment = await tx.payment.create({ data });
+    if (itemIds.length > 0) {
+      const reserved = await tx.orderItem.updateMany({
+        where: {
+          id: { in: itemIds },
+          orderId: data.orderId,
+          removedAt: null,
+          settledPaymentId: null,
+        },
+        data: { settledPaymentId: payment.id },
+      });
+      if (reserved.count !== itemIds.length) {
+        throw new Error(
+          "Seçtiğiniz kalemlerden bazıları artık uygun değil, listeyi yenileyip tekrar deneyin"
+        );
+      }
+    }
+    return payment;
   });
 }
 
@@ -220,8 +252,8 @@ export async function payTowardsOrderInstant(
     throw new Error("Bu hesap kapalı, ödeme alınamaz");
   }
 
-  const payment = await prisma.payment.create({
-    data: {
+  const payment = await createPaymentReservingItems(
+    {
       orderId,
       amountCents,
       tipCents,
@@ -231,11 +263,8 @@ export async function payTowardsOrderInstant(
       paidAt: new Date(),
       recordedBy: recordedBy || null,
     },
-  });
-
-  if (settledItemIds?.length) {
-    await reserveItems(settledItemIds, payment.id);
-  }
+    settledItemIds
+  );
 
   await notifyPos({
     type: "payment.completed",
@@ -265,8 +294,10 @@ export async function recordPendingPayment(
   assertValidAmounts(amountCents, tipCents);
 
   // Kalan hesaptan fazla girilen tutar kabul edilir (bahşiş olarak kalır).
-  const payment = await prisma.payment.create({
-    data: {
+  // Kalemler ödeme beklerken de rezerve edilir; ödeme başarısız olursa
+  // resolvePendingPayment tekrar serbest bırakır.
+  return createPaymentReservingItems(
+    {
       orderId,
       amountCents,
       tipCents,
@@ -274,18 +305,16 @@ export async function recordPendingPayment(
       method,
       status: "PENDING",
     },
-  });
-
-  // Kalemler ödeme beklerken de rezerve edilir; ödeme başarısız olursa
-  // resolvePendingPayment tekrar serbest bırakır.
-  if (settledItemIds?.length) {
-    await reserveItems(settledItemIds, payment.id);
-  }
-
-  return payment;
+    settledItemIds
+  );
 }
 
-/** iyzico callback'i doğrulandıktan sonra PENDING ödemeyi sonuçlandırır. */
+/**
+ * iyzico callback'i doğrulandıktan sonra PENDING ödemeyi sonuçlandırır.
+ * Durum geçişi koşullu (`status: PENDING`) yapılır: callback iki kez gelirse
+ * ya da callback ile askıdaki ödeme temizliği aynı anda çalışırsa yalnızca
+ * biri kazanır — ödeme iki kez işlenmez, POS'a çift bildirim gitmez.
+ */
 export async function resolvePendingPayment(
   paymentId: string,
   success: boolean
@@ -296,19 +325,18 @@ export async function resolvePendingPayment(
   });
   if (!payment || payment.status !== "PENDING") return payment;
 
+  const claimed = await prisma.payment.updateMany({
+    where: { id: paymentId, status: "PENDING" },
+    data: success
+      ? { status: "PAID", paidAt: new Date() }
+      : { status: "FAILED" },
+  });
+  if (claimed.count === 0) return payment;
+
   if (!success) {
-    await prisma.payment.update({
-      where: { id: paymentId },
-      data: { status: "FAILED" },
-    });
     await releaseItems(paymentId);
     return payment;
   }
-
-  const updated = await prisma.payment.update({
-    where: { id: paymentId },
-    data: { status: "PAID", paidAt: new Date() },
-  });
 
   await notifyPos({
     type: "payment.completed",
@@ -323,5 +351,60 @@ export async function resolvePendingPayment(
 
   await closeOrderIfFullyPaid(payment.orderId);
 
-  return updated;
+  return payment;
+}
+
+/**
+ * iyzico ödeme formu token'ı 30 dakika geçerli; bu süreden sonra müşteri o
+ * formla ödeme yapamaz. Biraz pay bırakıyoruz ki formu doldurmakta olan
+ * müşterinin ödemesi yanlışlıkla başarısız sayılmasın.
+ */
+const PENDING_PAYMENT_TTL_MS = 35 * 60 * 1000;
+
+/**
+ * Askıda kalmış kartlı ödemeleri sonuçlandırır. Müşteri iyzico formundayken
+ * tarayıcıyı kapatırsa callback hiç gelmez; ödeme PENDING, seçtiği kalemler
+ * de "başkası üstlendi" olarak kilitli kalırdı.
+ *
+ * Körlemesine FAILED yapılmaz: müşteri gerçekten ödeyip callback'e hiç
+ * dönmemiş olabilir. Önce iyzico'ya sorulur — para alınmışsa PAID, alınmamışsa
+ * FAILED olur ve kalemler serbest kalır. iyzico'ya ulaşılamazsa kayda
+ * dokunulmaz, bir sonraki çağrıda tekrar denenir.
+ *
+ * Ayrı bir zamanlayıcı yok: müşteri ekranı, ödeme isteği ve kasa ekranı
+ * açıldıkça çağrılır. iyzico'ya yalnızca süresi geçmiş kayıtlar için gidilir.
+ */
+export async function settleStalePendingPayments(
+  scope: { orderId: string } | { branchId: string }
+) {
+  const stale = await prisma.payment.findMany({
+    where: {
+      status: "PENDING",
+      createdAt: { lt: new Date(Date.now() - PENDING_PAYMENT_TTL_MS) },
+      ...("orderId" in scope
+        ? { orderId: scope.orderId }
+        : { order: { table: { branchId: scope.branchId } } }),
+    },
+  });
+
+  for (const payment of stale) {
+    // Token hiç kaydedilmediyse müşteriye ödeme formu gösterilmedi (form,
+    // token kaydedildikten sonra döndürülüyor) — tahsilat olmuş olamaz.
+    if (!payment.providerRef) {
+      await resolvePendingPayment(payment.id, false);
+      continue;
+    }
+    try {
+      const result = await retrieveCheckoutFormResult(payment.providerRef);
+      await resolvePendingPayment(
+        payment.id,
+        isVerifiedCheckoutResult(result, payment.providerRef, payment)
+      );
+    } catch (err) {
+      console.error("[payments] askıdaki ödeme doğrulanamadı, sonra tekrar denenecek", {
+        paymentId: payment.id,
+        err,
+      });
+    }
+  }
 }

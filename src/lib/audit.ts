@@ -1,6 +1,7 @@
 import "server-only";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { clientIpFromHeaders } from "@/lib/rateLimit";
 
 /**
  * KVKK'nın "veri güvenliği tedbirleri" (m.12) kapsamında erişim/işlem kaydı.
@@ -56,12 +57,8 @@ type AuditInput = {
 async function resolveIp(explicit?: string | null) {
   if (explicit) return explicit;
   try {
-    const h = await headers();
-    return (
-      h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      h.get("x-real-ip") ||
-      null
-    );
+    const ip = clientIpFromHeaders(await headers());
+    return ip === "unknown" ? null : ip;
   } catch {
     return null;
   }

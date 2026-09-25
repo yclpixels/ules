@@ -17,6 +17,36 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/*": ["./node_modules/iyzipay/**/*"],
   },
+  async headers() {
+    const common = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      ...(process.env.NODE_ENV === "production"
+        ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }]
+        : []),
+    ];
+    return [
+      {
+        // Varsayılan: sayfalar yalnızca kendi sitemizde iframe'e alınabilir
+        // (tanıtım sayfası canlı menü önizlemesini gömüyor). Başka bir site
+        // admin panelini görünmez bir iframe'e koyup personele tıklatamaz
+        // (clickjacking). X-Frame-Options yerine CSP kullanılıyor çünkü
+        // aşağıda /menu için geçersiz kılınabilmesi gerekiyor.
+        source: "/:path*",
+        headers: [
+          ...common,
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+        ],
+      },
+      {
+        // Herkese açık menü işletmelerin kendi sitelerine gömülmek için var
+        // (bkz. /admin/ayarlar embed kodu). Aynı anahtar sonradan tanımlandığı
+        // için yukarıdakinin yerine geçer.
+        source: "/menu/:slug*",
+        headers: [{ key: "Content-Security-Policy", value: "frame-ancestors *" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -148,6 +148,38 @@ export async function retrieveCheckoutFormResult(token: string) {
   });
 }
 
+/**
+ * iyzico'nun retrieve sonucunu bizim PENDING kaydımızla karşılaştırır.
+ * Başarılı sayılması için ödeme gerçekten alınmış olmalı, sonuç bu kayda ait
+ * olmalı (conversationId + token) ve tahsil edilen tutar birebir tutmalı.
+ * Callback ile askıda kalan ödeme temizliği aynı kuralı kullanır.
+ */
+export function isVerifiedCheckoutResult(
+  result: Record<string, unknown>,
+  token: string,
+  pending: { id: string; amountCents: number; providerRef: string | null }
+): boolean {
+  const paid = result.status === "success" && result.paymentStatus === "SUCCESS";
+  if (!paid) return false;
+
+  const paidPriceCents = Math.round(Number(result.paidPrice) * 100);
+  const matches =
+    result.conversationId === pending.id &&
+    pending.providerRef === token &&
+    Number.isFinite(paidPriceCents) &&
+    paidPriceCents === pending.amountCents;
+  if (!matches) {
+    console.error("[iyzico] eşleşmeyen ödeme sonucu", {
+      paymentId: pending.id,
+      conversationId: result.conversationId,
+      tokenMatches: pending.providerRef === token,
+      paidPriceCents,
+      expected: pending.amountCents,
+    });
+  }
+  return matches;
+}
+
 export type SubMerchantInput = {
   branchId: string;
   subMerchantType: "PERSONAL" | "PRIVATE_COMPANY" | "LIMITED_OR_JOINT_STOCK_COMPANY";

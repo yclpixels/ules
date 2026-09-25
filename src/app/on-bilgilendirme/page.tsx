@@ -77,7 +77,7 @@ export default async function OnBilgilendirmePage({
             <strong>Bu metin henüz doldurulmamış bir şablondur.</strong>{" "}
             İşletme yetkilisi: Yönetim panelinde <em>Ayarlar</em> sayfasından
             işletme unvanı, vergi bilgisi ve iletişim bilgilerini girin. Bu
-            sayfayı yayına almadan/iyzico'ya sunmadan önce mutlaka bir hukuk
+            sayfayı yayına almadan/iyzico&apos;ya sunmadan önce mutlaka bir hukuk
             danışmanına kontrol ettirin — bu bir hukuki tavsiye değildir.
           </p>
         )}

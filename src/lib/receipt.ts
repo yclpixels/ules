@@ -46,7 +46,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat("tr-TR", {
  * Fiş HTML'i e-posta olarak gidiyor ve müşteri girdisi (ödeyen adı) ile
  * personel girdisi (ürün/masa/şube adı) içeriyor; hepsi kaçışlanmalı.
  */
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

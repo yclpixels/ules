@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getOrderBill } from "@/lib/orders";
+import { getOrderBill, settleStalePendingPayments } from "@/lib/orders";
 import { byNaturalName, formatTL } from "@/lib/money";
 import { verifyAdminSession } from "@/lib/dal";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -12,6 +12,10 @@ export const dynamic = "force-dynamic";
 
 export default async function KasaPage() {
   const session = await verifyAdminSession();
+
+  // Kasa ekranı 10 sn'de bir yenilendiği için askıda kalan kartlı ödemeler
+  // (müşteri iyzico formunu yarıda bıraktı) burada da sonuçlandırılır.
+  await settleStalePendingPayments({ branchId: session.branchId });
 
   const tables = await prisma.table.findMany({
     where: { branchId: session.branchId },

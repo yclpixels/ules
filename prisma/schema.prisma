@@ -13,7 +13,7 @@ datasource db {
 
 model Branch {
   id        String   @id @default(cuid())
-  name      String   // "Kadıköy Şubesi" vb.
+  name      String // "Kadıköy Şubesi" vb.
   createdAt DateTime @default(now())
 
   // Ödeme sonrası müşteriyi yönlendireceğimiz Google yorum linki
@@ -67,17 +67,17 @@ model Branch {
   // şubenin kendi hesabına düşmesi için gerekli. subMerchantKey iyzico'dan
   // dönen ve ödeme isteklerinde kullanılan anahtardır; boşsa bu şube için alt
   // üye kaydı henüz yapılmamış demektir — para o zamana kadar tahsil edilmez.
-  subMerchantType     SubMerchantType?
-  ibanNumber          String?
-  taxOffice           String?
-  taxNumber           String?
-  identityNumber      String? // PERSONAL tipinde TC kimlik no
-  subMerchantKey      String?
-  subMerchantSyncedAt DateTime?
+  subMerchantType      SubMerchantType?
+  ibanNumber           String? // AES-GCM ile şifreli ("enc:v1:..."), bkz. src/lib/fieldCrypto.ts
+  taxOffice            String?
+  taxNumber            String?
+  identityNumber       String? // PERSONAL tipinde TC kimlik no — ibanNumber gibi şifreli
+  subMerchantKey       String?
+  subMerchantSyncedAt  DateTime?
   // Platformun bu şubeden aldığı komisyon (baz puan, 100 = %1). Sözleşmeyle
   // belirlenip burada girilene kadar 0'dır — yani platform hiçbir pay almaz,
   // tahsilatın tamamı şubeye gider.
-  platformCommissionBp Int @default(0)
+  platformCommissionBp Int              @default(0)
 
   tables     Table[]
   categories Category[]
@@ -94,10 +94,10 @@ model Branch {
 /// burası oturum açma ve geri alınamaz/para etkileyen işlemler için.
 model AuditLog {
   id        String   @id @default(cuid())
-  action    String   // LOGIN_SUCCESS, LOGIN_FAILED, ORDER_CANCELLED, ...
-  actorName String   // işlemi yapan personelin adı (başarısız girişte denenen kullanıcı adı)
-  actorId   String?  // StaffUser.id; başarısız girişte boş
-  detail    String?  // insan tarafından okunur kısa açıklama
+  action    String // LOGIN_SUCCESS, LOGIN_FAILED, ORDER_CANCELLED, ...
+  actorName String // işlemi yapan personelin adı (başarısız girişte denenen kullanıcı adı)
+  actorId   String? // StaffUser.id; başarısız girişte boş
+  detail    String? // insan tarafından okunur kısa açıklama
   ip        String?
   createdAt DateTime @default(now())
 
@@ -109,13 +109,13 @@ model AuditLog {
 
 /// Ödeme sonrası müşteri değerlendirmesi (1–5 yıldız, 4 kriter + yorum).
 model Feedback {
-  id            String   @id @default(cuid())
-  foodRating    Int
-  serviceRating Int
+  id             String   @id @default(cuid())
+  foodRating     Int
+  serviceRating  Int
   ambianceRating Int
-  valueRating   Int
-  comment       String?
-  createdAt     DateTime @default(now())
+  valueRating    Int
+  comment        String?
+  createdAt      DateTime @default(now())
 
   // Düşük puan uyarısı: müdür "Gördüm" deyince işaretlenir, uyarı bandından düşer.
   acknowledgedAt DateTime?
@@ -126,11 +126,14 @@ model Feedback {
 
   orderId String
   order   Order  @relation(fields: [orderId], references: [id])
+
+  @@index([branchId, createdAt])
+  @@index([orderId])
 }
 
 model Table {
   id        String   @id @default(cuid())
-  name      String   // "Masa 1", "Bahçe 3" vb.
+  name      String // "Masa 1", "Bahçe 3" vb.
   qrToken   String   @unique @default(cuid())
   createdAt DateTime @default(now())
 
@@ -138,18 +141,22 @@ model Table {
   branch   Branch @relation(fields: [branchId], references: [id])
 
   orders Order[]
+
+  @@index([branchId])
 }
 
 model Category {
-  id        String   @id @default(cuid())
+  id        String @id @default(cuid())
   name      String
-  sortOrder Int      @default(0)
+  sortOrder Int    @default(0)
 
   branchId String
   branch   Branch @relation(fields: [branchId], references: [id])
 
   products     Product[]
   translations CategoryTranslation[]
+
+  @@index([branchId])
 }
 
 /// Kategorinin bir dildeki adı. Kayıt yoksa Category.name kullanılır.
@@ -168,10 +175,10 @@ model Product {
   id          String   @id @default(cuid())
   name        String
   description String?
-  priceCents  Int      // kuruş cinsinden fiyat (yuvarlama hatalarını önlemek için)
+  priceCents  Int // kuruş cinsinden fiyat (yuvarlama hatalarını önlemek için)
   isAvailable Boolean  @default(true)
-  imageUrl    String?  // https://... (harici görsel linki; dosya yükleme yok, hosting bağımsız kalsın diye)
-  allergens   String?  // "gluten, süt, fındık" gibi serbest metin
+  imageUrl    String? // https://... harici link ya da /api/uploads/... yüklenen görsel (bkz. src/lib/uploads.ts)
+  allergens   String? // "gluten, süt, fındık" gibi serbest metin
   createdAt   DateTime @default(now())
 
   branchId String
@@ -182,6 +189,9 @@ model Product {
 
   orderItems   OrderItem[]
   translations ProductTranslation[]
+
+  @@index([branchId])
+  @@index([categoryId])
 }
 
 /// Ürünün bir dildeki karşılığı. Kayıt yoksa Product'taki temel alanlar kullanılır.
@@ -209,7 +219,7 @@ model Order {
   status    OrderStatus @default(OPEN)
   createdAt DateTime    @default(now())
   closedAt  DateTime?
-  closedBy  String?     // hesabı elle kapatan/iptal eden personel (ödemeyle otomatik kapandıysa boş)
+  closedBy  String? // hesabı elle kapatan/iptal eden personel (ödemeyle otomatik kapandıysa boş)
 
   // Masa başına aynı anda tek açık hesap garantisi: sipariş OPEN iken tableId
   // ile doldurulur, kapanınca null yapılır (unique kısıtı null'ları saymaz).
@@ -218,18 +228,21 @@ model Order {
   tableId String
   table   Table  @relation(fields: [tableId], references: [id])
 
-  items    OrderItem[]
-  payments Payment[]
+  items     OrderItem[]
+  payments  Payment[]
   feedbacks Feedback[]
+
+  @@index([tableId, status])
+  @@index([status, closedAt])
 }
 
 model OrderItem {
-  id             String    @id @default(cuid())
-  quantity       Int       @default(1)
-  unitPriceCents Int       // eklendiği andaki fiyat (ürün fiyatı sonradan değişse bile hesap sabit kalır)
+  id             String   @id @default(cuid())
+  quantity       Int      @default(1)
+  unitPriceCents Int // eklendiği andaki fiyat (ürün fiyatı sonradan değişse bile hesap sabit kalır)
   note           String?
-  createdAt      DateTime  @default(now())
-  addedBy        String?   // ekleyen personelin adı; müşteri kendi eklediyse boş
+  createdAt      DateTime @default(now())
+  addedBy        String? // ekleyen personelin adı; müşteri kendi eklediyse boş
 
   removedAt DateTime? // silinen ürünler hesaptan düşer ama kayıt (audit) için saklanır
   removedBy String?
@@ -250,6 +263,10 @@ model OrderItem {
 
   productId String
   product   Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([settledPaymentId])
 }
 
 enum PaymentStatus {
@@ -266,13 +283,13 @@ enum PaymentMethod {
 
 model Payment {
   id          String        @id @default(cuid())
-  amountCents Int           // tahsil edilen toplam (hesap payı + bahşiş)
+  amountCents Int // tahsil edilen toplam (hesap payı + bahşiş)
   tipCents    Int           @default(0) // amountCents içindeki bahşiş kısmı; hesaptan düşülmez, personele gider
   payerName   String?
   method      PaymentMethod @default(CARD)
   status      PaymentStatus @default(PENDING)
-  providerRef String?       // ödeme sağlayıcısının işlem/token referansı (ör. iyzico checkout token)
-  recordedBy  String?       // nakit ödemeyi kaydeden personelin adı (hesap verebilirlik için)
+  providerRef String? // ödeme sağlayıcısının işlem/token referansı (ör. iyzico checkout token)
+  recordedBy  String? // nakit ödemeyi kaydeden personelin adı (hesap verebilirlik için)
   createdAt   DateTime      @default(now())
   paidAt      DateTime?
   voidedAt    DateTime?
@@ -280,49 +297,60 @@ model Payment {
 
   orderId String
   order   Order  @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  // askıda kalan ödeme taraması (settleStalePendingPayments) ve callback'te token ile arama
+  @@index([status, createdAt])
+  @@index([providerRef])
 }
 
 /// Şubenin bizimle olan ticari ilişkisi.
 enum SubscriptionStatus {
-  TRIAL     // ücretsiz deneme sürüyor
-  ACTIVE    // abonelik ödeniyor
+  TRIAL // ücretsiz deneme sürüyor
+  ACTIVE // abonelik ödeniyor
   SUSPENDED // ödeme yok / ilişki durduruldu (elle çevrilir)
 }
 
 // iyzico'nun alt üye işyeri (subMerchant) tiplerine birebir karşılık gelir.
 enum SubMerchantType {
-  PERSONAL                       // şahıs (TC kimlik no ile)
-  PRIVATE_COMPANY                // şahıs şirketi
+  PERSONAL // şahıs (TC kimlik no ile)
+  PRIVATE_COMPANY // şahıs şirketi
   LIMITED_OR_JOINT_STOCK_COMPANY // limited / anonim şirket
 }
 
 enum StaffRole {
-  OWNER   // platform sahibi (biz): kendi şubesinde müdür yetkisi + tüm şubeleri görme
+  OWNER // platform sahibi (biz): kendi şubesinde müdür yetkisi + tüm şubeleri görme
   MANAGER
   WAITER
 }
 
 model StaffUser {
-  id           String    @id @default(cuid())
-  name         String
-  username     String    @unique
-  passwordHash String
-  role         StaffRole @default(WAITER)
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
+  id             String    @id @default(cuid())
+  name           String
+  username       String    @unique
+  passwordHash   String
+  role           StaffRole @default(WAITER)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  // Oturum sürümü: şifre değişince / sıfırlanınca / hesap pasifleşince
+  // artırılır; JWT'deki eski sürümle gelen oturumlar (diğer cihazlar)
+  // geçersiz olur. Bkz. src/lib/dal.ts.
+  sessionVersion Int       @default(0)
 
   branchId String
   branch   Branch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
 }
 
 /// Gün sonu kasa kapanışı: sistemin beklediği nakit ile sayılan nakit karşılaştırılıp kaydedilir.
 model DayClose {
   id                String   @id @default(cuid())
-  date              String   // "YYYY-MM-DD" (Europe/Istanbul günü)
-  expectedCashCents Int      // sistemdeki nakit tahsilat (bahşiş dahil, iptaller hariç)
-  countedCashCents  Int      // personelin saydığı nakit
-  cardCents         Int      // POS ile alınan kart (bilgi amaçlı)
-  onlineCents       Int      // QR/iyzico ile alınan kart
+  date              String // "YYYY-MM-DD" (Europe/Istanbul günü)
+  expectedCashCents Int // sistemdeki nakit tahsilat (bahşiş dahil, iptaller hariç)
+  countedCashCents  Int // personelin saydığı nakit
+  cardCents         Int // POS ile alınan kart (bilgi amaçlı)
+  onlineCents       Int // QR/iyzico ile alınan kart
   tipCents          Int
   note              String?
   closedBy          String

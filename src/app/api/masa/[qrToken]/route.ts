@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getOpenOrder, getOrderBill } from "@/lib/orders";
+import {
+  getOpenOrder,
+  getOrderBill,
+  settleStalePendingPayments,
+} from "@/lib/orders";
+import { isCardPaymentActive } from "@/lib/payments";
 import {
   LOCALE_LABELS,
   parseLocales,
@@ -177,7 +182,8 @@ export async function GET(
   const branch: BranchInfo = {
     tipPresets: parseTipPresets(table.branch.tipPresets),
     googleReviewUrl: table.branch.googleReviewUrl,
-    cardPaymentEnabled: table.branch.cardPaymentEnabled,
+    // Alt üye kaydı olmayan şubede buton hiç gösterilmez (bkz. isCardPaymentActive).
+    cardPaymentEnabled: isCardPaymentActive(table.branch),
     customerOrderingEnabled: table.branch.customerOrderingEnabled,
     locales: available.map((code) => ({
       code,
@@ -190,6 +196,8 @@ export async function GET(
   const order = await getOpenOrder(table.id);
 
   if (order) {
+    // Yarım kalmış bir kartlı ödeme kalemleri kilitliyorsa serbest bırak.
+    await settleStalePendingPayments({ orderId: order.id });
     return NextResponse.json(
       await buildBillResponse(tableInfo, order.id, menu, branch)
     );

@@ -8,8 +8,9 @@ import {
   priceSelectedItems,
   recordPendingPayment,
   resolvePendingPayment,
+  settleStalePendingPayments,
 } from "@/lib/orders";
-import { getPaymentProvider } from "@/lib/payments";
+import { getPaymentProvider, isCardPaymentActive } from "@/lib/payments";
 import { getBaseUrl } from "@/lib/baseUrl";
 
 export async function POST(
@@ -41,9 +42,10 @@ export async function POST(
     return NextResponse.json({ error: "Masa bulunamadı" }, { status: 404 });
   }
 
-  // Şube kartlı ödemeye kapalıysa (varsayılan) istek buradan öteye geçmez.
-  // Arayüz zaten butonu göstermiyor; bu, doğrudan API'ye atılan isteğe karşı.
-  if (!table.branch.cardPaymentEnabled) {
+  // Şube kartlı ödemeye kapalıysa (varsayılan) ya da iyzico alt üye kaydı
+  // yoksa istek buradan öteye geçmez. Arayüz zaten butonu göstermiyor; bu,
+  // doğrudan API'ye atılan isteğe karşı.
+  if (!isCardPaymentActive(table.branch)) {
     return NextResponse.json(
       { error: "Bu işletmede QR ile kartlı ödeme kapalı, lütfen personele ödeyin" },
       { status: 403 }
@@ -87,6 +89,8 @@ export async function POST(
       { status: 400 }
     );
   }
+  // Yarım kalmış eski bir ödemenin kilitlediği kalemler serbest kalsın.
+  await settleStalePendingPayments({ orderId: order.id });
 
   // Kalem seçildiyse hesap payını kalemlerden hesapla; kalandan fazlasını
   // tahsil etme (masadaki başkası eşit bölmeyle zaten ödemiş olabilir).
@@ -149,9 +153,8 @@ export async function POST(
     );
 
     const baseUrl = await getBaseUrl();
-    const buyerIp =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      "127.0.0.1";
+    const ip = clientIp(req);
+    const buyerIp = ip === "unknown" ? "127.0.0.1" : ip;
 
     // Şube alt üye işyeri olarak kayıtlıysa (bkz. saveSubMerchantAction)
     // tahsilat doğrudan onun hesabına, komisyon hariç tutarla gider.

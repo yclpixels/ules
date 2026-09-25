@@ -20,9 +20,18 @@ export const getAdminSession = cache(async () => {
 
   const staff = await prisma.staffUser.findUnique({
     where: { id: session.staffId },
-    select: { isActive: true, role: true, branchId: true, name: true },
+    select: {
+      isActive: true,
+      role: true,
+      branchId: true,
+      name: true,
+      sessionVersion: true,
+    },
   });
   if (!staff || !staff.isActive) return null;
+  // Şifre değişti/sıfırlandı ya da hesap pasifleşip tekrar açıldıysa bu
+  // cihazdaki eski oturum artık geçersiz (JWT'nin 30 günü dolmamış olsa bile).
+  if ((session.sv ?? 0) !== staff.sessionVersion) return null;
 
   // Rol/isim/şube sonradan değişmiş olabilir; cookie'deki eski değeri değil
   // veritabanındaki güncel değeri kullan.

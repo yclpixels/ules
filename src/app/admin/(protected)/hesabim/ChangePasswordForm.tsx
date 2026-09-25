@@ -1,5 +1,6 @@
 "use client";
 
+import { MIN_PASSWORD_LENGTH } from "@/lib/passwordPolicy";
 import { useActionState } from "react";
 import {
   changeOwnPasswordAction,
@@ -29,7 +30,7 @@ export default function ChangePasswordForm() {
           type="password"
           name="newPassword"
           required
-          minLength={4}
+          minLength={MIN_PASSWORD_LENGTH}
           className="w-full mt-1 border rounded-lg px-3 py-2"
         />
       </div>

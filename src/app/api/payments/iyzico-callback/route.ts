@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolvePendingPayment } from "@/lib/orders";
-import { retrieveCheckoutFormResult } from "@/lib/payments/iyzico";
+import {
+  isVerifiedCheckoutResult,
+  retrieveCheckoutFormResult,
+} from "@/lib/payments/iyzico";
 import { getBaseUrl } from "@/lib/baseUrl";
 
 /**
@@ -9,6 +12,9 @@ import { getBaseUrl } from "@/lib/baseUrl";
  * buraya (form POST ile) yönlendirir. Burada sonucu iyzico'dan tekrar
  * sorgulayıp (retrieve) doğruluyoruz — callback body'sine güvenmiyoruz,
  * çünkü o taklit edilebilir; asıl doğrulama iyzico'nun sunucusuna sorarak yapılır.
+ *
+ * Müşteri bu yönlendirmeye hiç gelmezse (tarayıcıyı kapattı, bağlantı koptu)
+ * ödeme PENDING kalır; onu settleStalePendingPayments sonradan sonuçlandırır.
  */
 export async function POST(req: Request) {
   const baseUrl = await getBaseUrl();
@@ -27,41 +33,31 @@ export async function POST(req: Request) {
     return NextResponse.redirect(`${baseUrl}/admin`, { status: 303 });
   }
 
-  const paymentId = result.conversationId as string | undefined;
-  const success =
-    result.status === "success" && result.paymentStatus === "SUCCESS";
+  // Sonuçta conversationId yoksa (bazı hata yanıtları) kaydı token'dan buluruz.
+  const conversationId =
+    typeof result.conversationId === "string" ? result.conversationId : null;
+  const pending = conversationId
+    ? await prisma.payment.findUnique({ where: { id: conversationId } })
+    : await prisma.payment.findFirst({ where: { providerRef: token } });
 
-  if (!paymentId) {
+  if (!pending) {
     return NextResponse.redirect(`${baseUrl}/admin`, { status: 303 });
   }
 
-  // iyzico'nun döndürdüğü sonuç bizim PENDING kaydımızla eşleşmeli:
-  // token (providerRef) ve tutar (paidPrice) farklıysa ödemeyi başarılı sayma.
-  const pending = await prisma.payment.findUnique({ where: { id: paymentId } });
-  const paidPriceCents = Math.round(Number(result.paidPrice) * 100);
-  const tokenMatches = !pending?.providerRef || pending.providerRef === token;
-  const amountMatches =
-    !!pending && Number.isFinite(paidPriceCents) && paidPriceCents === pending.amountCents;
-  if (success && (!tokenMatches || !amountMatches)) {
-    console.error("[iyzico-callback] eşleşmeyen ödeme", {
-      paymentId,
-      tokenMatches,
-      paidPriceCents,
-      expected: pending?.amountCents,
-    });
-  }
-  const verified = success && tokenMatches && amountMatches;
-
-  await resolvePendingPayment(paymentId, verified);
+  const verified = isVerifiedCheckoutResult(result, token, pending);
+  await resolvePendingPayment(pending.id, verified);
 
   const payment = await prisma.payment.findUnique({
-    where: { id: paymentId },
+    where: { id: pending.id },
     include: { order: { include: { table: true } } },
   });
   const qrToken = payment?.order.table.qrToken;
+  // Aynı callback iki kez gelirse (yenileme) ikincisi kaydı değiştirmez;
+  // müşteriye kaydın gerçek son durumu gösterilir.
+  const succeeded = payment?.status === "PAID";
 
   const redirectUrl = qrToken
-    ? `${baseUrl}/masa/${qrToken}?payment=${verified ? "success" : "failed"}`
+    ? `${baseUrl}/masa/${qrToken}?payment=${succeeded ? "success" : "failed"}`
     : `${baseUrl}/admin`;
 
   return NextResponse.redirect(redirectUrl, { status: 303 });

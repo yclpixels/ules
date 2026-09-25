@@ -6,10 +6,11 @@ import { prisma } from "@/lib/prisma";
 import { createStaffSession, deleteAdminSession } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/passwords";
 import { verifyAdminSession, verifyManagerSession } from "@/lib/dal";
-import { rateLimit } from "@/lib/rateLimit";
+import { clientIpFromHeaders, rateLimit } from "@/lib/rateLimit";
 import { Prisma } from "@/generated/prisma/client";
 import { audit } from "@/lib/audit";
 import { headers } from "next/headers";
+import { MIN_PASSWORD_LENGTH } from "@/lib/passwordPolicy";
 
 export type LoginState = { error?: string } | undefined;
 
@@ -28,7 +29,7 @@ export async function loginAction(
 
   // Brute-force koruması: IP başına 15 dk'da 10, kullanıcı adı başına 15 dk'da 5 deneme
   const h = await headers();
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const ip = clientIpFromHeaders(h);
   const byIp = rateLimit(`login:ip:${ip}`, { limit: 10, windowMs: 15 * 60 * 1000 });
   const byUser = rateLimit(`login:user:${username}`, { limit: 5, windowMs: 15 * 60 * 1000 });
   if (!byIp.ok || !byUser.ok) {
@@ -66,6 +67,7 @@ export async function loginAction(
     role: staff.role,
     branchId: staff.branchId,
     branchName: staff.branch.name,
+    sv: staff.sessionVersion,
   });
   redirect("/admin");
 }
@@ -87,7 +89,7 @@ export async function addStaffAction(formData: FormData) {
     ? "MANAGER"
     : "WAITER";
 
-  if (!name || !username || password.length < 4) {
+  if (!name || !username || password.length < MIN_PASSWORD_LENGTH) {
     return;
   }
 
@@ -133,7 +135,8 @@ export async function toggleStaffActiveAction(formData: FormData) {
 
   const updated = await prisma.staffUser.updateMany({
     where: { id, branchId: session.branchId },
-    data: { isActive: !isActive },
+    // Pasifleşen hesabın oturumu tekrar aktif edilince de geri gelmesin.
+    data: { isActive: !isActive, sessionVersion: { increment: 1 } },
   });
 
   if (updated.count > 0) {
@@ -164,8 +167,8 @@ export async function changeOwnPasswordAction(
   const currentPassword = String(formData.get("currentPassword") || "");
   const newPassword = String(formData.get("newPassword") || "");
 
-  if (newPassword.length < 4) {
-    return { error: "Yeni şifre en az 4 karakter olmalı" };
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return { error: `Yeni şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı` };
   }
 
   const staff = await prisma.staffUser.findUnique({
@@ -175,9 +178,23 @@ export async function changeOwnPasswordAction(
     return { error: "Mevcut şifre yanlış" };
   }
 
-  await prisma.staffUser.update({
+  // Sürüm artınca diğer cihazlardaki oturumlar düşer (şifre çalındıysa
+  // saldırganın açık oturumu da). Bu cihazın oturumu yeni sürümle yenilenir.
+  const updated = await prisma.staffUser.update({
     where: { id: staff.id },
-    data: { passwordHash: hashPassword(newPassword) },
+    data: {
+      passwordHash: hashPassword(newPassword),
+      sessionVersion: { increment: 1 },
+    },
+    include: { branch: { select: { name: true } } },
+  });
+  await createStaffSession({
+    staffId: updated.id,
+    name: updated.name,
+    role: updated.role,
+    branchId: updated.branchId,
+    branchName: updated.branch.name,
+    sv: updated.sessionVersion,
   });
 
   await audit({
@@ -196,11 +213,15 @@ export async function resetStaffPasswordAction(formData: FormData) {
 
   const id = String(formData.get("id") || "");
   const newPassword = String(formData.get("newPassword") || "");
-  if (!id || newPassword.length < 4) return;
+  if (!id || newPassword.length < MIN_PASSWORD_LENGTH) return;
 
   const reset = await prisma.staffUser.updateMany({
     where: { id, branchId: session.branchId },
-    data: { passwordHash: hashPassword(newPassword) },
+    // Personelin açık oturumları düşer; yeni şifreyle tekrar girmesi gerekir.
+    data: {
+      passwordHash: hashPassword(newPassword),
+      sessionVersion: { increment: 1 },
+    },
   });
 
   if (reset.count > 0) {

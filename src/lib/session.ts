@@ -17,6 +17,9 @@ type SessionPayload = {
   role: StaffRole;
   branchId: string;
   branchName: string;
+  // StaffUser.sessionVersion'ın oturum açıldığı andaki değeri. Eski
+  // oturumlarda yok — 0 sayılır (bkz. dal.ts).
+  sv?: number;
 };
 
 async function encrypt(payload: SessionPayload) {

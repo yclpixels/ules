@@ -1,3 +1,4 @@
+import { MIN_PASSWORD_LENGTH } from "@/lib/passwordPolicy";
 import { prisma } from "@/lib/prisma";
 import { verifyManagerSession } from "@/lib/dal";
 import { roleLabel } from "@/lib/roles";
@@ -60,8 +61,8 @@ export default async function PersonelPage({
             name="password"
             type="text"
             required
-            minLength={4}
-            placeholder="en az 4 karakter"
+            minLength={MIN_PASSWORD_LENGTH}
+            placeholder={`en az ${MIN_PASSWORD_LENGTH} karakter`}
             className="w-full mt-1 border rounded-lg px-3 py-2"
           />
         </div>
@@ -128,7 +129,7 @@ export default async function PersonelPage({
                         name="newPassword"
                         type="text"
                         required
-                        minLength={4}
+                        minLength={MIN_PASSWORD_LENGTH}
                         className="w-full mt-1 border rounded-lg px-2 py-1 text-sm"
                       />
                     </div>

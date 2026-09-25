@@ -1,5 +1,6 @@
 "use client";
 
+import { MIN_PASSWORD_LENGTH } from "@/lib/passwordPolicy";
 import { useActionState, useState } from "react";
 import {
   createBranchAction,
@@ -88,8 +89,8 @@ export default function NewBranchForm() {
             name="password"
             type="text"
             required
-            minLength={6}
-            placeholder="en az 6 karakter"
+            minLength={MIN_PASSWORD_LENGTH}
+            placeholder={`en az ${MIN_PASSWORD_LENGTH} karakter`}
             className="w-full mt-1 border rounded-lg px-3 py-2"
           />
         </div>

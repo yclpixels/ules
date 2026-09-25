@@ -28,10 +28,33 @@ setInterval(() => {
   for (const [k, v] of buckets) if (v.resetAt <= now) buckets.delete(k);
 }, 60_000).unref?.();
 
+/**
+ * İstemci IP'si. X-Forwarded-For'un EN SOLDAKİ değeri istemcinin kendisinin
+ * yazabildiği değerdir — ona güvenilirse saldırgan her istekte farklı bir
+ * IP uydurup IP bazlı giriş sınırını atlatır ve denetim kaydına sahte IP
+ * düşürür. Güvenilir olan, bizim önümüzdeki proxy'lerin (Railway, Vercel,
+ * Cloudflare...) sağdan eklediği değerlerdir.
+ *
+ * TRUSTED_PROXY_HOPS: uygulamanın önündeki proxy sayısı (varsayılan 1 —
+ * Railway/Render/Fly gibi tek katman). Cloudflare + Railway gibi iki katman
+ * varsa 2. Uygulama doğrudan internete açıksa (proxy yok) 0 — o zaman
+ * başlıklara hiç güvenilmez.
+ */
+export function clientIpFromHeaders(h: Headers): string {
+  const hops = Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? "1", 10);
+  if (!Number.isInteger(hops) || hops <= 0) return "unknown";
+
+  const chain = (h.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (chain.length > 0) {
+    // Zincir beklenenden kısaysa en soldakini al (daha iyisi yok).
+    return chain[Math.max(chain.length - hops, 0)];
+  }
+  return h.get("x-real-ip")?.trim() || "unknown";
+}
+
 export function clientIp(req: Request): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown"
-  );
+  return clientIpFromHeaders(req.headers);
 }

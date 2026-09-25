@@ -1,3 +1,5 @@
+import { createHmac } from "crypto";
+
 /**
  * Restoranın kullandığı POS/kasa yazılımına entegrasyon noktası.
  *
@@ -8,8 +10,17 @@
  * servis/endpoint olarak) yazılabilir — bkz. README "POS entegrasyonu".
  *
  * En iyi çaba (best-effort): webhook başarısız olsa bile ödeme akışını
- * bozmaz, sadece konsola loglar.
+ * bozmaz, sadece konsola loglar. Ödeme isteğinin içinde beklendiği için
+ * süre sınırı var — yavaş bir POS sunucusu müşterinin ödeme ekranını
+ * kilitlemesin.
+ *
+ * POS_WEBHOOK_SECRET tanımlıysa her istek imzalanır; alıcı taraf şunu
+ * doğrulamalı:
+ *   X-Ules-Signature == "sha256=" + HMAC_SHA256(secret, `${X-Ules-Timestamp}.${gövde}`)
+ * ve zaman damgası birkaç dakikadan eskiyse isteği reddetmeli (tekrar oynatma).
  */
+const WEBHOOK_TIMEOUT_MS = 3000;
+
 type PosEvent =
   | {
       type: "payment.completed";
@@ -33,13 +44,27 @@ export async function notifyPos(event: PosEvent) {
   const url = process.env.POS_WEBHOOK_URL;
   if (!url) return;
 
+  const body = JSON.stringify(event);
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const secret = process.env.POS_WEBHOOK_SECRET;
+  if (secret) {
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    headers["X-Ules-Timestamp"] = timestamp;
+    headers["X-Ules-Signature"] =
+      "sha256=" + createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
+  }
+
   try {
-    await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(event),
+      headers,
+      body,
+      signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
     });
+    if (!res.ok) {
+      console.error(`[pos-webhook] ${event.type} reddedildi: HTTP ${res.status}`);
+    }
   } catch (err) {
-    console.error("[pos-webhook] gönderilemedi:", err);
+    console.error(`[pos-webhook] ${event.type} gönderilemedi:`, err);
   }
 }

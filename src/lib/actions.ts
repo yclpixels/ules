@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import {
   cancelOrder,
   getOrCreateOpenOrder,
@@ -20,9 +22,13 @@ import { hashPassword } from "@/lib/passwords";
 import { parseLocales, SUPPORTED_LOCALES } from "@/lib/locales";
 import { isValidSlug, slugify } from "@/lib/slug";
 import { sendEmail } from "@/lib/email";
-import { rateLimit } from "@/lib/rateLimit";
+import { clientIpFromHeaders, rateLimit } from "@/lib/rateLimit";
 import { headers } from "next/headers";
 import { createSubMerchant } from "@/lib/payments/iyzico";
+import { needsSubMerchant } from "@/lib/payments";
+import { escapeHtml } from "@/lib/receipt";
+import { MIN_PASSWORD_LENGTH } from "@/lib/passwordPolicy";
+import { encryptField, hasFieldEncryptionKey } from "@/lib/fieldCrypto";
 
 export async function addTableAction(formData: FormData) {
   const session = await verifyManagerSession();
@@ -247,11 +253,16 @@ export async function removeOrderItemAction(formData: FormData) {
   const tableId = String(formData.get("tableId") || "");
   if (!id) return;
 
+  // Sadece açık hesaptan, henüz kimsenin ödemediği kalem silinebilir.
+  // Kapanmış hesabın kalemi silinirse ödemesi alınmış hesabın geçmişi
+  // değişir (tahsil edilen para ile hesap tutmaz); kalem bazlı ödenmiş
+  // kalemi silmek de ödenen tutarı boşa düşürür.
   await prisma.orderItem.updateMany({
     where: {
       id,
       removedAt: null,
-      order: { table: { id: tableId, branchId: session.branchId } },
+      settledPaymentId: null,
+      order: { status: "OPEN", table: { id: tableId, branchId: session.branchId } },
     },
     data: { removedAt: new Date(), removedBy: session.name },
   });
@@ -379,21 +390,25 @@ function safeHttpUrl(input: string): string | null {
 /** Şube ayarları: Google yorum linki ve bahşiş yüzdeleri (sadece müdür). */
 export async function updateBranchSettingsAction(formData: FormData) {
   const session = await verifyManagerSession();
-  const googleReviewUrlInput = String(formData.get("googleReviewUrl") || "").trim();
   const tipPresetsInput = String(formData.get("tipPresets") || "");
 
-  // Sadece http(s) linki kabul et (javascript: vb. müşteri ekranına gitmesin)
-  let googleReviewUrl: string | null = null;
-  if (googleReviewUrlInput) {
-    try {
-      const parsed = new URL(googleReviewUrlInput);
-      if (parsed.protocol === "https:" || parsed.protocol === "http:") {
-        googleReviewUrl = parsed.toString();
-      }
-    } catch {
-      /* geçersiz link → boş bırak */
-    }
-  }
+  // Geçersiz bir girdi mevcut değeri SİLMEZ: alan olduğu gibi kalır ve müdüre
+  // hangi alanın kaydedilmediği söylenir. Önceden yazım hatası olan bir link
+  // ya da başka şubenin kullandığı menü adresi, yayındaki değeri sessizce
+  // siliyordu (menü yayından kalkıyordu).
+  const errors: string[] = [];
+
+  // Sadece http(s) linki kabul et (javascript: vb. müşteri ekranına gitmesin).
+  // undefined = alana dokunma, null = bilerek boşaltıldı.
+  const urlField = (key: string, errorCode: string): string | null | undefined => {
+    const input = String(formData.get(key) || "").trim();
+    if (!input) return null;
+    const url = safeHttpUrl(input);
+    if (!url) errors.push(errorCode);
+    return url ?? undefined;
+  };
+  const googleReviewUrl = urlField("googleReviewUrl", "yorum-linki");
+  const websiteUrl = urlField("websiteUrl", "site-linki");
 
   const tipPresets = tipPresetsInput
     .split(",")
@@ -403,24 +418,35 @@ export async function updateBranchSettingsAction(formData: FormData) {
     .join(",");
 
   // Kartlı ödeme yalnızca o şube için gerçek bir üye işyeri anlaşması
-  // varken açılmalı; varsayılan kapalı.
-  const cardPaymentEnabled = String(formData.get("cardPaymentEnabled")) === "on";
+  // varken açılmalı; varsayılan kapalı. iyzico'da alt üye kaydı yoksa para
+  // platformun hesabına düşeceği için açılmasına izin verilmez.
+  const wantsCardPayment = String(formData.get("cardPaymentEnabled")) === "on";
+  const current = await prisma.branch.findUniqueOrThrow({
+    where: { id: session.branchId },
+    select: { subMerchantKey: true },
+  });
+  if (wantsCardPayment && needsSubMerchant(current)) errors.push("alt-uye-yok");
+  const cardPaymentEnabled = wantsCardPayment && !needsSubMerchant(current);
   // Müşterinin QR'dan kendi siparişini verebilmesi; pilotta kapalı başlar.
   const customerOrderingEnabled =
     String(formData.get("customerOrderingEnabled")) === "on";
 
   // Herkese açık menü adresi. Boş bırakılırsa sayfa yayından kalkar.
-  // Başka bir şube aynı adresi kullanıyorsa değişiklik yok sayılır.
+  // Geçersizse ya da başka bir şube kullanıyorsa mevcut adres korunur.
   const slugInput = String(formData.get("menuSlug") || "").trim().toLowerCase();
-  let menuSlug: string | null = null;
+  let menuSlug: string | null | undefined = null;
   if (slugInput) {
     const candidate = isValidSlug(slugInput) ? slugInput : slugify(slugInput);
-    if (isValidSlug(candidate)) {
+    if (!isValidSlug(candidate)) {
+      menuSlug = undefined;
+      errors.push("menu-adresi-gecersiz");
+    } else {
       const taken = await prisma.branch.findFirst({
         where: { menuSlug: candidate, NOT: { id: session.branchId } },
         select: { id: true },
       });
-      if (!taken) menuSlug = candidate;
+      menuSlug = taken ? undefined : candidate;
+      if (taken) errors.push("menu-adresi-dolu");
     }
   }
 
@@ -433,23 +459,34 @@ export async function updateBranchSettingsAction(formData: FormData) {
   const text = (key: string, max: number) =>
     String(formData.get(key) || "").trim().slice(0, max) || null;
 
-  await prisma.branch.update({
-    where: { id: session.branchId },
-    data: {
-      googleReviewUrl,
-      tipPresets,
-      cardPaymentEnabled,
-      customerOrderingEnabled,
-      supportedLocales,
-      menuSlug,
-      websiteUrl: safeHttpUrl(String(formData.get("websiteUrl") || "")),
-      alertEmail: text("alertEmail", 150),
-      legalName: text("legalName", 200),
-      legalAddress: text("legalAddress", 400),
-      contactEmail: text("contactEmail", 150),
-      contactPhone: text("contactPhone", 40),
-    },
-  });
+  try {
+    await prisma.branch.update({
+      where: { id: session.branchId },
+      data: {
+        googleReviewUrl,
+        tipPresets,
+        cardPaymentEnabled,
+        customerOrderingEnabled,
+        supportedLocales,
+        menuSlug,
+        websiteUrl,
+        alertEmail: text("alertEmail", 150),
+        legalName: text("legalName", 200),
+        legalAddress: text("legalAddress", 400),
+        contactEmail: text("contactEmail", 150),
+        contactPhone: text("contactPhone", 40),
+      },
+    });
+  } catch (err) {
+    // Kontrolle kayıt arasında başka bir şube aynı menü adresini aldıysa.
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      redirect("/admin/ayarlar?hata=menu-adresi-dolu,kaydedilmedi");
+    }
+    throw err;
+  }
 
   await audit({
     branchId: session.branchId,
@@ -460,6 +497,9 @@ export async function updateBranchSettingsAction(formData: FormData) {
 
   revalidatePath("/admin/ayarlar");
   revalidatePath("/gizlilik");
+
+  // Başarılı kayıtta da yönlendiriyoruz ki önceki hata bandı adreste kalmasın.
+  redirect(errors.length ? `/admin/ayarlar?hata=${errors.join(",")}` : "/admin/ayarlar");
 }
 
 /** Gün sonu kasa kapanışı (sadece müdür): sayılan nakit kaydedilir, fark hesaplanır. */
@@ -666,8 +706,8 @@ export async function createBranchAction(
   if (!name || !managerName || !username) {
     return { error: "İşletme adı, müdür adı ve kullanıcı adı zorunlu" };
   }
-  if (password.length < 6) {
-    return { error: "Şifre en az 6 karakter olmalı" };
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { error: `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı` };
   }
   if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
     return {
@@ -783,6 +823,15 @@ export async function saveSubMerchantAction(
     return { error: "Limited/anonim şirket için vergi numarası zorunlu" };
   }
 
+  // iyzico'ya kayıt yapıp sonra IBAN/TC'yi saklayamamak yarım iş bırakır;
+  // şifreleme anahtarı yoksa en baştan dur.
+  if (!hasFieldEncryptionKey()) {
+    return {
+      error:
+        "Sunucuda FIELD_ENCRYPTION_KEY tanımlı değil — IBAN/TC kimlik no şifrelenmeden saklanamaz. Platform yöneticisine bildirin.",
+    };
+  }
+
   const [contactName, ...rest] = name.split(" ");
   const contactSurname = rest.join(" ") || contactName;
 
@@ -810,10 +859,10 @@ export async function saveSubMerchantAction(
     where: { id: session.branchId },
     data: {
       subMerchantType,
-      ibanNumber: iban,
+      ibanNumber: encryptField(iban),
       taxOffice: taxOffice ?? null,
       taxNumber: taxNumber ?? null,
-      identityNumber: identityNumber ?? null,
+      identityNumber: encryptField(identityNumber),
       subMerchantKey: result.subMerchantKey,
       subMerchantSyncedAt: new Date(),
     },
@@ -849,27 +898,29 @@ export async function sendContactRequestAction(
   }
 
   const h = await headers();
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const ip = clientIpFromHeaders(h);
   const limited = rateLimit(`contact:ip:${ip}`, { limit: 5, windowMs: 60 * 60 * 1000 });
   if (!limited.ok) {
     return { error: "Çok fazla istek gönderildi, biraz sonra tekrar deneyin" };
   }
 
-  const businessName = String(formData.get("businessName") || "").trim();
-  const contact = String(formData.get("contact") || "").trim();
+  const businessName = String(formData.get("businessName") || "").trim().slice(0, 150);
+  const contact = String(formData.get("contact") || "").trim().slice(0, 200);
   const message = String(formData.get("message") || "").trim().slice(0, 2000);
 
   if (!businessName || !contact) {
     return { error: "İşletme adı ve iletişim bilgisi zorunlu" };
   }
 
+  // Form herkese açık: girdiler kaçışlanmadan HTML'e konursa gelen kutusunda
+  // sahte link/içerik (phishing) gösterilebilirdi.
   await sendEmail({
     to: process.env.CONTACT_EMAIL || "demo@ules.com.tr",
-    subject: `Demo talebi: ${businessName}`,
+    subject: `Demo talebi: ${businessName.replace(/[\r\n]+/g, " ")}`,
     html: `
-      <p><strong>İşletme:</strong> ${businessName}</p>
-      <p><strong>İletişim:</strong> ${contact}</p>
-      <p><strong>Mesaj:</strong> ${message || "(boş)"}</p>
+      <p><strong>İşletme:</strong> ${escapeHtml(businessName)}</p>
+      <p><strong>İletişim:</strong> ${escapeHtml(contact)}</p>
+      <p><strong>Mesaj:</strong> ${message ? escapeHtml(message).replace(/\n/g, "<br>") : "(boş)"}</p>
     `,
   });
 

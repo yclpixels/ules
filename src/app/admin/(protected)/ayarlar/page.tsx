@@ -5,16 +5,46 @@ import { LOCALE_LABELS, parseLocales, SUPPORTED_LOCALES } from "@/lib/locales";
 import { getBaseUrl } from "@/lib/baseUrl";
 import { slugify } from "@/lib/slug";
 import SubMerchantForm from "@/components/SubMerchantForm";
+import { needsSubMerchant } from "@/lib/payments";
+import { decryptField } from "@/lib/fieldCrypto";
 
 const BRAND_GRADIENT = "linear-gradient(135deg, #1D126D, #1D126D)";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+/** updateBranchSettingsAction'ın döndürdüğü hata kodları. */
+const SETTINGS_ERRORS: Record<string, string> = {
+  "yorum-linki": "Google yorum linki geçersiz — https:// ile başlayan tam bir adres girin.",
+  "site-linki": "Web sitesi / Instagram adresi geçersiz — https:// ile başlayan tam bir adres girin.",
+  "menu-adresi-gecersiz": "Menü adresi geçersiz — harf, rakam ve tire kullanın.",
+  "menu-adresi-dolu": "Bu menü adresini başka bir işletme kullanıyor — farklı bir adres seçin.",
+  "alt-uye-yok":
+    "QR ile kartlı ödeme açılmadı: önce aşağıdan iyzico alt üye işyeri kaydını tamamlayın. Kayıt olmadan tahsilat şubenizin değil platformun hesabına düşerdi.",
+};
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ hata?: string }>;
+}) {
   const session = await verifyManagerSession();
+  const { hata } = await searchParams;
   const branch = await prisma.branch.findUniqueOrThrow({
     where: { id: session.branchId },
   });
+  const cardNeedsSubMerchant = needsSubMerchant(branch);
+  const errors = (hata ?? "").split(",").filter(Boolean);
+  // Şifreli saklanan alanlar yalnızca bu (müdüre özel) formu doldurmak için
+  // çözülür. Anahtar yoksa/yanlışsa form boş gelir, sayfa çökmez.
+  let sensitive = { iban: "", identityNumber: "" };
+  try {
+    sensitive = {
+      iban: decryptField(branch.ibanNumber) ?? "",
+      identityNumber: decryptField(branch.identityNumber) ?? "",
+    };
+  } catch (err) {
+    console.error("[ayarlar] şifreli alanlar çözülemedi:", err);
+  }
 
   const activeLocales = parseLocales(branch.supportedLocales);
   const baseUrl = await getBaseUrl();
@@ -25,6 +55,23 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6 max-w-xl">
       <h1 className="text-xl font-semibold">Şube Ayarları</h1>
+
+      {errors.length > 0 && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-4 py-3 text-sm space-y-1">
+          <p className="font-medium">
+            {errors.includes("kaydedilmedi")
+              ? "Ayarlar kaydedilmedi:"
+              : "Diğer ayarlar kaydedildi, şu alanlar eski değerinde bırakıldı:"}
+          </p>
+          <ul className="list-disc pl-5">
+            {errors
+              .filter((code) => SETTINGS_ERRORS[code])
+              .map((code) => (
+                <li key={code}>{SETTINGS_ERRORS[code]}</li>
+              ))}
+          </ul>
+        </div>
+      )}
 
       <form
         action={updateBranchSettingsAction}
@@ -207,6 +254,12 @@ export default async function SettingsPage() {
                 (iyzico vb.) anlaşması yapılmış olmalı; aksi halde tahsilat
                 başarısız olur.
               </span>
+              {cardNeedsSubMerchant && (
+                <span className="block text-xs text-red-600 mt-1">
+                  iyzico alt üye işyeri kaydı henüz yapılmadı — kayıt
+                  tamamlanana kadar bu seçenek açılamaz.
+                </span>
+              )}
             </span>
           </label>
         </div>
@@ -289,10 +342,10 @@ export default async function SettingsPage() {
         contactPhone={branch.contactPhone ?? ""}
         legalAddress={branch.legalAddress ?? ""}
         subMerchantType={branch.subMerchantType ?? ""}
-        ibanNumber={branch.ibanNumber ?? ""}
+        ibanNumber={sensitive.iban}
         taxOffice={branch.taxOffice ?? ""}
         taxNumber={branch.taxNumber ?? ""}
-        identityNumber={branch.identityNumber ?? ""}
+        identityNumber={sensitive.identityNumber}
         isRegistered={!!branch.subMerchantKey}
       />
     </div>
