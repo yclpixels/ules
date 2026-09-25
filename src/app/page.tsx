@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces } from "next/font/google";
+import { Archivo, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import Link from "next/link";
 import ContactForm from "@/components/ContactForm";
 import MobileNav from "@/components/marketing/MobileNav";
@@ -19,13 +19,26 @@ import {
   CardIcon,
 } from "@/components/icons";
 
-// Sadece tanıtım sayfasında kullanılan başlık fontu — admin panelini
-// etkilememesi için burada, dosya bazında yükleniyor (next/font kuralı).
-const display = Fraunces({
+// Sadece tanıtım sayfasında kullanılan fontlar — admin panelini etkilememesi
+// için burada, dosya bazında yükleniyor (next/font kuralı). yclgames.com'un
+// kendi font çiftinden esinlenildi: Archivo (kalın, geniş başlıklar),
+// IBM Plex Sans (gövde metni), IBM Plex Mono (küçük, aralıklı etiketler).
+const display = Archivo({
   subsets: ["latin"],
-  weight: ["500", "600"],
-  style: ["normal", "italic"],
+  weight: ["700", "800"],
   variable: "--font-display",
+});
+
+const body = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-body",
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-mono",
 });
 
 // Uygulamanın geri kalanı (admin/masa/fiş) arama motorlarına kapalı
@@ -119,8 +132,12 @@ const jsonLd = {
 export default function Home() {
   return (
     <div
-      className={`${display.variable} min-h-screen`}
-      style={{ backgroundColor: "#ffffff", color: "#0a0a0a" }}
+      className={`${display.variable} ${body.variable} ${mono.variable} min-h-screen`}
+      style={{
+        backgroundColor: "#ffffff",
+        color: "#0a0a0a",
+        fontFamily: "var(--font-body), sans-serif",
+      }}
     >
       {/* Arama motorlarına ürünü tanıtan yapılandırılmış veri */}
       <script
@@ -138,8 +155,8 @@ export default function Home() {
           <span className="flex items-center gap-2">
             <Logo className="w-8 h-8 shrink-0" />
             <span
-              className="text-xl italic"
-              style={{ fontFamily: "var(--font-display)" }}
+              className="text-xl"
+              style={{ fontFamily: "var(--font-display)", fontWeight: 800 }}
             >
               Üleş
             </span>
@@ -175,15 +192,20 @@ export default function Home() {
         <section className="relative overflow-hidden">
           <div className="relative max-w-2xl mx-auto px-4 pt-20 sm:pt-28 text-center">
             <span
-              className="inline-flex items-center gap-1.5 text-xs rounded-full px-3 py-1 mb-6"
-              style={{ color: "#6b7280", border: "1px solid #e5e7eb" }}
+              className="inline-flex items-center gap-1.5 text-xs uppercase rounded-full px-3 py-1 mb-6"
+              style={{
+                color: "#6b7280",
+                border: "1px solid #e5e7eb",
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.05em",
+              }}
             >
               <ShieldIcon className="w-3.5 h-3.5 text-[#E0233A]" />
               iyzico ile PCI-DSS uyumlu güvenli ödeme
             </span>
             <h1
               className="text-4xl sm:text-6xl leading-[1.08] tracking-tight text-balance"
-              style={{ fontFamily: "var(--font-display)" }}
+              style={{ fontFamily: "var(--font-display)", fontWeight: 800 }}
             >
               Masada QR ile sipariş verin, hesabı bölüşün, ödeyin.
             </h1>
@@ -235,7 +257,7 @@ export default function Home() {
           <div className="max-w-5xl mx-auto px-4 py-20 sm:py-28">
             <h2
               className="text-3xl sm:text-4xl text-center tracking-tight"
-              style={{ fontFamily: "var(--font-display)" }}
+              style={{ fontFamily: "var(--font-display)", fontWeight: 800 }}
             >
               Zaten çalışan bir sistem.
             </h2>
@@ -267,14 +289,18 @@ export default function Home() {
         <section style={{ borderTop: "1px solid #eeeeee", backgroundColor: "#fafafa" }}>
           <div className="max-w-5xl mx-auto px-4 py-20 sm:py-28 text-center">
             <p
-              className="text-sm uppercase tracking-wide"
-              style={{ color: "#9ca3af" }}
+              className="text-sm uppercase"
+              style={{
+                color: "#9ca3af",
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.08em",
+              }}
             >
               Ödeme altyapısı
             </p>
             <h2
               className="text-3xl sm:text-4xl mt-2 tracking-tight"
-              style={{ fontFamily: "var(--font-display)" }}
+              style={{ fontFamily: "var(--font-display)", fontWeight: 800 }}
             >
               Ödemeleriniz iyzico güvencesiyle
             </h2>
@@ -326,7 +352,7 @@ export default function Home() {
             <div className="order-2 sm:order-1 text-center sm:text-left">
               <h2
                 className="text-3xl sm:text-4xl tracking-tight"
-                style={{ fontFamily: "var(--font-display)" }}
+                style={{ fontFamily: "var(--font-display)", fontWeight: 800 }}
               >
                 Uydurma değil, gerçek ürün.
               </h2>
@@ -350,7 +376,7 @@ export default function Home() {
           <div className="max-w-5xl mx-auto px-4 py-20 sm:py-28">
             <h2
               className="text-3xl sm:text-4xl text-center tracking-tight"
-              style={{ fontFamily: "var(--font-display)" }}
+              style={{ fontFamily: "var(--font-display)", fontWeight: 800 }}
             >
               Nasıl çalışır?
             </h2>
@@ -383,7 +409,7 @@ export default function Home() {
             <div className="max-w-md mx-auto">
               <h2
                 className="text-3xl sm:text-4xl text-center tracking-tight"
-                style={{ fontFamily: "var(--font-display)" }}
+                style={{ fontFamily: "var(--font-display)", fontWeight: 800 }}
               >
                 İşletmenizi Üleş&apos;e taşıyalım
               </h2>
@@ -405,8 +431,8 @@ export default function Home() {
             <span className="flex items-center gap-2">
               <Logo className="w-7 h-7 shrink-0" />
               <span
-                className="text-lg italic"
-                style={{ fontFamily: "var(--font-display)" }}
+                className="text-lg"
+                style={{ fontFamily: "var(--font-display)", fontWeight: 800 }}
               >
                 Üleş
               </span>
