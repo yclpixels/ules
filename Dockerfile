@@ -18,6 +18,11 @@ WORKDIR /app
 # kurulmuyor (generate hiç bağlanmaz), bu yüzden sahte bir değer yeterli.
 # Gerçek değer sadece RUNTIME'da (Railway/host'un verdiği env) kullanılır.
 ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
+# src/lib/session.ts SESSION_SECRET yoksa modül yüklenirken hata fırlatıyor
+# (bilinçli — runtime'da unutulmasın diye). Build sırasında bu route'u
+# statik analiz ederken tetikleniyor; gerçek imzalama anahtarı runtime'da
+# Railway'in env'inden gelir, buradaki değer sadece build'i geçirmek için.
+ENV SESSION_SECRET="build-time-placeholder-not-used-at-runtime"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
