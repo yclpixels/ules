@@ -67,7 +67,7 @@ export default async function GizlilikPage({
         </div>
 
         {!isComplete && (
-          <p className="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3">
+          <p className="text-xs bg-[#fef3c7] border border-[#fde68a] text-[#92400e] rounded-lg p-3">
             <strong>Bu metin henüz doldurulmamış bir şablondur.</strong> İşletme
             yetkilisi: Yönetim panelinde <em>Ayarlar</em> sayfasından işletme
             unvanı ve iletişim bilgilerini girin. Metni yayına almadan önce bir

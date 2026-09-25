@@ -30,9 +30,12 @@ export default async function AdminLayout({
   const lowRatingCount = isManager
     ? await countUnacknowledgedLowRatings(session.branchId)
     : 0;
+  // "info" nötr gri (marka rengiyle çakışmasın diye artık mavi değil), "warn"
+  // gerçek bir uyarı sarısı — amber-* Tailwind sınıfı marka lacivertine
+  // eşlendiği için burada bilinçli olarak ham hex kullanıldı.
   const bannerTone = {
-    info: "bg-blue-50 border-blue-200 text-blue-800",
-    warn: "bg-amber-50 border-amber-200 text-amber-800",
+    info: "bg-gray-50 border-gray-200 text-gray-700",
+    warn: "bg-[#fef3c7] border-[#fde68a] text-[#92400e]",
     danger: "bg-red-50 border-red-200 text-red-800",
   } as const;
 
