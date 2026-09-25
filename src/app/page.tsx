@@ -163,15 +163,15 @@ export default function Home() {
           <div
             aria-hidden
             className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[520px] rounded-full opacity-20 blur-3xl"
-            style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
+            style={{ background: "linear-gradient(135deg, #E0233A, #E0233A)" }}
           />
           <div className="relative max-w-2xl mx-auto px-4 pt-14 sm:pt-20 text-center">
             <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 border rounded-full px-3 py-1 mb-4">
-              <ShieldIcon className="w-3.5 h-3.5 text-amber-600" />
+              <ShieldIcon className="w-3.5 h-3.5 text-[#E0233A]" />
               iyzico ile PCI-DSS uyumlu güvenli ödeme
             </span>
             <p
-              className="italic text-amber-600 text-lg mb-2"
+              className="italic text-[#E0233A] text-lg mb-2"
               style={{ fontFamily: "var(--font-display)" }}
             >
               Hoş geldiniz
@@ -190,8 +190,8 @@ export default function Home() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <a
                 href="#iletisim"
-                className="rounded-lg px-6 py-3 font-medium text-white shadow-lg shadow-amber-600/20 transition-transform hover:scale-105"
-                style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
+                className="rounded-lg px-6 py-3 font-medium text-white shadow-lg shadow-[#E0233A]/20 transition-transform hover:scale-105"
+                style={{ background: "linear-gradient(135deg, #E0233A, #E0233A)" }}
               >
                 Demo İsteyin
               </a>
@@ -240,8 +240,8 @@ export default function Home() {
                   className="space-y-3 p-4 rounded-2xl transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5"
                 >
                   <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-md shadow-amber-600/20"
-                    style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
+                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-md shadow-[#E0233A]/20"
+                    style={{ background: "linear-gradient(135deg, #E0233A, #E0233A)" }}
                   >
                     <f.icon className="w-5 h-5" />
                   </div>
@@ -288,11 +288,11 @@ export default function Home() {
               </span>
               <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8">
                 <span className="flex items-center gap-1.5 text-sm text-gray-600">
-                  <ShieldIcon className="w-4 h-4 text-amber-600" />
+                  <ShieldIcon className="w-4 h-4 text-[#E0233A]" />
                   PCI-DSS
                 </span>
                 <span className="flex items-center gap-1.5 text-sm text-gray-600">
-                  <CardIcon className="w-4 h-4 text-amber-600" />
+                  <CardIcon className="w-4 h-4 text-[#E0233A]" />
                   3D Secure
                 </span>
               </div>
@@ -335,8 +335,8 @@ export default function Home() {
               {steps.map((s) => (
                 <div key={s.n} className="flex gap-4">
                   <div
-                    className="w-10 h-10 shrink-0 rounded-full text-white flex items-center justify-center font-semibold shadow-md shadow-amber-600/20"
-                    style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
+                    className="w-10 h-10 shrink-0 rounded-full text-white flex items-center justify-center font-semibold shadow-md shadow-[#E0233A]/20"
+                    style={{ background: "linear-gradient(135deg, #E0233A, #E0233A)" }}
                   >
                     {s.n}
                   </div>
@@ -350,7 +350,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="iletisim" className="bg-amber-50 border-y border-amber-100">
+        <section id="iletisim" className="bg-[#E0233A]/10 border-y border-[#E0233A]/20">
           <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24">
             <div className="max-w-md mx-auto">
               <h2
