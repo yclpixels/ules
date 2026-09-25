@@ -360,9 +360,14 @@ export default function BillView({
                 onClick={() => chooseLang(l.code)}
                 className={`text-xs rounded-lg px-2 py-1 border transition-colors ${
                   bill.branch.locale === l.code
-                    ? "bg-black text-white border-black"
+                    ? "text-white border-transparent"
                     : "bg-white text-gray-600"
                 }`}
+                style={
+                  bill.branch.locale === l.code
+                    ? { background: BRAND_GRADIENT }
+                    : undefined
+                }
               >
                 {l.label}
               </button>
@@ -395,12 +400,12 @@ export default function BillView({
 
       <main className="px-4 py-4 space-y-4 max-w-md mx-auto">
         {paymentStatus === "success" && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center text-green-700 font-medium">
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center text-green-700 font-medium">
             Ödemeniz alındı.
           </div>
         )}
         {paymentStatus === "failed" && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center text-red-700 font-medium">
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center text-red-700 font-medium">
             Ödeme tamamlanamadı, tekrar deneyin.
           </div>
         )}
@@ -412,7 +417,7 @@ export default function BillView({
           ) : (
             <div className="space-y-4">
               {!bill.branch.customerOrderingEnabled && (
-                <p className="bg-white border rounded-xl px-4 py-3 text-sm text-gray-500 text-center">
+                <p className="bg-white border rounded-2xl px-4 py-3 text-sm text-gray-500 text-center">
                   Siparişinizi personele iletebilirsiniz. Hesabınız
                   &quot;Hesap&quot; sekmesinden anlık olarak takip edilebilir.
                 </p>
@@ -422,7 +427,7 @@ export default function BillView({
                   <h2 className="text-sm font-semibold text-gray-500 mb-2">
                     {group.name}
                   </h2>
-                  <div className="bg-white rounded-xl border divide-y">
+                  <div className="bg-white rounded-2xl border divide-y overflow-hidden">
                     {group.products.map((p) => (
                       <div key={p.id} className="flex items-center gap-3 px-4 py-3">
                         {p.imageUrl && (
@@ -453,7 +458,8 @@ export default function BillView({
                         {bill.branch.customerOrderingEnabled && (
                           <button
                             onClick={() => addToCart(p.id)}
-                            className="bg-black text-white text-sm rounded-lg px-3 py-1.5 shrink-0 self-center"
+                            className="text-white text-sm rounded-lg px-3 py-1.5 shrink-0 self-center"
+                            style={{ background: BRAND_GRADIENT }}
                           >
                             Ekle
                           </button>
@@ -472,7 +478,7 @@ export default function BillView({
                 Henüz sipariş girilmedi.
               </p>
             ) : (
-              <div className="bg-white rounded-xl border divide-y">
+              <div className="bg-white rounded-2xl border divide-y overflow-hidden">
                 {bill.items.map((item) => (
                   <div
                     key={item.id}
@@ -505,7 +511,7 @@ export default function BillView({
               </div>
             )}
 
-            <div className="bg-white rounded-xl border p-4 space-y-1">
+            <div className="bg-white rounded-2xl border p-4 space-y-1">
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Toplam</span>
                 <span>{formatTL(bill.totalCents)}</span>
@@ -532,7 +538,7 @@ export default function BillView({
             </div>
 
             {bill.payments.length > 0 && (
-              <div className="bg-white rounded-xl border p-4">
+              <div className="bg-white rounded-2xl border p-4">
                 <p className="text-sm font-medium mb-2">Ödemeler</p>
                 <div className="space-y-1">
                   {bill.payments.map((p) => (
@@ -561,7 +567,7 @@ export default function BillView({
             )}
 
             {bill.closed ? (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center space-y-2">
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center space-y-2">
                 <p className="text-green-700 font-medium flex items-center justify-center gap-1.5">
                   <CheckCircleIcon className="w-5 h-5" />
                   Hesap tamamen ödendi. Teşekkürler!
@@ -580,7 +586,7 @@ export default function BillView({
             ) : bill.remainingCents > 0 && !bill.branch.cardPaymentEnabled ? (
               /* Kartlı ödeme kapalı: müşteri payını hesaplasın, tahsilatı
                  personel alsın. Hesabı bölme değeri burada da duruyor. */
-              <div className="bg-white rounded-xl border p-4 space-y-3">
+              <div className="bg-white rounded-2xl border p-4 space-y-3">
                 <p className="text-sm font-medium flex items-center gap-1.5">
                   <UsersIcon className="w-4 h-4 text-amber-600" />
                   Hesabı bölüşün
@@ -928,7 +934,7 @@ export default function BillView({
 
       {checkoutFormContent && (
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-auto p-4 relative">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-auto p-4 relative">
             <button
               onClick={() => setCheckoutFormContent(null)}
               className="absolute top-3 right-3 text-gray-400 hover:text-black text-sm"

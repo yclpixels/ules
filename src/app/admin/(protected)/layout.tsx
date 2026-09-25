@@ -109,7 +109,7 @@ export default async function AdminLayout({
         <div className="max-w-4xl mx-auto px-4 pt-4">
           <Link
             href="/admin/degerlendirmeler"
-            className="flex items-center gap-2 border border-red-200 bg-red-50 text-red-700 rounded-xl px-4 py-3 text-sm transition-colors hover:bg-red-100"
+            className="flex items-center gap-2 border border-red-200 bg-red-50 text-red-700 rounded-2xl px-4 py-3 text-sm transition-colors hover:bg-red-100"
           >
             <BellIcon className="w-4 h-4 shrink-0" />
             <span>
@@ -122,7 +122,7 @@ export default async function AdminLayout({
       {subscription?.banner && (
         <div className="max-w-4xl mx-auto px-4 pt-4">
           <p
-            className={`border rounded-xl px-4 py-3 text-sm ${
+            className={`border rounded-2xl px-4 py-3 text-sm ${
               bannerTone[subscription.banner.tone]
             }`}
           >

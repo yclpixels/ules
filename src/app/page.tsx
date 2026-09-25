@@ -256,9 +256,12 @@ export default function Home() {
               işletmenin kendi hesabına gider.
             </p>
             <div className="mt-10 inline-flex flex-wrap items-center justify-center gap-4 sm:gap-8 bg-gray-50 border rounded-2xl px-6 sm:px-10 py-6">
+              {/* iyzico'nun kendi marka rengi (#1e64ff) ve düz sans-serif
+                  fontuyla — kendi italik/gradyan kimliğimizle karıştırılmasın,
+                  bu tanıdık marka burada net görünsün. */}
               <span
-                className="text-3xl italic text-gray-900"
-                style={{ fontFamily: "var(--font-display)" }}
+                className="text-3xl font-bold tracking-tight"
+                style={{ color: "#1e64ff", fontFamily: "var(--font-geist-sans), sans-serif" }}
               >
                 iyzico
               </span>

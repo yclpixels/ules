@@ -34,7 +34,7 @@ export default function NewBranchForm() {
   return (
     <form
       action={formAction}
-      className="bg-white border rounded-xl p-4 space-y-3"
+      className="bg-white border rounded-2xl p-4 space-y-3"
     >
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Yeni işletme</p>

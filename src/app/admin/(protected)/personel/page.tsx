@@ -28,7 +28,7 @@ export default async function PersonelPage({
   return (
     <div className="space-y-6">
       {hata === "kullanici-mevcut" && (
-        <p className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+        <p className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-4 py-3 text-sm">
           Bu kullanıcı adı zaten kullanılıyor — başka bir tane deneyin.
         </p>
       )}

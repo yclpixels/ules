@@ -23,7 +23,7 @@ export default async function ReceiptPage({
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 print:bg-white">
-      <div className="max-w-sm mx-auto bg-white border rounded-xl p-6 space-y-4 print:border-none print:shadow-none">
+      <div className="max-w-sm mx-auto bg-white border rounded-2xl p-6 space-y-4 print:border-none print:shadow-none">
         <div className="text-center">
           <h1 className="text-lg font-semibold">{order.table.branch.name}</h1>
           <p className="text-sm text-gray-500">

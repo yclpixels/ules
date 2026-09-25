@@ -81,7 +81,7 @@ export default function AdminNav({
         </button>
 
         {open && (
-          <div className="absolute right-0 top-full mt-2 w-64 max-h-[75vh] overflow-auto bg-white border rounded-xl shadow-lg z-50 py-2">
+          <div className="absolute right-0 top-full mt-2 w-64 max-h-[75vh] overflow-auto bg-white border rounded-2xl shadow-lg z-50 py-2">
             {groups.map((group) => (
               <div key={group.title} className="py-1">
                 <p className="px-4 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">

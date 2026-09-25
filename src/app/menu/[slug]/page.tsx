@@ -149,11 +149,16 @@ export default async function PublicMenuPage({
                 <Link
                   key={code}
                   href={`/menu/${slug}?lang=${code}`}
-                  className={`text-xs rounded-lg px-2 py-1 border ${
+                  className={`text-xs rounded-lg px-2 py-1 border transition-colors ${
                     locale === code
-                      ? "bg-black text-white border-black"
+                      ? "text-white border-transparent"
                       : "bg-white text-gray-600"
                   }`}
+                  style={
+                    locale === code
+                      ? { background: "linear-gradient(135deg, #fbbf24, #f87171)" }
+                      : undefined
+                  }
                 >
                   {LOCALE_LABELS[code] || code}
                 </Link>
@@ -175,7 +180,7 @@ export default async function PublicMenuPage({
             <h2 className="text-sm font-semibold text-gray-500 mb-2">
               {group.name}
             </h2>
-            <div className="bg-white border rounded-xl divide-y">
+            <div className="bg-white border rounded-2xl divide-y overflow-hidden">
               {group.products.map((p) => {
                 const t = pickTranslation(p.translations, locale);
                 return (

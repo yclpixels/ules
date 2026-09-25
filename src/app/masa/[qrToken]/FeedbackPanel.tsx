@@ -99,7 +99,7 @@ export default function FeedbackPanel({
     // teşekkür et (kötü deneyim müdüre panelden düşer, Google'a değil).
     const happy = average >= 4;
     return (
-      <div className="bg-white rounded-xl border p-4 text-center space-y-3">
+      <div className="bg-white rounded-2xl border p-4 text-center space-y-3">
         <p className="font-medium">Değerlendirmeniz için teşekkürler!</p>
         {happy && googleReviewUrl ? (
           <>
@@ -134,7 +134,7 @@ export default function FeedbackPanel({
   }
 
   return (
-    <div className="bg-white rounded-xl border p-4 space-y-3">
+    <div className="bg-white rounded-2xl border p-4 space-y-3">
       <div>
         <p className="font-medium">Deneyiminiz nasıldı?</p>
         <p className="text-xs text-gray-400">
