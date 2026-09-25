@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 import { getBaseUrl } from "@/lib/baseUrl";
 
+// Site adresi runtime'daki APP_URL'den okunsun, build anında sabitlenmesin.
+export const dynamic = "force-dynamic";
+
 /**
  * QR/masa/admin/fiş linkleri kişiye özel ve tahmin edilebilir olmamalı —
  * bunlar zaten sayfa bazında `robots: noindex` taşıyor (bkz. layout.tsx),

@@ -38,4 +38,10 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+      # Docker/Railway build'iyle aynı koşullar: veritabanı yok, site adresi
+      # dolu. Build sırasında veritabanına giden bir sayfa varsa burada patlar
+      # (gerçek test veritabanı verilirse bu hata gizlenirdi).
       - run: npm run build
+        env:
+          DATABASE_URL: postgresql://user:pass@localhost:1/db
+          NEXT_PUBLIC_APP_URL: https://example.com
