@@ -12,12 +12,25 @@ function hashPassword(password: string): string {
 
 async function main() {
   const branchName = process.env.SEED_BRANCH_NAME || "Ana Şube";
+  const menuSlug = process.env.SEED_MENU_SLUG || "ana-sube-deneme";
   let branch = await prisma.branch.findFirst({ where: { name: branchName } });
   if (!branch) {
-    branch = await prisma.branch.create({ data: { name: branchName } });
+    branch = await prisma.branch.create({
+      data: { name: branchName, menuSlug },
+    });
     console.log(`Şube oluşturuldu: "${branch.name}"`);
   } else {
     console.log(`Şube zaten var: "${branch.name}"`);
+    if (!branch.menuSlug) {
+      // Menü sayfası (/menu/<slug>) ve pazarlama sitesindeki canlı önizleme
+      // iframe'i menuSlug olmadan 404 verir — eski seed'lerde bu alan
+      // ayarlanmamıştı.
+      branch = await prisma.branch.update({
+        where: { id: branch.id },
+        data: { menuSlug },
+      });
+      console.log(`menuSlug eksikti, "${menuSlug}" olarak ayarlandı.`);
+    }
   }
 
   const managerUsername = process.env.SEED_MANAGER_USERNAME || "yonetici";
