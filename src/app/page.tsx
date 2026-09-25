@@ -4,6 +4,7 @@ import Link from "next/link";
 import ContactForm from "@/components/ContactForm";
 import MobileNav from "@/components/marketing/MobileNav";
 import HeroMockup from "@/components/marketing/HeroMockup";
+import PaymentMockup from "@/components/marketing/PaymentMockup";
 import LivePreviewFrame from "@/components/marketing/LivePreviewFrame";
 import Logo from "@/components/Logo";
 import {
@@ -161,60 +162,63 @@ export default function Home() {
         <section className="relative overflow-hidden">
           <div
             aria-hidden
-            className="pointer-events-none absolute -top-24 right-0 w-[520px] h-[520px] rounded-full opacity-20 blur-3xl"
+            className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[520px] rounded-full opacity-20 blur-3xl"
             style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
           />
-          <div className="relative max-w-5xl mx-auto px-4 pt-14 pb-20 sm:pt-20 sm:pb-28 grid sm:grid-cols-2 gap-10 items-center">
-            <div className="text-center sm:text-left">
-              <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 border rounded-full px-3 py-1 mb-4">
-                <ShieldIcon className="w-3.5 h-3.5 text-amber-600" />
-                iyzico ile PCI-DSS uyumlu güvenli ödeme
-              </span>
-              <p
-                className="italic text-amber-600 text-lg mb-2"
-                style={{ fontFamily: "var(--font-display)" }}
+          <div className="relative max-w-2xl mx-auto px-4 pt-14 sm:pt-20 text-center">
+            <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 border rounded-full px-3 py-1 mb-4">
+              <ShieldIcon className="w-3.5 h-3.5 text-amber-600" />
+              iyzico ile PCI-DSS uyumlu güvenli ödeme
+            </span>
+            <p
+              className="italic text-amber-600 text-lg mb-2"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Hoş geldiniz
+            </p>
+            <h1
+              className="text-4xl sm:text-5xl leading-[1.1] tracking-tight text-balance"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Masada QR ile sipariş verin, hesabı bölüşün, ödeyin.
+            </h1>
+            <p className="mt-5 text-lg text-gray-500 text-balance">
+              Üleş; menünüzü QR&apos;a taşır, siparişi mutfağa anında
+              düşürür, hesabı eşit ya da kalem kalem böler — ödeme iyzico
+              güvencesiyle tamamlanır.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <a
+                href="#iletisim"
+                className="rounded-lg px-6 py-3 font-medium text-white shadow-lg shadow-amber-600/20 transition-transform hover:scale-105"
+                style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
               >
-                Hoş geldiniz
-              </p>
-              <h1
-                className="text-4xl sm:text-5xl leading-[1.1] tracking-tight text-balance"
-                style={{ fontFamily: "var(--font-display)" }}
+                Demo İsteyin
+              </a>
+              <a
+                href="#nasil-calisir"
+                className="border rounded-lg px-6 py-3 font-medium transition-colors hover:bg-gray-100"
               >
-                Masada QR ile sipariş verin, hesabı bölüşün, ödeyin.
-              </h1>
-              <p className="mt-5 text-lg text-gray-500 text-balance">
-                Üleş; menünüzü QR&apos;a taşır, siparişi mutfağa anında
-                düşürür, hesabı eşit ya da kalem kalem böler — ödeme iyzico
-                güvencesiyle tamamlanır.
-              </p>
-              <div className="mt-8 flex flex-wrap items-center justify-center sm:justify-start gap-3">
-                <a
-                  href="#iletisim"
-                  className="rounded-lg px-6 py-3 font-medium text-white shadow-lg shadow-amber-600/20 transition-transform hover:scale-105"
-                  style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
-                >
-                  Demo İsteyin
-                </a>
-                <a
-                  href="#nasil-calisir"
-                  className="border rounded-lg px-6 py-3 font-medium transition-colors hover:bg-gray-100"
-                >
-                  Nasıl Çalışır?
-                </a>
-              </div>
-              <span
-                className="mt-5 inline-flex items-center rounded-lg px-3 py-1.5"
-                style={{ backgroundColor: "#ffffff" }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/brand/payment-logos.svg"
-                  alt="iyzico ile Öde — Mastercard, Visa, American Express, Troy"
-                  className="h-4 sm:h-[18px] w-auto"
-                />
-              </span>
+                Nasıl Çalışır?
+              </a>
             </div>
-            <HeroMockup className="w-full max-w-[260px] mx-auto sm:max-w-none" />
+            <span
+              className="mt-5 inline-flex items-center rounded-lg px-3 py-1.5"
+              style={{ backgroundColor: "#ffffff" }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/payment-logos.svg"
+                alt="iyzico ile Öde — Mastercard, Visa, American Express, Troy"
+                className="h-4 sm:h-[18px] w-auto"
+              />
+            </span>
+          </div>
+
+          {/* İki telefon üst üste — menü ve ödeme ekranı tek kompozisyonda */}
+          <div className="relative mx-auto mt-10 sm:mt-14 h-[380px] sm:h-[480px] max-w-xs sm:max-w-md px-4">
+            <HeroMockup className="absolute left-0 top-6 sm:top-8 w-[58%] -rotate-6 drop-shadow-2xl" />
+            <PaymentMockup className="absolute right-0 top-0 w-[58%] rotate-6 drop-shadow-2xl" />
           </div>
         </section>
 
@@ -325,20 +329,24 @@ export default function Home() {
           >
             Nasıl çalışır?
           </h2>
-          <div className="mt-14 grid sm:grid-cols-3 gap-10 relative">
-            <div className="hidden sm:block absolute top-6 left-[16.5%] right-[16.5%] h-px bg-gray-200" />
-            {steps.map((s) => (
-              <div key={s.n} className="text-center relative">
-                <div
-                  className="w-12 h-12 rounded-full text-white flex items-center justify-center font-semibold mx-auto relative z-10 shadow-md shadow-amber-600/20"
-                  style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
-                >
-                  {s.n}
+          <div className="mt-14 grid sm:grid-cols-2 gap-12 items-center">
+            <HeroMockup className="w-full max-w-[220px] mx-auto order-2 sm:order-1" />
+            <div className="space-y-8 order-1 sm:order-2">
+              {steps.map((s) => (
+                <div key={s.n} className="flex gap-4">
+                  <div
+                    className="w-10 h-10 shrink-0 rounded-full text-white flex items-center justify-center font-semibold shadow-md shadow-amber-600/20"
+                    style={{ background: "linear-gradient(135deg, #fbbf24, #f87171)" }}
+                  >
+                    {s.n}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{s.title}</p>
+                    <p className="text-sm text-gray-500 mt-1">{s.desc}</p>
+                  </div>
                 </div>
-                <p className="font-semibold mt-4">{s.title}</p>
-                <p className="text-sm text-gray-500 mt-1.5">{s.desc}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
 
