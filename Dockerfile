@@ -13,6 +13,11 @@ RUN npm ci
 
 FROM node:20-alpine AS builder
 WORKDIR /app
+# `prisma generate` ve `next build` PrismaClient'ı örnekliyor ve
+# prisma.config.ts DATABASE_URL'in var olmasını istiyor — gerçek bağlantı
+# kurulmuyor (generate hiç bağlanmaz), bu yüzden sahte bir değer yeterli.
+# Gerçek değer sadece RUNTIME'da (Railway/host'un verdiği env) kullanılır.
+ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
