@@ -36,8 +36,8 @@ export const metadata: Metadata = {
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  // Tarayıcı arayüzü (mobil adres çubuğu) de koyu temayla uyumlu olsun
-  themeColor: "#0f0f12",
+  // Tarayıcı arayüzü (mobil adres çubuğu) açık temayla uyumlu olsun
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
