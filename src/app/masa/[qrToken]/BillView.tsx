@@ -70,6 +70,37 @@ type Bill = {
   };
 };
 
+/**
+ * Kişi sayısı sayacı. Önceden sayı kutusuydu: telefonda klavye açıyor,
+ * küçük ok düğmeleriyle uğraştırıyordu. Masada 1–20 kişi yeterli.
+ */
+function PeopleStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border mt-1">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(1, value - 1))}
+        disabled={value <= 1}
+        aria-label="Kişi sayısını azalt"
+        className="w-14 h-12 text-2xl text-gray-700 disabled:text-gray-300"
+      >
+        −
+      </button>
+      <span className="text-lg font-semibold tabular-nums" aria-live="polite">
+        {value} kişi
+      </span>
+      <button
+        type="button"
+        onClick={() => onChange(Math.min(20, value + 1))}
+        aria-label="Kişi sayısını artır"
+        className="w-14 h-12 text-2xl text-gray-700"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
 /** Dil tercihi masa başına saklanır: aynı telefon başka masada da aynı dili görür. */
 const LANG_STORAGE_KEY = "masa-qr-lang";
 
@@ -633,16 +664,8 @@ export default function BillView({
                   Hesabı bölüşün
                 </p>
                 <div>
-                  <label className="text-sm text-gray-500">Kişi sayısı</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={peopleCount}
-                    onChange={(e) =>
-                      setPeopleCount(Math.max(1, Number(e.target.value) || 1))
-                    }
-                    className="w-full mt-1 border rounded-lg px-3 py-2"
-                  />
+                  <span className="text-sm text-gray-500">Kaç kişisiniz?</span>
+                  <PeopleStepper value={peopleCount} onChange={setPeopleCount} />
                 </div>
                 <div className="border rounded-lg p-4 text-center">
                   <p className="text-sm text-gray-500">Kişi başı</p>
@@ -691,7 +714,7 @@ export default function BillView({
                   ).map(([key, label, Icon]) => (
                     <button
                       key={key}
-                      className={`flex-1 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${
+                      className={`flex-1 h-11 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${
                         mode === key ? "text-white shadow-sm" : "text-gray-700"
                       }`}
                       style={mode === key ? { background: BRAND_GRADIENT } : undefined}
@@ -715,7 +738,7 @@ export default function BillView({
                         return (
                           <label
                             key={item.id}
-                            className={`flex items-center gap-3 px-3 py-2 ${
+                            className={`flex items-center gap-3 px-3 min-h-12 py-2 ${
                               item.settled
                                 ? "opacity-40"
                                 : "cursor-pointer hover:bg-gray-100"
@@ -723,6 +746,7 @@ export default function BillView({
                           >
                             <input
                               type="checkbox"
+                              className="w-5 h-5 shrink-0 accent-[#1D126D]"
                               disabled={item.settled}
                               checked={checked}
                               onChange={(e) =>
@@ -759,20 +783,8 @@ export default function BillView({
                   </div>
                 ) : mode === "equal" ? (
                   <div>
-                    <label className="text-sm text-gray-500">
-                      Kişi sayısı
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={peopleCount}
-                      onChange={(e) =>
-                        setPeopleCount(
-                          Math.max(1, Number(e.target.value) || 1)
-                        )
-                      }
-                      className="w-full mt-1 border rounded-lg px-3 py-2"
-                    />
+                    <span className="text-sm text-gray-500">Kaç kişisiniz?</span>
+                    <PeopleStepper value={peopleCount} onChange={setPeopleCount} />
                     <p className="text-sm text-gray-500 mt-2">
                       Kişi başı: <strong>{formatTL(equalShareCents)}</strong>
                     </p>
@@ -788,7 +800,7 @@ export default function BillView({
                       placeholder="0.00"
                       value={customAmount}
                       onChange={(e) => setCustomAmount(e.target.value)}
-                      className="w-full mt-1 border rounded-lg px-3 py-2"
+                      className="w-full mt-1 h-12 border rounded-xl px-3"
                     />
                   </div>
                 )}
@@ -801,7 +813,7 @@ export default function BillView({
                     type="text"
                     value={payerName}
                     onChange={(e) => setPayerName(e.target.value)}
-                    className="w-full mt-1 border rounded-lg px-3 py-2"
+                    className="w-full mt-1 h-12 border rounded-xl px-3"
                     placeholder="Ör. Ahmet"
                   />
                 </div>
@@ -817,7 +829,7 @@ export default function BillView({
                           key={pct}
                           type="button"
                           onClick={() => setTipChoice(pct)}
-                          className={`flex-1 py-2 text-sm rounded-lg border transition-all ${
+                          className={`flex-1 h-11 text-sm font-medium rounded-lg border transition-all ${
                             tipChoice === pct
                               ? "text-white border-transparent shadow-sm"
                               : "bg-white text-gray-700"
@@ -830,7 +842,7 @@ export default function BillView({
                       <button
                         type="button"
                         onClick={() => setTipChoice("custom")}
-                        className={`flex-1 py-2 text-sm rounded-lg border transition-all ${
+                        className={`flex-1 h-11 text-sm font-medium rounded-lg border transition-all ${
                           tipChoice === "custom"
                             ? "text-white border-transparent shadow-sm"
                             : "bg-white text-gray-700"
@@ -847,7 +859,7 @@ export default function BillView({
                         placeholder="Bahşiş tutarı (TL)"
                         value={customTip}
                         onChange={(e) => setCustomTip(e.target.value)}
-                        className="w-full mt-2 border rounded-lg px-3 py-2"
+                        className="w-full mt-2 h-12 border rounded-xl px-3"
                       />
                     )}
                     {tipCents > 0 && (
@@ -876,7 +888,7 @@ export default function BillView({
                 <button
                   onClick={handlePay}
                   disabled={paying}
-                  className="w-full text-white rounded-lg py-3.5 font-medium text-base shadow-lg shadow-amber-600/20 transition-transform hover:scale-[1.01] disabled:opacity-50 disabled:hover:scale-100"
+                  className="w-full h-14 text-white rounded-xl font-semibold text-base shadow-lg transition-transform active:scale-[0.99] disabled:opacity-50"
                   style={{ background: BRAND_GRADIENT }}
                 >
                   {paying ? "İşleniyor..." : "Şimdi Öde"}

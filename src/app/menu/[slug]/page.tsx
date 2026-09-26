@@ -14,6 +14,8 @@ import {
 
 export const dynamic = "force-dynamic";
 
+const BRAND = "#1D126D";
+
 /**
  * Herkese açık menü sayfası.
  *
@@ -137,30 +139,30 @@ export default async function PublicMenuPage({
     <div className="min-h-screen bg-gray-50">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // "<" kaçışlanır: ürün/şube adı "</script>" içerirse script bloğundan
+        // çıkıp sayfada kod çalıştırabilirdi (adları müdür yazıyor, sayfa herkese açık).
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <EmbedAutoHeight />
-      <header className="bg-white border-b px-4 py-5">
-        <div className="max-w-2xl mx-auto space-y-3">
-          <h1 className="text-2xl font-semibold">{branch.name}</h1>
+      <header className="text-white px-4 pt-6 pb-5" style={{ background: BRAND }}>
+        <div className="max-w-2xl mx-auto flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold leading-tight">{branch.name}</h1>
+            <p className="text-sm text-white/70 mt-1">Menü ve fiyatlar</p>
+          </div>
           {available.length > 1 && (
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex gap-1 shrink-0">
               {available.map((code) => (
                 <Link
                   key={code}
                   href={`/menu/${slug}?lang=${code}`}
-                  className={`text-xs rounded-lg px-2 py-1 border transition-colors ${
-                    locale === code
-                      ? "text-white border-transparent"
-                      : "bg-white text-gray-600"
+                  aria-label={LOCALE_LABELS[code] || code}
+                  aria-current={locale === code ? "true" : undefined}
+                  className={`h-9 min-w-9 inline-flex items-center justify-center rounded-full px-2.5 text-xs font-semibold ${
+                    locale === code ? "bg-white text-[#1D126D]" : "bg-white/10 text-white/80"
                   }`}
-                  style={
-                    locale === code
-                      ? { background: "linear-gradient(135deg, #1D126D, #1D126D)" }
-                      : undefined
-                  }
                 >
-                  {LOCALE_LABELS[code] || code}
+                  {code.toUpperCase()}
                 </Link>
               ))}
             </div>
@@ -168,7 +170,24 @@ export default async function PublicMenuPage({
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      {/* Kategori şeridi: bölüme atlama (gömülü iframe'de de çalışır). */}
+      {groups.length > 1 && (
+        <nav className="sticky top-0 z-10 bg-white border-b">
+          <div className="max-w-2xl mx-auto flex gap-2 overflow-x-auto px-4 py-2">
+            {groups.map((g) => (
+              <a
+                key={g.id}
+                href={`#kategori-${g.id}`}
+                className="shrink-0 h-9 inline-flex items-center rounded-full border px-3.5 text-sm font-medium text-gray-700"
+              >
+                {g.name}
+              </a>
+            ))}
+          </div>
+        </nav>
+      )}
+
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-7">
         {groups.length === 0 && (
           <p className="text-center text-gray-500 py-10">
             Menü henüz hazır değil.
@@ -176,15 +195,14 @@ export default async function PublicMenuPage({
         )}
 
         {groups.map((group) => (
-          <section key={group.id}>
-            <h2 className="text-sm font-semibold text-gray-500 mb-2">
-              {group.name}
-            </h2>
+          <section key={group.id} id={`kategori-${group.id}`} className="scroll-mt-16">
+            <h2 className="text-lg font-bold text-gray-900 mb-2">{group.name}</h2>
             <div className="bg-white border rounded-2xl divide-y overflow-hidden">
               {group.products.map((p) => {
                 const t = pickTranslation(p.translations, locale);
+                const allergens = t?.allergens ?? p.allergens;
                 return (
-                  <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+                  <div key={p.id} className="flex items-center gap-3 px-4 py-3.5">
                     {p.imageUrl && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -201,15 +219,13 @@ export default async function PublicMenuPage({
                           {t?.description ?? p.description}
                         </p>
                       )}
-                      {(t?.allergens ?? p.allergens) && (
-                        <p className="text-xs text-amber-600 mt-0.5">
-                          {t?.allergens ?? p.allergens}
-                        </p>
+                      {allergens && (
+                        <p className="text-xs text-[#92400e] mt-1">Alerjen: {allergens}</p>
                       )}
-                      <p className="text-sm font-medium mt-1">
-                        {formatTL(p.priceCents)}
-                      </p>
                     </div>
+                    <p className="shrink-0 self-start text-base font-bold" style={{ color: BRAND }}>
+                      {formatTL(p.priceCents)}
+                    </p>
                   </div>
                 );
               })}
@@ -231,7 +247,7 @@ export default async function PublicMenuPage({
         )}
 
         <p className="text-center text-xs text-gray-400 pt-4">
-          Fiyatlar değişebilir. Güncel menü.
+          Fiyatlar değişebilir.
         </p>
       </main>
     </div>
