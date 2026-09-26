@@ -11,9 +11,13 @@ const LINKS = [
   { href: "/admin/login", label: "Personel Girişi" },
 ];
 
-/** Mobilde nav linkleri sığmadığı için hamburger menüye toplanır (koyu başlık). */
-export default function MobileNav() {
+/**
+ * Mobilde nav linkleri sığmadığı için hamburger menüye toplanır (koyu başlık).
+ * `home`: ana sayfada bölüm bağlantıları "#…", alt sayfalarda "/#…".
+ */
+export default function MobileNav({ home = true }: { home?: boolean }) {
   const [open, setOpen] = useState(false);
+  const href = (h: string) => (h.startsWith("#") && !home ? `/${h}` : h);
 
   return (
     <div className="md:hidden">
@@ -46,7 +50,7 @@ export default function MobileNav() {
           {LINKS.map((l) => (
             <a
               key={l.href}
-              href={l.href}
+              href={href(l.href)}
               onClick={() => setOpen(false)}
               className="py-3"
               style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
@@ -55,7 +59,7 @@ export default function MobileNav() {
             </a>
           ))}
           <a
-            href="#iletisim"
+            href={href("#iletisim")}
             onClick={() => setOpen(false)}
             className="mt-5 rounded-full py-3 text-center font-semibold"
             style={{ background: "#F4F3FF", color: "#08061A" }}

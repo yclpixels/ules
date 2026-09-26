@@ -279,6 +279,15 @@ yetkisine sahiptir.
 - **Sürüm uyuşmazlığı koruması**: `deploymentId` = Railway commit kimliği. Sayfa eski sürümden
   açıkken yeni sürüm yayına girerse tarayıcı hata yerine sayfayı yeniler.
 
+## Tanıtım sitesi içeriği
+
+Telefon, WhatsApp, adres, Google Haritalar bağlantısı, sosyal medya, müşteri yorumları,
+vaka çalışmaları ve ekip fotoğrafları `src/content/site.ts` dosyasından girilir. Boş bırakılan
+bölümler sitede hiç görünmez; bilerek örnek/uydurma veri konmadı (sahte yorum ve vaka hem
+yanıltıcıdır hem Google tarafından cezalandırılır). Fotoğraflar `public/` altına konur.
+Doldurup commit edip yayına alınca ilgili bölüm, alt bilgideki iletişim bilgileri, mobil
+"Ara/WhatsApp" çubuğu ve arama motoru verileri kendiliğinden güncellenir.
+
 ## Test ve CI
 
 ```bash

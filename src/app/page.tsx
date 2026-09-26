@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import ContactForm from "@/components/ContactForm";
-import MobileNav from "@/components/marketing/MobileNav";
+import { MobileStickyCta, SiteFooter, SiteHeader } from "@/components/marketing/SiteChrome";
+import { hasAddress, siteContent } from "@/content/site";
 import CleanHashLinks from "@/components/marketing/CleanHashLinks";
 import HeroMockup from "@/components/marketing/HeroMockup";
 import PaymentMockup from "@/components/marketing/PaymentMockup";
@@ -10,7 +10,6 @@ import KitchenMockup from "@/components/marketing/KitchenMockup";
 import LivePreviewFrame from "@/components/marketing/LivePreviewFrame";
 import Faq from "@/components/marketing/Faq";
 import PanelShowcase from "@/components/marketing/PanelShowcase";
-import Logo from "@/components/Logo";
 import { PUBLIC_SUPPORT_EMAIL, PUBLIC_SUPPORT_MAILTO } from "@/lib/contact";
 import {
   QrIcon,
@@ -326,8 +325,25 @@ function buildJsonLd(siteUrl: string) {
           "@type": "ContactPoint",
           contactType: "customer support",
           email: "destek@xn--le-wka21b.com",
+          ...(siteContent.phone && { telephone: siteContent.phone }),
           availableLanguage: ["Turkish"],
         },
+        ...(siteContent.phone && { telephone: siteContent.phone }),
+        ...(hasAddress() && {
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: siteContent.address.street,
+            addressLocality: siteContent.address.district || siteContent.address.city,
+            addressRegion: siteContent.address.city,
+            postalCode: siteContent.address.postalCode || undefined,
+            addressCountry: "TR",
+          },
+        }),
+        ...(siteContent.mapsUrl && { hasMap: siteContent.mapsUrl }),
+        ...(() => {
+          const sameAs = Object.values(siteContent.social).filter(Boolean);
+          return sameAs.length ? { sameAs } : {};
+        })(),
       },
       {
         "@type": "WebSite",
@@ -384,59 +400,7 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
 
-      {/* ─── Başlık ─────────────────────────────────────────────── */}
-      <header
-        className="sticky top-0 z-40"
-        // backdrop-blur yok: kaydırırken her karede arka planı bulanıklaştırmak
-        // telefonlarda takılmaya yol açıyordu; neredeyse opak zemin yeterli.
-        style={{
-          backgroundColor: "rgba(8,6,26,0.94)",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-          color: ON_DARK,
-        }}
-      >
-        <div className="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
-          <Link href="/" aria-label="Üleş — ana sayfa" className="shrink-0">
-            <Logo tone="white" className="h-10 w-10" />
-          </Link>
-          <nav
-            className="hidden md:flex items-center gap-8 text-sm font-medium"
-            style={{ color: ON_DARK_MUTED }}
-          >
-            <a href="#ozellikler" className="transition-colors hover:text-white">
-              Özellikler
-            </a>
-            <a href="#paneller" className="transition-colors hover:text-white">
-              Paneller
-            </a>
-            <a href="#guvenlik" className="transition-colors hover:text-white">
-              Güvenlik
-            </a>
-            <a href="#nasil-calisir" className="transition-colors hover:text-white">
-              Nasıl Çalışır
-            </a>
-            <a href="#sss" className="transition-colors hover:text-white">
-              SSS
-            </a>
-          </nav>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href="/admin/login"
-              className="hidden md:inline-flex rounded-full px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/10"
-            >
-              Personel Girişi
-            </Link>
-            <a
-              href="#iletisim"
-              className="hidden sm:inline-flex rounded-full px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-[1.04]"
-              style={{ background: ON_DARK, color: INK }}
-            >
-              Demo İsteyin
-            </a>
-            <MobileNav />
-          </div>
-        </div>
-      </header>
+      <SiteHeader home />
 
       <main>
         {/* ─── Hero (koyu) ────────────────────────────────────────── */}
@@ -885,6 +849,76 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ─── Müşteri yorumları — yalnızca gerçek yorum girilince (content/site.ts) */}
+        {siteContent.testimonials.length > 0 && (
+          <section id="yorumlar" className="scroll-mt-20 bg-white">
+            <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
+              <div className="mx-auto max-w-2xl text-center">
+                <Eyebrow>Müşterilerimiz</Eyebrow>
+                <h2
+                  className="mt-5 text-4xl leading-[1.08] sm:text-5xl"
+                  style={{ ...displayFont, fontWeight: 800, letterSpacing: "-0.03em" }}
+                >
+                  İşletmeler ne diyor?
+                </h2>
+              </div>
+              <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {siteContent.testimonials.map((t) => (
+                  <figure
+                    key={t.name}
+                    className="rounded-3xl p-7"
+                    style={{ background: SOFT, border: `1px solid ${LINE}` }}
+                  >
+                    <blockquote className="text-lg leading-relaxed">“{t.quote}”</blockquote>
+                    <figcaption className="mt-6 flex items-center gap-3">
+                      {t.photo && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={t.photo} alt={t.name} loading="lazy" className="h-11 w-11 rounded-full object-cover" />
+                      )}
+                      <span>
+                        <span className="block font-semibold">{t.name}</span>
+                        <span className="block text-sm" style={{ color: MUTED }}>{t.role}</span>
+                      </span>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ─── Ekip — yalnızca gerçek fotoğraflar girilince */}
+        {siteContent.team.length > 0 && (
+          <section id="ekip" className="scroll-mt-20 bg-white">
+            <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+              <div className="mx-auto max-w-2xl text-center">
+                <Eyebrow>Ekip</Eyebrow>
+                <h2
+                  className="mt-5 text-4xl leading-[1.08] sm:text-5xl"
+                  style={{ ...displayFont, fontWeight: 800, letterSpacing: "-0.03em" }}
+                >
+                  Kurulumu da desteği de biz yapıyoruz.
+                </h2>
+              </div>
+              <div className="mt-14 flex flex-wrap justify-center gap-8">
+                {siteContent.team.map((m) => (
+                  <div key={m.name} className="w-44 text-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.photo} alt={`${m.name}, ${m.role}`} loading="lazy" className="mx-auto h-36 w-36 rounded-3xl object-cover" />
+                    <p className="mt-4 font-semibold">{m.name}</p>
+                    <p className="text-sm" style={{ color: MUTED }}>{m.role}</p>
+                    {m.linkedin && (
+                      <a href={m.linkedin} target="_blank" rel="noopener" className="mt-1 inline-block text-sm underline" style={{ color: BRAND }}>
+                        LinkedIn
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* ─── SSS ────────────────────────────────────────────────── */}
         <section id="sss" className="scroll-mt-20" style={{ background: SOFT }}>
           <div className="mx-auto grid max-w-6xl gap-12 px-4 py-24 sm:px-6 sm:py-32 lg:grid-cols-[0.8fr_1.2fr]">
@@ -957,63 +991,8 @@ export default function Home() {
         </section>
       </main>
 
-      {/* ─── Alt bilgi ────────────────────────────────────────────── */}
-      <footer style={{ background: INK, color: ON_DARK, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
-          <div>
-            <Logo tone="white" className="h-12 w-12" />
-            <p className="mt-5 max-w-xs text-sm leading-relaxed" style={{ color: ON_DARK_MUTED }}>
-              Restoran ve kafeler için QR ile sipariş, hesap bölüşme ve iyzico
-              güvenceli ödeme.
-            </p>
-            <a
-              href={PUBLIC_SUPPORT_MAILTO}
-              className="mt-4 inline-block text-sm font-medium transition-opacity hover:opacity-70"
-            >
-              {PUBLIC_SUPPORT_EMAIL}
-            </a>
-          </div>
-          <div>
-            <p className="text-[11px] uppercase" style={{ ...monoFont, letterSpacing: "0.22em", color: ON_DARK_MUTED }}>
-              Ürün
-            </p>
-            <ul className="mt-5 space-y-3 text-sm">
-              <li><a href="#ozellikler" className="transition-opacity hover:opacity-70">Özellikler</a></li>
-              <li><a href="#guvenlik" className="transition-opacity hover:opacity-70">Güvenlik</a></li>
-              <li><a href="#nasil-calisir" className="transition-opacity hover:opacity-70">Nasıl Çalışır</a></li>
-              <li><a href="#iletisim" className="transition-opacity hover:opacity-70">Demo İsteyin</a></li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-[11px] uppercase" style={{ ...monoFont, letterSpacing: "0.22em", color: ON_DARK_MUTED }}>
-              İşletmeler
-            </p>
-            <ul className="mt-5 space-y-3 text-sm">
-              <li><Link href="/admin/login" className="transition-opacity hover:opacity-70">Personel Girişi</Link></li>
-              <li><Link href="/gizlilik" className="transition-opacity hover:opacity-70">Gizlilik Politikası</Link></li>
-              <li><Link href="/kullanim-sartlari" className="transition-opacity hover:opacity-70">Kullanım Şartları</Link></li>
-              <li><Link href="/on-bilgilendirme" className="transition-opacity hover:opacity-70">Ön Bilgilendirme Formu</Link></li>
-              <li><Link href="/cerez-politikasi" className="transition-opacity hover:opacity-70">Çerez Politikası</Link></li>
-            </ul>
-          </div>
-        </div>
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <div className="mx-auto max-w-6xl px-4 py-5 text-xs leading-relaxed sm:px-6" style={{ color: "rgba(244,243,255,0.45)" }}>
-            Üleş bir ödeme kuruluşu veya aracı kurum değildir. Restoran ve
-            kafeler için QR tabanlı sipariş, hesap bölüşme ve ödeme yönlendirme
-            yazılımı sağlar; kartlı tahsilat iyzico&apos;nun lisanslı altyapısı
-            üzerinden doğrudan işletmenin hesabına yapılır.
-          </div>
-        </div>
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6">
-            <p className="text-sm" style={{ color: ON_DARK_MUTED }}>
-              © {new Date().getFullYear()} Üleş
-            </p>
-            <PaymentLogos />
-          </div>
-        </div>
-      </footer>
+      <SiteFooter home />
+      <MobileStickyCta home />
     </div>
   );
 }

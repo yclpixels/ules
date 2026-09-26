@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { sendContactRequestAction, type ContactRequestState } from "@/lib/actions";
 import { CONTACT_ERROR, parseContact } from "@/lib/contact";
 
@@ -15,6 +17,13 @@ export default function ContactForm() {
   >(sendContactRequestAction, undefined);
   // Alandan çıkınca anında uyar; asıl doğrulama sunucuda (lib/contact.ts).
   const [contactHint, setContactHint] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Başarıda teşekkür sayfasına geç: ayrı bir adres, reklam/analitik
+  // araçlarında "dönüşüm" olarak ölçülebilsin. Kişisel veri adrese konmaz.
+  useEffect(() => {
+    if (state?.success) router.push("/tesekkurler");
+  }, [state?.success, router]);
 
   if (state?.success) {
     return (
@@ -128,6 +137,14 @@ export default function ContactForm() {
       >
         {pending ? "Gönderiliyor..." : "Demo İsteyin"}
       </button>
+      <p className="text-xs text-center" style={{ color: "#8A8AA0" }}>
+        Formu göndererek bilgilerinizin size dönüş yapmak amacıyla işlenmesine
+        ilişkin{" "}
+        <Link href="/gizlilik-politikasi" className="underline">
+          Gizlilik Politikası
+        </Link>
+        &apos;nı okuduğunuzu kabul etmiş olursunuz.
+      </p>
     </form>
   );
 }

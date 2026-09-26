@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
+import Breadcrumbs from "@/components/marketing/Breadcrumbs";
+import { MobileStickyCta, SiteFooter, SiteHeader } from "@/components/marketing/SiteChrome";
+import { siteUrl } from "@/components/marketing/SubPage";
 
 export const metadata: Metadata = {
   title: "Çerez Politikası",
+  description:
+    "Üleş yalnızca personel girişi için zorunlu oturum çerezi kullanır; reklam ve analitik çerezi yoktur. Kullanılan çerezler ve amaçları.",
+  alternates: { canonical: "/cerez-politikasi" },
+  robots: { index: true, follow: true },
 };
 
 /**
@@ -12,7 +19,12 @@ export const metadata: Metadata = {
  */
 export default function CerezPolitikasiPage() {
   return (
+    <>
+    <SiteHeader />
     <div className="min-h-screen bg-gray-50 py-10 px-4">
+      <div className="max-w-2xl mx-auto mb-4">
+        <Breadcrumbs items={[{ name: "Çerez Politikası", path: "/cerez-politikasi" }]} siteUrl={siteUrl()} />
+      </div>
       <div className="max-w-2xl mx-auto bg-white border rounded-2xl p-6 sm:p-8 space-y-5 text-sm leading-relaxed text-gray-700">
         <div>
           <h1 className="text-lg font-semibold text-gray-900">
@@ -65,5 +77,8 @@ export default function CerezPolitikasiPage() {
         </section>
       </div>
     </div>
+    <SiteFooter />
+    <MobileStickyCta />
+    </>
   );
 }

@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+
+export const metadata: Metadata = {
+  title: "KVKK Aydınlatma Metni",
+  description: "Restoranın masadaki QR sipariş ve ödeme sistemi için kişisel verilerin korunması aydınlatma metni.",
+};
 
 export const dynamic = "force-dynamic";
 

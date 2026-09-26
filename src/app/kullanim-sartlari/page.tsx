@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
+import Breadcrumbs from "@/components/marketing/Breadcrumbs";
+import { MobileStickyCta, SiteFooter, SiteHeader } from "@/components/marketing/SiteChrome";
+import { siteUrl } from "@/components/marketing/SubPage";
 import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Kullanım Şartları",
+  description:
+    "Üleş QR menü, sipariş ve ödeme platformunu kullanan restoran ve kafeler için hizmet şartları: kapsam, ücretlendirme, sorumluluklar ve veri işleme.",
+  alternates: { canonical: "/kullanim-sartlari" },
+  robots: { index: true, follow: true },
 };
 
 /**
@@ -18,7 +25,12 @@ export default function KullanimSartlariPage() {
   const isComplete = !!legalName && !!contactEmail;
 
   return (
+    <>
+    <SiteHeader />
     <div className="min-h-screen bg-gray-50 py-10 px-4">
+      <div className="max-w-2xl mx-auto mb-4">
+        <Breadcrumbs items={[{ name: "Kullanım Şartları", path: "/kullanim-sartlari" }]} siteUrl={siteUrl()} />
+      </div>
       <div className="max-w-2xl mx-auto bg-white border rounded-2xl p-6 sm:p-8 space-y-5 text-sm leading-relaxed text-gray-700">
         <div>
           <h1 className="text-lg font-semibold text-gray-900">
@@ -167,5 +179,8 @@ export default function KullanimSartlariPage() {
         </section>
       </div>
     </div>
+    <SiteFooter />
+    <MobileStickyCta />
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { getBaseUrl } from "@/lib/baseUrl";
+import { siteContent } from "@/content/site";
 
 // Veritabanı okuyor: build sırasında önceden üretilmemeli (Docker build'inde
 // gerçek veritabanı yok). Site adresi tanımlıyken getBaseUrl başlık okumadığı
@@ -28,6 +29,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: "daily" as const,
       priority: 0.8,
+    })),
+    // Vaka çalışmaları (yalnızca gerçek içerik girildiyse; src/content/site.ts)
+    ...(siteContent.caseStudies.length > 0
+      ? [
+          { url: `${baseUrl}/vaka-calismalari`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.7 },
+          ...siteContent.caseStudies.map((c) => ({
+            url: `${baseUrl}/vaka-calismalari/${c.slug}`,
+            lastModified: new Date(c.publishedAt),
+            changeFrequency: "yearly" as const,
+            priority: 0.6,
+          })),
+        ]
+      : []),
+    // Platformun kendi yasal sayfaları (arama motorlarına açık; restoran
+    // şablonları /gizlilik ve /on-bilgilendirme kapalı, burada yok).
+    ...["/gizlilik-politikasi", "/kullanim-sartlari", "/cerez-politikasi"].map((path) => ({
+      url: `${baseUrl}${path}`,
+      changeFrequency: "yearly" as const,
+      priority: 0.3,
     })),
   ];
 }

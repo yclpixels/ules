@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+
+export const metadata: Metadata = {
+  title: "Ön Bilgilendirme Formu",
+  description: "Masadan QR ile yapılan ödemeler için mesafeli satış ön bilgilendirme formu.",
+};
 
 export const dynamic = "force-dynamic";
 
