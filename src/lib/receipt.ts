@@ -100,6 +100,7 @@ export function buildReceiptView(data: ReceiptData): ReceiptView {
     branch.taxOffice && branch.taxNumber
       ? `${branch.taxOffice} V.D. ${branch.taxNumber}`
       : null,
+    branch.mersisNo ? `MERSİS: ${branch.mersisNo}` : null,
   ].filter((l): l is string => Boolean(l));
 
   return {

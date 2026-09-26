@@ -60,6 +60,7 @@ model Branch {
   // /gizlilik sayfası "doldurulmamış şablon" uyarısıyla gösterilir.
   legalName    String? // resmi unvan, ör. "Örnek Gıda San. Tic. Ltd. Şti."
   legalAddress String?
+  mersisNo     String? // 16 haneli MERSİS numarası; fişin başlığında görünür
   contactEmail String?
   contactPhone String?
 

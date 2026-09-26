@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { addDays, startOfDayInIstanbul, toDateInputValue } from "@/lib/dates";
+import { vatBreakdown } from "@/lib/vat";
 
 /** Bir şubenin bir gününe ait tüm ödeme ve sipariş verisini tek yerden çeker. */
 export async function getDayData(branchId: string, ymd: string) {
@@ -8,22 +9,32 @@ export async function getDayData(branchId: string, ymd: string) {
   if (!start) return null;
   const end = addDays(start, 1);
 
-  const payments = await prisma.payment.findMany({
-    where: {
-      status: "PAID",
-      paidAt: { gte: start, lt: end },
-      order: { table: { branchId } },
-    },
-    include: { order: { include: { table: true } } },
-  });
-
-  const items = await prisma.orderItem.findMany({
-    where: {
-      createdAt: { gte: start, lt: end },
-      order: { table: { branchId } },
-    },
-    include: { product: true },
-  });
+  const [payments, items, soldItems] = await Promise.all([
+    prisma.payment.findMany({
+      where: {
+        status: "PAID",
+        paidAt: { gte: start, lt: end },
+        order: { table: { branchId } },
+      },
+      include: { order: { include: { table: true } } },
+    }),
+    prisma.orderItem.findMany({
+      where: {
+        createdAt: { gte: start, lt: end },
+        order: { table: { branchId } },
+      },
+      include: { product: true },
+    }),
+    // KDV dökümü (Z raporundaki gibi): o gün KAPANAN hesaplardaki satışlar.
+    // İptal/ikram edilen hesaplar ve silinen kalemler satışa girmez.
+    prisma.orderItem.findMany({
+      where: {
+        removedAt: null,
+        order: { status: "CLOSED", closedAt: { gte: start, lt: end }, table: { branchId } },
+      },
+      select: { unitPriceCents: true, quantity: true, vatRate: true },
+    }),
+  ]);
 
   const sum = (arr: { amountCents: number; tipCents: number }[]) =>
     arr.reduce((s, p) => s + p.amountCents, 0);
@@ -43,6 +54,8 @@ export async function getDayData(branchId: string, ymd: string) {
     onlineCents: sum(online),
     tipCents: payments.reduce((s, p) => s + p.tipCents, 0),
     totalCents: sum(payments),
+    vat: vatBreakdown(soldItems),
+    salesCents: soldItems.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0),
   };
 }
 

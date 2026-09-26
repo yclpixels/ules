@@ -31,6 +31,7 @@ function sample(): ReceiptData {
           name: "Cennet Tepesi",
           legalName: "İşletme ve İştirakler Müdürlüğü",
           legalAddress: "150 Evler Mah. Kapı No:24 Ayvalık",
+          mersisNo: "0126012255100016",
           taxOffice: "Ayvalık",
           taxNumber: "1260122551",
           contactPhone: null,
@@ -51,6 +52,7 @@ describe("buildReceiptView", () => {
   it("gerçek fişteki alanları üretir", () => {
     const v = buildReceiptView(sample());
     expect(v.headerLines).toContain("Ayvalık V.D. 1260122551");
+    expect(v.headerLines).toContain("MERSİS: 0126012255100016");
     expect(Object.fromEntries(v.meta)).toMatchObject({
       TARİH: "26/09/2026",
       SAAT: "14:43:55",

@@ -97,6 +97,46 @@ export default async function DayClosePage({
         </div>
       </div>
 
+      {/* Z raporundaki KDV dökümü: o gün kapanan hesaplardaki satış (KDV dahil) ve içindeki KDV. */}
+      <div className="bg-white border rounded-2xl p-4 max-w-md">
+        <p className="font-medium">Satış ve KDV dökümü</p>
+        <p className="text-xs text-gray-500">
+          Bu gün kapanan hesaplar · fiyatlar KDV dahil · iptal/ikram hariç
+        </p>
+        {day.vat.lines.length === 0 ? (
+          <p className="mt-3 text-sm text-gray-500">Bu gün kapanan hesap yok.</p>
+        ) : (
+          <table className="mt-3 w-full text-sm tabular-nums">
+            <thead className="text-gray-500">
+              <tr>
+                <th className="text-left font-normal pb-1">Oran</th>
+                <th className="text-right font-normal pb-1">Matrah</th>
+                <th className="text-right font-normal pb-1">KDV</th>
+                <th className="text-right font-normal pb-1">Toplam</th>
+              </tr>
+            </thead>
+            <tbody>
+              {day.vat.lines.map((l) => (
+                <tr key={l.rate} className="border-t">
+                  <td className="py-1.5">%{l.rate}</td>
+                  <td className="py-1.5 text-right">{formatTL(l.grossCents - l.vatCents)}</td>
+                  <td className="py-1.5 text-right">{formatTL(l.vatCents)}</td>
+                  <td className="py-1.5 text-right">{formatTL(l.grossCents)}</td>
+                </tr>
+              ))}
+              <tr className="border-t font-semibold">
+                <td className="py-1.5">Toplam</td>
+                <td className="py-1.5 text-right">
+                  {formatTL(day.salesCents - day.vat.totalVatCents)}
+                </td>
+                <td className="py-1.5 text-right">{formatTL(day.vat.totalVatCents)}</td>
+                <td className="py-1.5 text-right">{formatTL(day.salesCents)}</td>
+              </tr>
+            </tbody>
+          </table>
+        )}
+      </div>
+
       {date === today && openOrders.length > 0 && !existing && (
         <div className="rounded-2xl border border-[#fde68a] bg-[#fef3c7] text-[#92400e] p-4 text-sm space-y-2">
           <p className="font-semibold">

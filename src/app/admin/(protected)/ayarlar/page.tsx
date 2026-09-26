@@ -18,6 +18,7 @@ const SETTINGS_ERRORS: Record<string, string> = {
   "site-linki": "Web sitesi / Instagram adresi geçersiz — https:// ile başlayan tam bir adres girin.",
   "menu-adresi-gecersiz": "Menü adresi geçersiz — harf, rakam ve tire kullanın.",
   "menu-adresi-dolu": "Bu menü adresini başka bir işletme kullanıyor — farklı bir adres seçin.",
+  "mersis-gecersiz": "MERSİS numarası 16 haneli olmalı — değiştirilmedi.",
   "alt-uye-yok":
     "QR ile kartlı ödeme açılmadı: önce aşağıdan iyzico alt üye işyeri kaydını tamamlayın. Kayıt olmadan tahsilat şubenizin değil platformun hesabına düşerdi.",
 };
@@ -292,6 +293,18 @@ export default async function SettingsPage({
               placeholder="Örnek Gıda San. ve Tic. Ltd. Şti."
               className="w-full mt-1 border rounded-lg px-3 py-2"
             />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">MERSİS no (opsiyonel)</label>
+            <input
+              name="mersisNo"
+              inputMode="numeric"
+              defaultValue={branch.mersisNo ?? ""}
+              placeholder="0123456789000016"
+              className="w-full mt-1 border rounded-lg px-3 py-2"
+            />
+            <p className="mt-1 text-xs text-gray-500">Müşteri fişinin başlığında görünür.</p>
           </div>
 
           <div>

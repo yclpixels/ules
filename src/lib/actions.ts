@@ -465,6 +465,14 @@ export async function updateBranchSettingsAction(formData: FormData) {
   const text = (key: string, max: number) =>
     String(formData.get(key) || "").trim().slice(0, max) || null;
 
+  // MERSİS: 16 hane. Geçersizse alan değiştirilmez, uyarı gösterilir.
+  const mersisInput = String(formData.get("mersisNo") || "").replace(/\s/g, "");
+  let mersisNo: string | null | undefined = null;
+  if (mersisInput) {
+    mersisNo = /^[0-9]{16}$/.test(mersisInput) ? mersisInput : undefined;
+    if (mersisNo === undefined) errors.push("mersis-gecersiz");
+  }
+
   try {
     await prisma.branch.update({
       where: { id: session.branchId },
@@ -479,6 +487,7 @@ export async function updateBranchSettingsAction(formData: FormData) {
         alertEmail: text("alertEmail", 150),
         legalName: text("legalName", 200),
         legalAddress: text("legalAddress", 400),
+        mersisNo,
         contactEmail: text("contactEmail", 150),
         contactPhone: text("contactPhone", 40),
       },
