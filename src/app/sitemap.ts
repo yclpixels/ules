@@ -20,10 +20,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     select: { menuSlug: true },
   });
 
+  const now = new Date();
   return [
-    { url: baseUrl, changeFrequency: "weekly", priority: 1 },
+    { url: baseUrl, lastModified: now, changeFrequency: "weekly", priority: 1 },
     ...branches.map((b) => ({
       url: `${baseUrl}/menu/${b.menuSlug}`,
+      lastModified: now,
       changeFrequency: "daily" as const,
       priority: 0.8,
     })),

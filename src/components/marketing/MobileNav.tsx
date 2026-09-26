@@ -4,6 +4,7 @@ import { useState } from "react";
 
 const LINKS = [
   { href: "#ozellikler", label: "Özellikler" },
+  { href: "#paneller", label: "Paneller" },
   { href: "#guvenlik", label: "Güvenlik" },
   { href: "#nasil-calisir", label: "Nasıl Çalışır" },
   { href: "#sss", label: "SSS" },
@@ -35,7 +36,7 @@ export default function MobileNav() {
 
       {open && (
         <div
-          className="absolute left-0 right-0 top-full px-4 pb-6 pt-2 flex flex-col text-base backdrop-blur-xl"
+          className="absolute left-0 right-0 top-full px-4 pb-6 pt-2 flex flex-col text-base"
           style={{
             backgroundColor: "rgba(8,6,26,0.96)",
             borderBottom: "1px solid rgba(255,255,255,0.08)",

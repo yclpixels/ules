@@ -1,15 +1,32 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+// Tüm uygulama tek yazı sistemi kullanır (önceden kökte kullanılmayan Geist
+// indiriliyor, panel/müşteri ekranı Arial, tanıtım sitesi Archivo+Plex idi):
+// IBM Plex Sans gövde, Archivo başlık, IBM Plex Mono küçük etiketler.
+// latin-ext: Türkçe karakterler (ş, ğ, İ, ı) aynı dosyadan gelsin.
+const display = Archivo({
+  subsets: ["latin", "latin-ext"],
+  weight: ["600", "700", "800"],
+  variable: "--font-display",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const body = IBM_Plex_Sans({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin", "latin-ext"],
+  weight: ["500"],
+  variable: "--font-mono",
+  display: "swap",
+  // Sadece tanıtım sitesindeki küçük etiketlerde; diğer sayfalarda indirilmesin.
+  preload: false,
 });
 
 // Prod'da NEXT_PUBLIC_APP_URL tanımlı olmalı — OG görselleri ve sitemap/robots
@@ -37,14 +54,14 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   // Tarayıcı arayüzü (mobil adres çubuğu) açık temayla uyumlu olsun
-  themeColor: "#ffffff",
+  themeColor: "#1D126D",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="tr"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
+      className={`${display.variable} ${body.variable} ${mono.variable} h-full antialiased scroll-smooth`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
