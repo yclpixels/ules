@@ -92,6 +92,8 @@ async function getMenu(branchId: string, locale: string) {
 }
 
 type BranchInfo = {
+  /** Müşteri ekranının başlığında restoranın adı. */
+  name: string;
   tipPresets: number[];
   googleReviewUrl: string | null;
   cardPaymentEnabled: boolean;
@@ -180,6 +182,7 @@ export async function GET(
 
   const menu = await getMenu(table.branchId, locale);
   const branch: BranchInfo = {
+    name: table.branch.name,
     tipPresets: parseTipPresets(table.branch.tipPresets),
     googleReviewUrl: table.branch.googleReviewUrl,
     // Alt üye kaydı olmayan şubede buton hiç gösterilmez (bkz. isCardPaymentActive).

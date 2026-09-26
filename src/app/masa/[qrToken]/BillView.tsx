@@ -18,6 +18,7 @@ import {
 
 /** Marka gradyanı (amber → kırmızı) — tanıtım sitesiyle aynı imza renk. */
 const BRAND_GRADIENT = "linear-gradient(135deg, #1D126D, #1D126D)";
+const BRAND = "#1D126D";
 
 type BillItem = {
   id: string;
@@ -58,6 +59,7 @@ type Bill = {
   closed: boolean;
   menu: MenuGroup[];
   branch: {
+    name: string;
     tipPresets: number[];
     googleReviewUrl: string | null;
     cardPaymentEnabled: boolean;
@@ -341,61 +343,90 @@ export default function BillView({
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
-      <header className="bg-white border-b px-4 py-4 sticky top-0 z-10 space-y-3">
-        <div>
-          <h1 className="text-lg font-semibold">{bill.table.name}</h1>
-          <p className="text-sm text-gray-500">
-            {bill.items.length > 0
-              ? `Hesap: ${formatTL(bill.remainingCents)} kaldı`
-              : bill.branch.customerOrderingEnabled
-                ? "Menüden sipariş verin"
-                : "Menüyü inceleyin"}
-          </p>
-        </div>
-        {bill.branch.locales.length > 1 && (
-          <div className="flex gap-1 flex-wrap">
-            {bill.branch.locales.map((l) => (
-              <button
-                key={l.code}
-                onClick={() => chooseLang(l.code)}
-                className={`text-xs rounded-lg px-2 py-1 border transition-colors ${
-                  bill.branch.locale === l.code
-                    ? "text-white border-transparent"
-                    : "bg-white text-gray-600"
-                }`}
-                style={
-                  bill.branch.locale === l.code
-                    ? { background: BRAND_GRADIENT }
-                    : undefined
-                }
-              >
-                {l.label}
-              </button>
-            ))}
+      {/* Başlık: müşteri hangi restoranda olduğunu görsün (önceden yalnızca
+          masa adı vardı). Marka lacivertinde bant + altında sekmeler. */}
+      <header className="sticky top-0 z-20">
+        <div className="text-white px-4 pt-4 pb-3" style={{ background: BRAND }}>
+          <div className="max-w-md mx-auto flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold leading-tight truncate">
+                {bill.branch.name}
+              </h1>
+              <p className="text-sm text-white/75 mt-0.5">
+                <span className="inline-block rounded-full bg-white/15 px-2 py-0.5 text-xs font-medium text-white mr-1.5">
+                  {bill.table.name}
+                </span>
+                {bill.items.length > 0
+                  ? `Kalan hesap ${formatTL(bill.remainingCents)}`
+                  : bill.branch.customerOrderingEnabled
+                    ? "Menüden sipariş verin"
+                    : "Menüyü inceleyin"}
+              </p>
+            </div>
+            {bill.branch.locales.length > 1 && (
+              <div className="flex gap-1 shrink-0">
+                {bill.branch.locales.map((l) => (
+                  <button
+                    key={l.code}
+                    onClick={() => chooseLang(l.code)}
+                    aria-pressed={bill.branch.locale === l.code}
+                    className={`h-9 min-w-9 rounded-full px-2.5 text-xs font-semibold transition-colors ${
+                      bill.branch.locale === l.code
+                        ? "bg-white text-[#1D126D]"
+                        : "bg-white/10 text-white/80"
+                    }`}
+                  >
+                    {l.code.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-        <div className="flex rounded-lg overflow-hidden border p-1 gap-1 bg-gray-100">
-          <button
-            className={`flex-1 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${
-              tab === "menu" ? "text-white shadow-sm" : "text-gray-600"
-            }`}
-            style={tab === "menu" ? { background: BRAND_GRADIENT } : undefined}
-            onClick={() => setTab("menu")}
-          >
-            <CartIcon className="w-4 h-4" />
-            Menü
-          </button>
-          <button
-            className={`flex-1 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${
-              tab === "bill" ? "text-white shadow-sm" : "text-gray-600"
-            }`}
-            style={tab === "bill" ? { background: BRAND_GRADIENT } : undefined}
-            onClick={() => setTab("bill")}
-          >
-            <ReceiptIcon className="w-4 h-4" />
-            Hesap{bill.items.length > 0 ? ` (${bill.items.length})` : ""}
-          </button>
         </div>
+        <div className="bg-white border-b px-4 py-2">
+          <div className="max-w-md mx-auto flex rounded-xl p-1 gap-1 bg-gray-100">
+            <button
+              className={`flex-1 h-11 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                tab === "menu" ? "text-white shadow-sm" : "text-gray-600"
+              }`}
+              style={tab === "menu" ? { background: BRAND } : undefined}
+              onClick={() => setTab("menu")}
+            >
+              <CartIcon className="w-4 h-4" />
+              Menü
+            </button>
+            <button
+              className={`flex-1 h-11 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                tab === "bill" ? "text-white shadow-sm" : "text-gray-600"
+              }`}
+              style={tab === "bill" ? { background: BRAND } : undefined}
+              onClick={() => setTab("bill")}
+            >
+              <ReceiptIcon className="w-4 h-4" />
+              Hesap{bill.items.length > 0 ? ` (${bill.items.length})` : ""}
+            </button>
+          </div>
+        </div>
+        {/* Kategori şeridi: uzun menüde bölüme atlamak için (yalnızca menü sekmesinde). */}
+        {tab === "menu" && bill.menu.length > 1 && (
+          <nav className="bg-white border-b">
+            <div className="max-w-md mx-auto flex gap-2 overflow-x-auto px-4 py-2">
+              {bill.menu.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() =>
+                    document
+                      .getElementById(`kategori-${g.id}`)
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                  className="shrink-0 h-9 rounded-full border px-3.5 text-sm font-medium text-gray-700 bg-white"
+                >
+                  {g.name}
+                </button>
+              ))}
+            </div>
+          </nav>
+        )}
       </header>
 
       <main className="px-4 py-4 space-y-4 max-w-md mx-auto">
@@ -423,8 +454,9 @@ export default function BillView({
                 </p>
               )}
               {bill.menu.map((group) => (
-                <div key={group.id}>
-                  <h2 className="text-sm font-semibold text-gray-500 mb-2">
+                // scroll-mt: yapışkan başlık + kategori şeridi bölüm başlığını örtmesin
+                <div key={group.id} id={`kategori-${group.id}`} className="scroll-mt-52">
+                  <h2 className="text-base font-bold text-gray-900 mb-2">
                     {group.name}
                   </h2>
                   <div className="bg-white rounded-2xl border divide-y overflow-hidden">
@@ -451,19 +483,28 @@ export default function BillView({
                               Alerjen: {p.allergens}
                             </p>
                           )}
-                          <p className="text-sm font-medium mt-1">
+                          <p className="text-base font-bold mt-1" style={{ color: BRAND }}>
                             {formatTL(p.priceCents)}
                           </p>
                         </div>
-                        {bill.branch.customerOrderingEnabled && (
-                          <button
-                            onClick={() => addToCart(p.id)}
-                            className="text-white text-sm rounded-lg px-3 py-1.5 shrink-0 self-center"
-                            style={{ background: BRAND_GRADIENT }}
-                          >
-                            Ekle
-                          </button>
-                        )}
+                        {bill.branch.customerOrderingEnabled && (() => {
+                          const inCart = cart.find((l) => l.productId === p.id)?.quantity ?? 0;
+                          return (
+                            <button
+                              onClick={() => addToCart(p.id)}
+                              aria-label={`${p.name} sepete ekle`}
+                              className="relative w-11 h-11 shrink-0 self-center rounded-full text-white text-2xl leading-none flex items-center justify-center shadow-md active:scale-95 transition-transform"
+                              style={{ background: BRAND }}
+                            >
+                              +
+                              {inCart > 0 && (
+                                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-[#FFC857] text-[#1D126D] text-xs font-bold flex items-center justify-center">
+                                  {inCart}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
@@ -888,7 +929,10 @@ export default function BillView({
 
       {/* Sepet çubuğu: ürün seçildiği anda görünür, gönderilene kadar kalır */}
       {cartCount > 0 && (
-        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t p-3">
+        <div
+          className="fixed bottom-0 inset-x-0 z-40 bg-white border-t p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        >
           <div className="max-w-md mx-auto space-y-3">
             {cartOpen && (
               <div className="space-y-2 max-h-64 overflow-auto">
@@ -903,7 +947,7 @@ export default function BillView({
                     <button
                       onClick={() => changeCartQty(l.productId, -1)}
                       aria-label="Azalt"
-                      className="w-7 h-7 border rounded-lg"
+                      className="w-10 h-10 border rounded-xl text-lg"
                     >
                       −
                     </button>
@@ -911,7 +955,7 @@ export default function BillView({
                     <button
                       onClick={() => changeCartQty(l.productId, 1)}
                       aria-label="Artır"
-                      className="w-7 h-7 border rounded-lg"
+                      className="w-10 h-10 border rounded-xl text-lg"
                     >
                       +
                     </button>
@@ -934,7 +978,7 @@ export default function BillView({
             <div className="flex gap-2">
               <button
                 onClick={() => setCartOpen((v) => !v)}
-                className="flex-1 border rounded-lg py-3 text-sm font-medium flex items-center justify-center gap-1.5"
+                className="flex-1 border rounded-xl h-12 text-sm font-medium flex items-center justify-center gap-1.5"
               >
                 <CartIcon className="w-4 h-4" />
                 {cartOpen ? "Gizle" : `Sepet (${cartCount}) · ${formatTL(cartTotalCents)}`}
@@ -942,7 +986,7 @@ export default function BillView({
               <button
                 onClick={sendCart}
                 disabled={sending}
-                className="flex-1 text-white rounded-lg py-3 font-medium shadow-lg shadow-amber-600/20 disabled:opacity-50"
+                className="flex-1 text-white rounded-xl h-12 font-semibold shadow-lg disabled:opacity-50"
                 style={{ background: BRAND_GRADIENT }}
               >
                 {sending ? "Gönderiliyor..." : "Siparişi Gönder"}
@@ -957,7 +1001,8 @@ export default function BillView({
           <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-auto p-4 relative">
             <button
               onClick={() => setCheckoutFormContent(null)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-black text-sm"
+              aria-label="Ödeme penceresini kapat"
+              className="absolute top-2 right-2 h-11 px-4 rounded-full text-gray-500 hover:bg-gray-100 text-sm font-medium"
             >
               Kapat
             </button>
