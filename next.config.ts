@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   // klasörü üretir (bkz. Dockerfile). Hangi barındırma sağlayıcısını
   // seçerseniz seçin aynı image çalışır — tek bir platforma kilitlenmez.
   output: "standalone",
+  // Sürüm uyuşmazlığı koruması: sayfa eski sürümden açıkken yeni sürüm
+  // yayına girerse, eski form/düğme kimliklerini sunucu tanımıyor ve genel
+  // hata ekranı çıkıyordu. Kimlik değişince Next.js hata yerine sayfayı
+  // kendisi yeniler. Railway commit kimliğini build'e verir (bkz. Dockerfile);
+  // yerelde tanımsız kalır ve bu koruma devre dışıdır.
+  deploymentId: process.env.RAILWAY_GIT_COMMIT_SHA || undefined,
   // iyzipay'in dinamik require ettiği kaynak dosyalar Next.js'in statik
   // dosya izlemesi (file tracing) tarafından bazen atlanabiliyor; standalone
   // build'e paketin tamamını dahil ederek bunu garanti altına alıyoruz.

@@ -30,6 +30,10 @@ ENV SESSION_SECRET="build-time-placeholder-not-used-at-runtime"
 # ayrıca runtime'da APP_URL'i okur (bkz. src/lib/baseUrl.ts).
 ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+# Railway her derlemede commit kimliğini verir; next.config.ts bunu
+# deploymentId yapar (sürüm uyuşmazlığında hata yerine sayfa yenilenir).
+ARG RAILWAY_GIT_COMMIT_SHA
+ENV RAILWAY_GIT_COMMIT_SHA=$RAILWAY_GIT_COMMIT_SHA
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate

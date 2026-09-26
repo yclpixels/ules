@@ -1,23 +1,43 @@
 "use client";
 
+import { useEffect } from "react";
 import Logo from "@/components/Logo";
 
-export default function GlobalError({ reset }: { error: Error; reset: () => void }) {
+/**
+ * Genel hata ekranı. "Tekrar dene" (reset) yerine sayfayı tamamen yeniler:
+ * en sık sebep, sayfa eski sürümden açıkken yeni sürüm yayına girmesi
+ * (eski form/düğme kimliklerini sunucu tanımıyor) — bu ancak tam yenilemeyle
+ * düzelir. Hata kodu (digest) Railway günlüğündeki satırla eşleşir; kullanıcı
+ * bunu söylerse asıl hata bulunabilir.
+ */
+export default function GlobalError({
+  error,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    console.error("[ui] hata:", error);
+  }, [error]);
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="text-center space-y-3">
+      <div className="text-center space-y-3 max-w-sm">
         <Logo className="w-10 h-10 mx-auto" />
         <p className="text-lg font-semibold">Bir şeyler ters gitti</p>
         <p className="text-sm text-gray-500">
-          Lütfen tekrar deneyin; sorun sürerse personele haber verin.
+          Sayfayı yenileyip tekrar deneyin; sorun sürerse personele haber verin.
         </p>
         <button
-          onClick={reset}
-          className="text-white rounded-lg px-4 py-2 text-sm font-medium shadow-md shadow-amber-600/20"
-          style={{ background: "linear-gradient(135deg, #1D126D, #1D126D)" }}
+          onClick={() => window.location.reload()}
+          className="h-11 text-white rounded-lg px-5 text-sm font-medium"
+          style={{ background: "#1D126D" }}
         >
-          Tekrar dene
+          Sayfayı yenile
         </button>
+        {error.digest && (
+          <p className="text-xs text-gray-400">Hata kodu: {error.digest}</p>
+        )}
       </div>
     </div>
   );
