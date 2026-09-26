@@ -367,7 +367,7 @@ export async function resolvePendingPayment(
  * formla ödeme yapamaz. Biraz pay bırakıyoruz ki formu doldurmakta olan
  * müşterinin ödemesi yanlışlıkla başarısız sayılmasın.
  */
-const PENDING_PAYMENT_TTL_MS = 35 * 60 * 1000;
+export const PENDING_PAYMENT_TTL_MS = 35 * 60 * 1000;
 
 /**
  * Askıda kalmış kartlı ödemeleri sonuçlandırır. Müşteri iyzico formundayken

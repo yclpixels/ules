@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { getMenuData } from "@/lib/menuData";
 import { formatTL } from "@/lib/money";
 import { getBaseUrl } from "@/lib/baseUrl";
 import EmbedAutoHeight from "@/components/EmbedAutoHeight";
@@ -26,7 +28,8 @@ const BRAND = "#1D126D";
  * Uygulamanın geri kalanı arama motorlarına kapalı (QR linkleri özel), ama
  * burası bilerek açık: işletmenin menüsünün Google'da çıkması istenen şey.
  */
-async function getBranch(slug: string) {
+// cache(): başlık (generateMetadata) ve sayfa aynı istekte tek sorgu paylaşır.
+const getBranch = cache(async (slug: string) => {
   return prisma.branch.findUnique({
     where: { menuSlug: slug },
     select: {
@@ -37,7 +40,7 @@ async function getBranch(slug: string) {
       legalName: true,
     },
   });
-}
+});
 
 export async function generateMetadata({
   params,
@@ -72,28 +75,10 @@ export default async function PublicMenuPage({
   const available = parseLocales(branch.supportedLocales);
   const locale = resolveLocale((await searchParams).lang, available);
 
-  const categories = await prisma.category.findMany({
-    where: { branchId: branch.id },
-    orderBy: { sortOrder: "asc" },
-    include: {
-      translations: true,
-      products: {
-        where: { isAvailable: true },
-        orderBy: { name: "asc" },
-        include: { translations: true },
-      },
-    },
-  });
-
-  const uncategorized = await prisma.product.findMany({
-    where: { isAvailable: true, categoryId: null, branchId: branch.id },
-    orderBy: { name: "asc" },
-    include: { translations: true },
-  });
+  const { categories, uncategorized } = await getMenuData(branch.id);
 
   const groups = [
     ...categories
-      .filter((c) => c.products.length > 0)
       .map((c) => ({
         id: c.id,
         name: pickTranslation(c.translations, locale)?.name || c.name,

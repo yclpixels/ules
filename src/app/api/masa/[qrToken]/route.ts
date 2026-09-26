@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  getOpenOrder,
-  getOrderBill,
+  PENDING_PAYMENT_TTL_MS,
   settleStalePendingPayments,
+  summarizeBill,
 } from "@/lib/orders";
+import { getMenuData, type MenuDataProduct } from "@/lib/menuData";
 import { isCardPaymentActive } from "@/lib/payments";
 import {
   LOCALE_LABELS,
@@ -13,20 +14,7 @@ import {
   resolveLocale,
 } from "@/lib/locales";
 
-type ProductWithTranslations = {
-  id: string;
-  name: string;
-  priceCents: number;
-  description: string | null;
-  allergens: string | null;
-  imageUrl: string | null;
-  translations: {
-    locale: string;
-    name: string;
-    description: string | null;
-    allergens: string | null;
-  }[];
-};
+type ProductWithTranslations = MenuDataProduct;
 
 /**
  * Ürünü istenen dilde döner. Çeviri yoksa temel (ana dil) alanlara düşer —
@@ -53,32 +41,13 @@ const UNCATEGORIZED_LABEL: Record<string, string> = {
 };
 
 async function getMenu(branchId: string, locale: string) {
-  const categories = await prisma.category.findMany({
-    where: { branchId },
-    orderBy: { sortOrder: "asc" },
-    include: {
-      translations: true,
-      products: {
-        where: { isAvailable: true },
-        orderBy: { name: "asc" },
-        include: { translations: true },
-      },
-    },
-  });
+  const { categories, uncategorized } = await getMenuData(branchId);
 
-  const uncategorized = await prisma.product.findMany({
-    where: { isAvailable: true, categoryId: null, branchId },
-    orderBy: { name: "asc" },
-    include: { translations: true },
-  });
-
-  const groups = categories
-    .filter((c) => c.products.length > 0)
-    .map((c) => ({
-      id: c.id,
-      name: pickTranslation(c.translations, locale)?.name || c.name,
-      products: c.products.map((p) => toMenuProduct(p, locale)),
-    }));
+  const groups = categories.map((c) => ({
+    id: c.id,
+    name: pickTranslation(c.translations, locale)?.name || c.name,
+    products: c.products.map((p) => toMenuProduct(p, locale)),
+  }));
 
   if (uncategorized.length > 0) {
     groups.push({
@@ -111,29 +80,47 @@ function parseTipPresets(raw: string): number[] {
     .filter((n) => Number.isInteger(n) && n > 0 && n <= 100);
 }
 
-async function buildBillResponse(
+/** Hesap ekranı için sipariş: kalemler + tüm ödemeler tek sorguda (toplamlar bellekte). */
+const billInclude = {
+  items: {
+    where: { removedAt: null },
+    include: { product: { select: { name: true } } },
+    orderBy: { createdAt: "asc" },
+  },
+  payments: { orderBy: { createdAt: "desc" } },
+} as const;
+
+/**
+ * Masanın gösterilecek hesabı: açık hesap varsa o, yoksa en son kapanan
+ * (fiş linkine erişilsin diye, yeni sipariş başlayana kadar). Tek sorgu:
+ * açık hesabın closedAt'i boş olduğu için "boşlar önce" sıralamasında başa gelir.
+ */
+function findBillOrder(tableId: string) {
+  return prisma.order.findFirst({
+    where: { tableId, status: { in: ["OPEN", "CLOSED"] } },
+    orderBy: { closedAt: { sort: "desc", nulls: "first" } },
+    include: billInclude,
+  });
+}
+
+type BillOrder = NonNullable<Awaited<ReturnType<typeof findBillOrder>>>;
+
+function buildBillResponse(
   table: { id: string; name: string },
-  orderId: string,
+  order: BillOrder,
   menu: Awaited<ReturnType<typeof getMenu>>,
   branch: BranchInfo
 ) {
-  const { totalCents, paidCents, tipCents, remainingCents } =
-    await getOrderBill(orderId);
-
-  const items = await prisma.orderItem.findMany({
-    where: { orderId, removedAt: null },
-    include: { product: true },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const payments = await prisma.payment.findMany({
-    where: { orderId, status: "PAID" },
-    orderBy: { createdAt: "desc" },
-  });
+  const { totalCents, paidCents, tipCents, remainingCents } = summarizeBill(
+    order.items,
+    order.payments
+  );
+  const items = order.items;
+  const payments = order.payments.filter((p) => p.status === "PAID");
 
   return {
     table,
-    orderId,
+    orderId: order.id,
     items: items.map((i) => ({
       id: i.id,
       name: i.product.name,
@@ -161,6 +148,10 @@ async function buildBillResponse(
   };
 }
 
+/**
+ * Müşteri ekranı bunu 4 sn'de bir çağırır — hız burada önemli. Veritabanına
+ * iki tur: (1) masa + şube, (2) menü (önbellekten) ve hesap aynı anda.
+ */
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ qrToken: string }> }
@@ -180,7 +171,23 @@ export async function GET(
     available
   );
 
-  const menu = await getMenu(table.branchId, locale);
+  const [menu, found] = await Promise.all([
+    getMenu(table.branchId, locale),
+    findBillOrder(table.id),
+  ]);
+  let order = found;
+
+  // Yarım kalmış bir kartlı ödeme kalemleri kilitliyorsa serbest bırak
+  // (nadir: yalnızca süresi geçmiş askıda ödeme varsa ek sorgu atılır).
+  const staleBefore = Date.now() - PENDING_PAYMENT_TTL_MS;
+  if (
+    order?.status === "OPEN" &&
+    order.payments.some((p) => p.status === "PENDING" && p.createdAt.getTime() < staleBefore)
+  ) {
+    await settleStalePendingPayments({ orderId: order.id });
+    order = await findBillOrder(table.id);
+  }
+
   const branch: BranchInfo = {
     name: table.branch.name,
     tipPresets: parseTipPresets(table.branch.tipPresets),
@@ -196,26 +203,9 @@ export async function GET(
     websiteUrl: table.branch.websiteUrl,
   };
   const tableInfo = { id: table.id, name: table.name };
-  const order = await getOpenOrder(table.id);
 
   if (order) {
-    // Yarım kalmış bir kartlı ödeme kalemleri kilitliyorsa serbest bırak.
-    await settleStalePendingPayments({ orderId: order.id });
-    return NextResponse.json(
-      await buildBillResponse(tableInfo, order.id, menu, branch)
-    );
-  }
-
-  // Açık sipariş yok — hesap yeni kapandıysa fiş linkine erişebilsin diye
-  // en son kapanan siparişi göster (yeni sipariş başlayana kadar).
-  const lastClosed = await prisma.order.findFirst({
-    where: { tableId: table.id, status: "CLOSED" },
-    orderBy: { closedAt: "desc" },
-  });
-  if (lastClosed) {
-    return NextResponse.json(
-      await buildBillResponse(tableInfo, lastClosed.id, menu, branch)
-    );
+    return NextResponse.json(buildBillResponse(tableInfo, order, menu, branch));
   }
 
   return NextResponse.json({

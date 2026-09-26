@@ -159,12 +159,22 @@ body {
     from { opacity: 0; transform: translateY(18px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  /* Halka box-shadow ile değil, ::after'ın büyüyüp solmasıyla: transform ve
+     opacity ekran kartında hesaplanır, sayfa her karede yeniden boyanmaz. */
   @keyframes ules-pulse-ring {
-    0% { box-shadow: 0 0 0 0 rgba(255, 200, 87, 0.55); }
-    100% { box-shadow: 0 0 0 10px rgba(255, 200, 87, 0); }
+    0% { transform: scale(1); opacity: 0.55; }
+    100% { transform: scale(3.5); opacity: 0; }
   }
   .ules-float { animation: ules-float 6s ease-in-out infinite; }
   .ules-float-slow { animation: ules-float 8s ease-in-out infinite; }
   .ules-rise { animation: ules-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
-  .ules-pulse { animation: ules-pulse-ring 1.8s ease-out infinite; }
+  .ules-pulse { position: relative; }
+  .ules-pulse::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    animation: ules-pulse-ring 1.8s ease-out infinite;
+  }
 }

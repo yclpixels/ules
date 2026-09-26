@@ -12,7 +12,10 @@
  * görseli önbellekten göstermeye devam ediyordu. Logo her değiştiğinde bu
  * sürüm artırılmalı.
  */
-const LOGO_SRC = "/logo.png?v=2";
+// Sayfalarda küçük kopya (192 px, ~6 KB): logo en fazla 56 px gösteriliyor;
+// 400 px'lik /logo.png (148 KB) yalnızca paylaşım görselleri (OG) için.
+// logo.png değişirse logo-sm.png de yeniden üretilmeli.
+const LOGO_SRC = "/logo-sm.png?v=2";
 
 export default function Logo({
   className,
@@ -27,6 +30,7 @@ export default function Logo({
       src={LOGO_SRC}
       alt="Üleş"
       className={className}
+      decoding="async"
       style={{
         objectFit: "contain",
         ...(tone === "white" ? { filter: "brightness(0) invert(1)" } : {}),

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
@@ -12,6 +12,7 @@ import {
 } from "@/lib/orders";
 import { formatTL, parseTLInputToCents } from "@/lib/money";
 import { parseVatRate } from "@/lib/vat";
+import { menuTag } from "@/lib/menuData";
 import { parseMenuImport, sameName, type ImportError } from "@/lib/menuImport";
 import {
   verifyAdminSession,
@@ -33,6 +34,12 @@ import { createSubMerchant } from "@/lib/payments/iyzico";
 import { needsSubMerchant } from "@/lib/payments";
 import { MIN_PASSWORD_LENGTH } from "@/lib/passwordPolicy";
 import { encryptField, hasFieldEncryptionKey } from "@/lib/fieldCrypto";
+
+/** Ürün/kategori/çeviri değişti: panel listesi + müşteri ekranının menü önbelleği (anında). */
+function menuChanged(branchId: string) {
+  revalidatePath("/admin/urunler");
+  revalidateTag(menuTag(branchId), { expire: 0 });
+}
 
 export async function addTableAction(formData: FormData) {
   const session = await verifyManagerSession();
@@ -118,7 +125,7 @@ export async function addProductAction(formData: FormData) {
       ...extras,
     },
   });
-  revalidatePath("/admin/urunler");
+  menuChanged(session.branchId);
 }
 
 export async function toggleProductAvailabilityAction(formData: FormData) {
@@ -130,7 +137,7 @@ export async function toggleProductAvailabilityAction(formData: FormData) {
     where: { id, branchId: session.branchId },
     data: { isAvailable: !isAvailable },
   });
-  revalidatePath("/admin/urunler");
+  menuChanged(session.branchId);
 }
 
 export async function updateProductAction(formData: FormData) {
@@ -153,7 +160,7 @@ export async function updateProductAction(formData: FormData) {
     where: { id, branchId: session.branchId },
     data: { name, priceCents, categoryId: category?.id ?? null, ...extras },
   });
-  revalidatePath("/admin/urunler");
+  menuChanged(session.branchId);
 }
 
 export async function deleteProductAction(formData: FormData) {
@@ -168,7 +175,7 @@ export async function deleteProductAction(formData: FormData) {
   if (!product || product._count.orderItems > 0) return; // sipariş geçmişi olan ürün silinemez
 
   await prisma.product.delete({ where: { id } });
-  revalidatePath("/admin/urunler");
+  menuChanged(session.branchId);
 }
 
 export async function addCategoryAction(formData: FormData) {
@@ -185,7 +192,7 @@ export async function addCategoryAction(formData: FormData) {
   await prisma.category.create({
     data: { name, branchId: session.branchId, sortOrder: (last?.sortOrder ?? 0) + 1 },
   });
-  revalidatePath("/admin/urunler");
+  menuChanged(session.branchId);
 }
 
 export async function updateCategoryAction(formData: FormData) {
@@ -199,7 +206,7 @@ export async function updateCategoryAction(formData: FormData) {
     where: { id, branchId: session.branchId },
     data: { name, sortOrder },
   });
-  revalidatePath("/admin/urunler");
+  menuChanged(session.branchId);
 }
 
 export async function deleteCategoryAction(formData: FormData) {
@@ -218,7 +225,7 @@ export async function deleteCategoryAction(formData: FormData) {
     data: { categoryId: null },
   });
   await prisma.category.delete({ where: { id } });
-  revalidatePath("/admin/urunler");
+  menuChanged(session.branchId);
 }
 
 export async function addOrderItemAction(formData: FormData) {
@@ -670,7 +677,7 @@ export async function saveTranslationAction(formData: FormData) {
         update: { name },
       });
     }
-    revalidatePath("/admin/urunler");
+    menuChanged(session.branchId);
     return;
   }
 
@@ -696,7 +703,7 @@ export async function saveTranslationAction(formData: FormData) {
       update: { name, description, allergens },
     });
   }
-  revalidatePath("/admin/urunler");
+  menuChanged(session.branchId);
 }
 
 export type CreateBranchState = { error?: string; success?: string } | undefined;
@@ -1169,6 +1176,6 @@ export async function importProductsAction(
     actorId: session.staffId,
     detail: `Excel'den ürün: ${toCreate.length} eklendi, ${toUpdate.length} güncellendi`,
   });
-  revalidatePath("/admin/urunler");
+  menuChanged(session.branchId);
   return { added: toCreate.length, updated: toUpdate.length, errors };
 }
