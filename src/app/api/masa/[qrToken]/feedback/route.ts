@@ -53,10 +53,22 @@ export async function POST(
     );
   }
 
-  const order = await prisma.order.findFirst({
-    where: { id: orderId, tableId: table.id },
-    include: { _count: { select: { feedbacks: true } } },
+  // Yalnızca masanın EN SON hesabı değerlendirilebilir. Önceden masanın
+  // herhangi bir eski hesabı kabul ediliyordu: QR'ı okutan biri (ya da
+  // tahmin edilen bir sipariş kimliği) geçmiş hesaplara puan yağdırıp
+  // değerlendirme ortalamasını ve düşük puan uyarılarını bozabiliyordu.
+  const latest = await prisma.order.findFirst({
+    where: { tableId: table.id, status: { not: "CANCELLED" } },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
   });
+  const order =
+    latest?.id === orderId
+      ? await prisma.order.findUnique({
+          where: { id: orderId },
+          include: { _count: { select: { feedbacks: true } } },
+        })
+      : null;
   if (!order) {
     return NextResponse.json({ error: "Sipariş bulunamadı" }, { status: 404 });
   }

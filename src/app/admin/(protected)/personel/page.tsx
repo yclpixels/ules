@@ -28,6 +28,10 @@ export default async function PersonelPage({
 
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold">Personel</h1>
+        <p className="text-sm text-gray-500">Hesap ekleme, şifre sıfırlama ve pasifleştirme</p>
+      </div>
       {hata === "kullanici-mevcut" && (
         <p className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-4 py-3 text-sm">
           Bu kullanıcı adı zaten kullanılıyor — başka bir tane deneyin.

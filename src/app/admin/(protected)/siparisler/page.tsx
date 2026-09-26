@@ -79,6 +79,10 @@ export default async function SiparislerPage({
 
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold">Siparişler</h1>
+        <p className="text-sm text-gray-500">Günlük sipariş ve tahsilat özeti</p>
+      </div>
       <div className="bg-white border rounded-2xl p-4 flex items-center gap-3 flex-wrap">
         <Link
           href={`/admin/siparisler?date=${toDateInputValue(

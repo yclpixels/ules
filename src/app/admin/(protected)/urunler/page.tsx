@@ -45,6 +45,10 @@ export default async function UrunlerPage() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold">Ürünler</h1>
+        <p className="text-sm text-gray-500">Kategoriler, ürünler, görseller ve çeviriler</p>
+      </div>
       <div className="bg-white border rounded-2xl p-4 space-y-3">
         <form
           action={addCategoryAction}

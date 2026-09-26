@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { randomBytes, scryptSync } from "crypto";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { slugify } from "../src/lib/slug";
 
 const prisma = new PrismaClient();
 
@@ -10,9 +11,56 @@ function hashPassword(password: string): string {
   return `${salt}:${derived}`;
 }
 
+/**
+ * İlk müdürün şifresi. Yerel geliştirme veritabanında verilmezse bilinen bir
+ * geliştirme şifresi kullanılır; başka her yerde (Railway vb.) SEED_MANAGER_PASSWORD
+ * zorunlu. Eskiden her ortamda koda açıkça yazılı "degistir123"e düşüyordu.
+ * Seed kendi bilgisayarınızdan canlı veritabanına karşı da çalıştırılabildiği
+ * için NODE_ENV'e değil veritabanı adresine bakılır.
+ */
+function managerPassword(): string {
+  const fromEnv = process.env.SEED_MANAGER_PASSWORD;
+  if (fromEnv) {
+    if (fromEnv.length < 8) {
+      throw new Error("SEED_MANAGER_PASSWORD en az 8 karakter olmalı");
+    }
+    return fromEnv;
+  }
+  const host = (() => {
+    try {
+      return new URL(process.env.DATABASE_URL ?? "").hostname;
+    } catch {
+      return "";
+    }
+  })();
+  if (["localhost", "127.0.0.1", "::1"].includes(host)) {
+    return "gelistirme123";
+  }
+  throw new Error(
+    `SEED_MANAGER_PASSWORD tanımlı değil. Yerel olmayan veritabanında (${host || "bilinmiyor"}) varsayılan şifreyle hesap açılmaz.`
+  );
+}
+
 async function main() {
   const branchName = process.env.SEED_BRANCH_NAME || "Ana Şube";
-  const menuSlug = process.env.SEED_MENU_SLUG || "ana-sube-deneme";
+  const managerUsername = process.env.SEED_MANAGER_USERNAME || "yonetici";
+  const existingManager = await prisma.staffUser.findUnique({
+    where: { username: managerUsername },
+    select: { id: true },
+  });
+  // Şifre kuralı, hiçbir şey yazılmadan önce kontrol edilir: aksi halde
+  // şifre hatasında müdürsüz, yarım bir şube kalırdı.
+  const newManagerPassword = existingManager ? null : managerPassword();
+  // Menü adresi şube adından türetilir ("Kadıköy Şubesi" → kadikoy-subesi).
+  // Eskiden her şubeye aynı sabit adres veriliyordu; ikinci şube seed'i
+  // unique kısıtına takılıp hiç açılamıyordu. Adres doluysa boş bırakılır,
+  // şube panelden kendi adresini seçer.
+  const wantedSlug = process.env.SEED_MENU_SLUG || slugify(branchName);
+  const slugTaken = await prisma.branch.findUnique({
+    where: { menuSlug: wantedSlug },
+    select: { id: true },
+  });
+  const menuSlug = slugTaken ? null : wantedSlug;
   let branch = await prisma.branch.findFirst({ where: { name: branchName } });
   if (!branch) {
     branch = await prisma.branch.create({
@@ -21,7 +69,7 @@ async function main() {
     console.log(`Şube oluşturuldu: "${branch.name}"`);
   } else {
     console.log(`Şube zaten var: "${branch.name}"`);
-    if (!branch.menuSlug) {
+    if (!branch.menuSlug && menuSlug) {
       // Menü sayfası (/menu/<slug>) ve pazarlama sitesindeki canlı önizleme
       // iframe'i menuSlug olmadan 404 verir — eski seed'lerde bu alan
       // ayarlanmamıştı.
@@ -33,22 +81,23 @@ async function main() {
     }
   }
 
-  const managerUsername = process.env.SEED_MANAGER_USERNAME || "yonetici";
-  const managerPassword = process.env.SEED_MANAGER_PASSWORD || "degistir123";
-  await prisma.staffUser.upsert({
-    where: { username: managerUsername },
-    update: {},
-    create: {
-      name: "Yönetici",
-      username: managerUsername,
-      passwordHash: hashPassword(managerPassword),
-      role: "MANAGER",
-      branchId: branch.id,
-    },
-  });
-  console.log(
-    `Müdür hesabı hazır → kullanıcı adı: "${managerUsername}", şifre: "${managerPassword}" (giriş sonrası değiştirin)`
-  );
+  if (existingManager) {
+    // Mevcut hesabın şifresine dokunulmaz; eskiden burada yeni şifre
+    // yazdırılıyordu ama hesap eski şifresiyle kalıyordu (yanıltıcı).
+    console.log(`Müdür hesabı zaten var: "${managerUsername}" (şifresi değiştirilmedi)`);
+  } else {
+    await prisma.staffUser.create({
+      data: {
+        name: "Yönetici",
+        username: managerUsername,
+        passwordHash: hashPassword(newManagerPassword!),
+        role: "MANAGER",
+        branchId: branch.id,
+      },
+    });
+    // Şifre günlüğe yazılmaz: Railway/CI günlükleri kalıcı ve paylaşılabilir.
+    console.log(`Müdür hesabı oluşturuldu: "${managerUsername}"`);
+  }
 
   const existingCategoryCount = await prisma.category.count({
     where: { branchId: branch.id },

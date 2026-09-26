@@ -1,5 +1,3 @@
-import "server-only";
-
 /**
  * Herkese açık menü adresi için slug üretimi: /menu/<slug>
  * Türkçe karakterler ASCII'ye çevrilir ki adres her yerde sorunsuz paylaşılsın.
