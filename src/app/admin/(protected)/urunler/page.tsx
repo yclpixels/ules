@@ -14,6 +14,7 @@ import { LOCALE_LABELS, parseLocales, pickTranslation } from "@/lib/locales";
 import { verifyManagerSession } from "@/lib/dal";
 import ConfirmButton from "@/components/ConfirmButton";
 import ImagePicker from "@/components/ImagePicker";
+import { VAT_RATES } from "@/lib/vat";
 
 const BRAND_GRADIENT = "linear-gradient(135deg, #1D126D, #1D126D)";
 
@@ -139,6 +140,18 @@ export default async function UrunlerPage() {
             placeholder="45.00"
             className="w-full mt-1 border rounded-lg px-3 py-2"
           />
+        </div>
+        <div className="w-28">
+          <label className="text-sm text-gray-500">KDV</label>
+          <select
+            name="vatRate"
+            defaultValue="10"
+            className="w-full mt-1 border rounded-lg px-3 py-2"
+          >
+            {VAT_RATES.map((r) => (
+              <option key={r} value={r}>%{r}</option>
+            ))}
+          </select>
         </div>
         <div className="min-w-[160px]">
           <label className="text-sm text-gray-500">Kategori</label>
@@ -305,6 +318,16 @@ export default async function UrunlerPage() {
                         defaultValue={(p.priceCents / 100).toFixed(2)}
                         className="w-full border rounded-lg px-2 py-1 text-sm"
                       />
+                      <select
+                        name="vatRate"
+                        aria-label="KDV oranı"
+                        defaultValue={String(p.vatRate)}
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                      >
+                        {VAT_RATES.map((r) => (
+                          <option key={r} value={r}>KDV %{r}</option>
+                        ))}
+                      </select>
                       <select
                         name="categoryId"
                         defaultValue={p.categoryId ?? ""}

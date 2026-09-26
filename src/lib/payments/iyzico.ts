@@ -180,6 +180,26 @@ export function isVerifiedCheckoutResult(
   return matches;
 }
 
+export type CardInfo = {
+  cardLast4: string | null;
+  cardAssociation: string | null;
+  cardFamily: string | null;
+};
+
+/**
+ * Fişe basılacak kart bilgisi. iyzico yalnızca son 4 haneyi ve kart
+ * markasını döner; beklenmeyen biçimdeki değerler hiç kaydedilmez.
+ */
+export function cardInfoFromResult(result: Record<string, unknown>): CardInfo {
+  const str = (v: unknown, re: RegExp) =>
+    typeof v === "string" && re.test(v) ? v : null;
+  return {
+    cardLast4: str(result.lastFourDigits, /^\d{4}$/),
+    cardAssociation: str(result.cardAssociation, /^[A-Z_]{2,30}$/),
+    cardFamily: str(result.cardFamily, /^[\p{L}\p{N} .&-]{1,40}$/u),
+  };
+}
+
 export type SubMerchantInput = {
   branchId: string;
   subMerchantType: "PERSONAL" | "PRIVATE_COMPANY" | "LIMITED_OR_JOINT_STOCK_COMPANY";

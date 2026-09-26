@@ -180,6 +180,8 @@ model Product {
   isAvailable Boolean  @default(true)
   imageUrl    String? // https://... harici link ya da /api/uploads/... yüklenen görsel (bkz. src/lib/uploads.ts)
   allergens   String? // "gluten, süt, fındık" gibi serbest metin
+  // Fiyata dahil KDV oranı (%). Restoran yiyecek/alkolsüz içecek 10, alkollü içecek 20.
+  vatRate     Int      @default(10)
   createdAt   DateTime @default(now())
 
   branchId String
@@ -221,6 +223,8 @@ model Order {
   createdAt DateTime    @default(now())
   closedAt  DateTime?
   closedBy  String? // hesabı elle kapatan/iptal eden personel (ödemeyle otomatik kapandıysa boş)
+  // Fişte görünen sıra numarası ("FİŞ NO"). Bilgi fişi içindir, mali numara değildir.
+  receiptNo Int      @unique @default(autoincrement())
 
   // Masa başına aynı anda tek açık hesap garantisi: sipariş OPEN iken tableId
   // ile doldurulur, kapanınca null yapılır (unique kısıtı null'ları saymaz).
@@ -241,6 +245,7 @@ model OrderItem {
   id             String   @id @default(cuid())
   quantity       Int      @default(1)
   unitPriceCents Int // eklendiği andaki fiyat (ürün fiyatı sonradan değişse bile hesap sabit kalır)
+  vatRate        Int      @default(10) // eklendiği andaki KDV oranı (fiyat gibi sabitlenir)
   note           String?
   createdAt      DateTime @default(now())
   addedBy        String? // ekleyen personelin adı; müşteri kendi eklediyse boş
@@ -290,6 +295,10 @@ model Payment {
   method      PaymentMethod @default(CARD)
   status      PaymentStatus @default(PENDING)
   providerRef String? // ödeme sağlayıcısının işlem/token referansı (ör. iyzico checkout token)
+  // Kartlı ödemede fişe basılan bilgiler (iyzico sonucundan). Tam kart numarası ASLA tutulmaz.
+  cardLast4       String?
+  cardAssociation String? // MASTER_CARD, VISA, TROY, AMERICAN_EXPRESS
+  cardFamily      String? // Maximum, Bonus, World, Axess...
   recordedBy  String? // nakit ödemeyi kaydeden personelin adı (hesap verebilirlik için)
   createdAt   DateTime      @default(now())
   paidAt      DateTime?

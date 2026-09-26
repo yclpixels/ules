@@ -103,6 +103,7 @@ export async function POST(
       productId: l.productId,
       quantity: l.quantity,
       unitPriceCents: byId.get(l.productId)!.priceCents,
+      vatRate: byId.get(l.productId)!.vatRate,
       note: l.note,
     })),
   });

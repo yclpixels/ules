@@ -2,8 +2,10 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { notifyPos } from "@/lib/posWebhook";
 import {
+  cardInfoFromResult,
   isVerifiedCheckoutResult,
   retrieveCheckoutFormResult,
+  type CardInfo,
 } from "@/lib/payments/iyzico";
 
 export async function getOpenOrder(tableId: string) {
@@ -322,7 +324,8 @@ export async function recordPendingPayment(
  */
 export async function resolvePendingPayment(
   paymentId: string,
-  success: boolean
+  success: boolean,
+  card?: CardInfo
 ) {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
@@ -333,7 +336,7 @@ export async function resolvePendingPayment(
   const claimed = await prisma.payment.updateMany({
     where: { id: paymentId, status: "PENDING" },
     data: success
-      ? { status: "PAID", paidAt: new Date() }
+      ? { status: "PAID", paidAt: new Date(), ...card }
       : { status: "FAILED" },
   });
   if (claimed.count === 0) return payment;
@@ -403,7 +406,8 @@ export async function settleStalePendingPayments(
       const result = await retrieveCheckoutFormResult(payment.providerRef);
       await resolvePendingPayment(
         payment.id,
-        isVerifiedCheckoutResult(result, payment.providerRef, payment)
+        isVerifiedCheckoutResult(result, payment.providerRef, payment),
+        cardInfoFromResult(result)
       );
     } catch (err) {
       console.error("[payments] askıdaki ödeme doğrulanamadı, sonra tekrar denenecek", {

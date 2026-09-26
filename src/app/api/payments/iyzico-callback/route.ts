@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolvePendingPayment } from "@/lib/orders";
 import {
+  cardInfoFromResult,
   isVerifiedCheckoutResult,
   retrieveCheckoutFormResult,
 } from "@/lib/payments/iyzico";
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
   }
 
   const verified = isVerifiedCheckoutResult(result, token, pending);
-  await resolvePendingPayment(pending.id, verified);
+  await resolvePendingPayment(pending.id, verified, cardInfoFromResult(result));
 
   const payment = await prisma.payment.findUnique({
     where: { id: pending.id },

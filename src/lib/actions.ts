@@ -11,6 +11,7 @@ import {
   voidPayment,
 } from "@/lib/orders";
 import { formatTL, parseTLInputToCents } from "@/lib/money";
+import { parseVatRate } from "@/lib/vat";
 import {
   verifyAdminSession,
   verifyManagerSession,
@@ -87,7 +88,9 @@ function parseProductExtras(formData: FormData) {
       /* geçersiz link → boş */
     }
   }
-  return { description, allergens, imageUrl };
+  // Geçersiz/eksik oran: eklemede varsayılan (%10), düzenlemede değişmez.
+  const vatRate = parseVatRate(formData.get("vatRate")) ?? undefined;
+  return { description, allergens, imageUrl, vatRate };
 }
 
 export async function addProductAction(formData: FormData) {
@@ -241,6 +244,7 @@ export async function addOrderItemAction(formData: FormData) {
       productId,
       quantity,
       unitPriceCents: product.priceCents,
+      vatRate: product.vatRate,
       addedBy: session.name,
       note,
     },
