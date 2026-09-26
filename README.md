@@ -316,6 +316,7 @@ git push origin master
 | `RESEND_API_KEY`, `EMAIL_FROM`, `SUPPORT_EMAIL` | e-posta; alan adı Resend'de doğrulanmış olmalı |
 | `FIELD_ENCRYPTION_KEY` | IBAN/TC şifrelemesi; **kaybolursa şifreli alanlar okunamaz** |
 | `PAYMENT_PROVIDER`, `IYZICO_*` | kartlı ödeme; iyzico'da alt üye kaydı olmayan şubede kapalı kalır |
+| `GOOGLE_SITE_VERIFICATION`, `BING_SITE_VERIFICATION`, `YANDEX_VERIFICATION` | arama motoru doğrulama etiketi; build anında basılır, değişince yeniden deploy |
 
 **Dikkat edilecekler:**
 

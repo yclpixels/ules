@@ -34,6 +34,14 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 # deploymentId yapar (sürüm uyuşmazlığında hata yerine sayfa yenilenir).
 ARG RAILWAY_GIT_COMMIT_SHA
 ENV RAILWAY_GIT_COMMIT_SHA=$RAILWAY_GIT_COMMIT_SHA
+# Arama motoru doğrulama kodları (Search Console vb.): tanıtım sayfası build'de
+# önceden üretildiği için meta etiketi build anında basılır (bkz. layout.tsx).
+ARG GOOGLE_SITE_VERIFICATION
+ENV GOOGLE_SITE_VERIFICATION=$GOOGLE_SITE_VERIFICATION
+ARG BING_SITE_VERIFICATION
+ENV BING_SITE_VERIFICATION=$BING_SITE_VERIFICATION
+ARG YANDEX_VERIFICATION
+ENV YANDEX_VERIFICATION=$YANDEX_VERIFICATION
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate

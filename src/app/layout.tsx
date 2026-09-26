@@ -33,8 +33,29 @@ const mono = IBM_Plex_Mono({
 // mutlak URL üretirken buna düşer (bkz. .env.example).
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+/**
+ * Arama motoru site doğrulaması (Google Search Console, Bing Webmaster,
+ * Yandex Webmaster). Her biri kendi panelinde "HTML etiketi" yöntemiyle
+ * verdiği kodu (content="..." içindeki değer) ister. Tanıtım sayfası build
+ * sırasında önceden üretildiği için kodlar BUILD anında verilmeli — Railway'de
+ * değişken olarak eklenir, Dockerfile ARG ile build'e geçer. Tanımlı
+ * olmayanlar için etiket basılmaz.
+ */
+const verification: Metadata["verification"] = {
+  ...(process.env.GOOGLE_SITE_VERIFICATION && {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+  }),
+  ...(process.env.YANDEX_VERIFICATION && {
+    yandex: process.env.YANDEX_VERIFICATION,
+  }),
+  ...(process.env.BING_SITE_VERIFICATION && {
+    other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION },
+  }),
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  verification,
   title: { default: "Üleş", template: "%s · Üleş" },
   description: "Masadan QR ile sipariş ver, hesabı böl, öde.",
   // Masa/admin/fiş sayfaları arama motorlarına düşmesin (QR linkleri özel);
