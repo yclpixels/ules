@@ -51,6 +51,8 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+# su-exec: açılışta root olarak yükleme klasörünü sahiplenip nextjs kullanıcısına düşmek için (bkz. CMD).
+RUN apk add --no-cache su-exec
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
@@ -66,7 +68,10 @@ COPY --from=builder /app/prisma ./prisma
 ENV UPLOAD_DIR=/app/uploads
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 
-USER nextjs
+# USER nextjs YOK: Railway Volume klasörü root sahipliğinde bağlar, nextjs
+# kullanıcısı yazamaz (görsel yükleme EACCES ile bozulur). Container root
+# başlar, klasörü nextjs'e verir ve su-exec ile yetkiyi bırakır — uygulama
+# yine nextjs olarak çalışır.
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
@@ -76,4 +81,4 @@ ENV HOSTNAME=0.0.0.0
 # dahil değil. Yeni bir sürüm yayınlamadan önce migration'ı ayrı bir yerden
 # çalıştırın: `DATABASE_URL=... npx prisma migrate deploy`
 # (kendi makinenizden ya da CI adımında, tam proje koduyla).
-CMD ["node", "server.js"]
+CMD ["sh","-c","if [ \"$(id -u)\" = 0 ]; then mkdir -p \"$UPLOAD_DIR\"; chown -R nextjs:nodejs \"$UPLOAD_DIR\" || true; exec su-exec nextjs node server.js; else exec node server.js; fi"]
