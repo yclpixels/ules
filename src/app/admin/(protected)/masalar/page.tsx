@@ -27,9 +27,10 @@ export default async function MasalarPage() {
   const tablesWithQr = await Promise.all(
     tables.map(async (table) => {
       const url = `${baseUrl}/masa/${table.qrToken}`;
-      const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 200 });
+      // Q: kodun ~%25'i lekelense/çizilse de okunur; yazdırma sayfasıyla aynı.
+      const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 200, errorCorrectionLevel: "Q" });
       // İndirme için yüksek çözünürlük: matbaaya/tasarımcıya gönderilebilsin.
-      const qrPngUrl = await QRCode.toDataURL(url, { margin: 2, width: 1024 });
+      const qrPngUrl = await QRCode.toDataURL(url, { margin: 2, width: 1024, errorCorrectionLevel: "Q" });
       return { ...table, url, qrDataUrl, qrPngUrl };
     })
   );

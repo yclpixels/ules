@@ -44,7 +44,8 @@ export default async function QrYazdirPage({
       svg: await QRCode.toString(`${baseUrl}/masa/${t.qrToken}`, {
         type: "svg",
         margin: 0,
-        errorCorrectionLevel: "M",
+        // Q: kodun ~%25'i lekelense/çizilse de okunur (masa kartı yıpranır).
+        errorCorrectionLevel: "Q",
       }),
     }))
   );
