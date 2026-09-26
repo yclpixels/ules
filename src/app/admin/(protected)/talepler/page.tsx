@@ -106,6 +106,13 @@ export default async function TaleplerPage({
                   >
                     {r.kind === "DEMO" ? "Demo" : "Destek"}
                   </span>
+                  <span
+                    className={`inline-block text-xs rounded-full px-2 py-0.5 mr-2 align-middle ${
+                      r.handledAt ? "bg-green-50 text-green-700" : "bg-[#fef3c7] text-[#92400e]"
+                    }`}
+                  >
+                    {r.handledAt ? "Çözüldü" : "Açık"}
+                  </span>
                   {r.subject || r.name}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
@@ -120,7 +127,7 @@ export default async function TaleplerPage({
                 <input type="hidden" name="id" value={r.id} />
                 <input type="hidden" name="handled" value={String(Boolean(r.handledAt))} />
                 <button className="text-sm border rounded-lg px-3 py-1.5 hover:bg-gray-50">
-                  {r.handledAt ? "Tekrar aç" : "Çözüldü"}
+                  {r.handledAt ? "Tekrar aç" : "Çözüldü olarak işaretle"}
                 </button>
               </form>
             </div>

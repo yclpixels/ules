@@ -4,6 +4,7 @@ import { Archivo, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import Link from "next/link";
 import ContactForm from "@/components/ContactForm";
 import MobileNav from "@/components/marketing/MobileNav";
+import CleanHashLinks from "@/components/marketing/CleanHashLinks";
 import HeroMockup from "@/components/marketing/HeroMockup";
 import PaymentMockup from "@/components/marketing/PaymentMockup";
 import KitchenMockup from "@/components/marketing/KitchenMockup";
@@ -316,6 +317,7 @@ export default function Home() {
         fontFamily: "var(--font-body), sans-serif",
       }}
     >
+      <CleanHashLinks />
       {/* Arama motorlarına ürünü tanıtan yapılandırılmış veri */}
       <script
         type="application/ld+json"
@@ -332,9 +334,9 @@ export default function Home() {
         }}
       >
         <div className="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
-          <a href="#" aria-label="Üleş — ana sayfa" className="shrink-0">
+          <Link href="/" aria-label="Üleş — ana sayfa" className="shrink-0">
             <Logo tone="white" className="h-10 w-10" />
-          </a>
+          </Link>
           <nav
             className="hidden md:flex items-center gap-8 text-sm font-medium"
             style={{ color: ON_DARK_MUTED }}
