@@ -1,68 +1,86 @@
-# Masa QR Ödeme
+# Üleş — Masa QR Ödeme
 
-Restoran/kafe masalarına yerleştirilecek QR kodlar üzerinden menüden sipariş verme, hesabı
-görüntüleme, eşit bölme veya istenen tutarı ödeme sistemi. Çoklu şube destekli.
+Restoran ve kafeler için masadaki QR kodla menü, sipariş, hesap bölüşme ve ödeme sistemi.
+Garson ekranı, mutfak ekranı, kasa, gün sonu ve raporlarla birlikte; çoklu şube destekli.
+Canlı adres: **üleş.com** (`xn--le-wka21b.com`), Railway üzerinde, Cloudflare arkasında.
 
 ## Teknoloji
 
-- Next.js (App Router) + TypeScript + Tailwind
-- Prisma + SQLite (yerel geliştirme; üretimde Postgres'e geçilebilir)
-- `qrcode` ile masa QR kodu üretimi
-- `jose` ile admin oturum yönetimi (JWT + httpOnly cookie), Node `crypto.scrypt` ile şifre hash'leme
-- `iyzipay` ile gerçek ödeme entegrasyonu (opsiyonel, bkz. aşağı)
-- `nodemailer` ile fiş e-postası (opsiyonel, bkz. aşağı)
+- Next.js 16 (App Router, `output: "standalone"`) + TypeScript + Tailwind 4
+- Prisma 6 + **PostgreSQL** (yerelde de Postgres; SQLite kullanılmıyor)
+- `jose` ile oturum (JWT + httpOnly çerez, `sessionVersion` ile iptal edilebilir),
+  `crypto.scrypt` ile şifre özeti
+- `iyzipay` ile kartlı ödeme (iyzico Checkout Form + Pazaryeri alt üye işyeri)
+- E-posta: **Resend** HTTPS API (Railway Hobby planında giden SMTP kapalı), yedek olarak SMTP
+- `qrcode` ile masa QR kodları (ekranda PNG, yazdırmada vektör SVG)
+- Vitest (birim + gerçek Postgres entegrasyon testleri), GitHub Actions CI
 
-## Kurulum
+## Yerel kurulum
+
+Bir Postgres veritabanı gerekir (`docker compose up -d` ile ya da herhangi bir yerel Postgres).
 
 ```bash
 npm install
+cp .env.example .env        # DATABASE_URL ve SESSION_SECRET'ı doldurun
 npx prisma migrate dev
-npm run db:seed   # ilk şube + müdür hesabı + örnek kategori/ürün/masa verisi
+npm run db:seed             # ilk şube + müdür + örnek menü ve masalar
 npm run dev
 ```
 
-Uygulama http://localhost:3000 adresinde açılır, `/admin` yönlendirir.
+Uygulama http://localhost:3000 adresinde açılır; personel girişi `/admin/login`.
 
-İlk şube ve müdür hesabı `npm run db:seed` ile otomatik oluşturulur — konsolda kullanıcı
-adı/şifre yazdırılır (varsayılan şube: `Ana Şube`, kullanıcı: `yonetici` / `degistir123`,
-**giriş yaptıktan sonra şifreyi değiştirin**). Farklı isim/şifre istersen seed'den önce
-`.env`'e `SEED_BRANCH_NAME` / `SEED_MANAGER_USERNAME` / `SEED_MANAGER_PASSWORD` ekle.
+**Seed ve şifre:** Veritabanı yerelse ve `SEED_MANAGER_PASSWORD` verilmezse müdür şifresi
+`gelistirme123` olur. Yerel olmayan bir veritabanında (Railway vb.) `SEED_MANAGER_PASSWORD`
+zorunludur (en az 8 karakter); şifre günlüğe yazılmaz. Var olan hesabın şifresine dokunulmaz.
 
-**İkinci bir şube açmak** için aynı komutu farklı değerlerle tekrar çalıştır:
+**İkinci şube:** Panelden (`/admin/isletmeler` → "Yeni işletme aç", sahip hesabı gerekir) ya da:
 
 ```bash
 SEED_BRANCH_NAME="Kadıköy Şubesi" SEED_MANAGER_USERNAME="kadikoy_mudur" SEED_MANAGER_PASSWORD="..." npm run db:seed
 ```
 
-Her şubenin masaları, ürünleri, kategorileri ve personeli tamamen izole — bir şubenin müdürü
-diğer şubenin verisini göremez/değiştiremez (URL'yi doğrudan yazarak da bypass edilemez, test
-edildi).
+Menü adresi şube adından türetilir (`kadikoy-subesi`). Her şubenin masaları, ürünleri ve
+personeli tamamen izoledir; bir şubenin müdürü diğerinin verisine erişemez.
 
-## Sayfalar
+**Sahip (OWNER) hesabı:** Seed yalnızca müdür açar. Bir hesabı platform sahibi yapmak için
+(tüm işletmeleri ve demo/destek taleplerini görür):
 
-- `/admin/login` — Personel girişi (kullanıcı adı + şifre)
-- `/admin` — Kasa: kendi şubesindeki masaların açık hesap / ödenen / kalan durumu (her iki rol)
-- `/admin/siparisler` — Günlük sipariş/ciro raporu, tarih seçilebilir (**sadece müdür**)
-- `/admin/masalar` — Masa ekleme, her masa için QR kod ve link (**sadece müdür**)
-- `/admin/masalar/[tableId]` — Sipariş girme/çıkarma ve **nakit ödeme alma** (her iki rol de)
-- `/admin/urunler` — Kategori ve ürün yönetimi (**sadece müdür**)
-- `/admin/personel` — Personel ekleme/pasifleştirme/şifre sıfırlama, rol atama (**sadece müdür**)
-- `/admin/hesabim` — Kendi şifreni değiştirme (her iki rol de)
-- `/admin/degerlendirmeler` — Müşteri puanları (yemek/servis/ortam/fiyat, 30 günlük ortalama, düşük puanlar kırmızı) (**sadece müdür**)
-- `/admin/isletmeler` — Tüm işletmeler ve abonelik durumları (**sadece OWNER**)
-- `/admin/mutfak` — Mutfak/bar ekranı, sesli yeni sipariş uyarısı (her iki rol)
-- `/admin/kayitlar` — Erişim ve işlem kayıtları (KVKK) (**sadece müdür**)
-- `/admin/ayarlar` — Google yorum linki, bahşiş yüzdeleri ve KVKK işletme bilgileri (**sadece müdür**)
-- `/admin/gun-sonu` — Z raporu: sistemdeki nakit / POS kart / QR kart / bahşiş; sayılan nakit girilir,
-  eksik-fazla hesaplanır ve kayıt altına alınır (`DayClose`) (**sadece müdür**)
-- `/admin/performans` — Personel bazlı: eklediği kalem, satış, aldığı ödeme, bahşiş, sildiği kalem;
-  tarih aralığı seçilebilir (**sadece müdür**)
-- `/masa/[qrToken]` — Müşteri ekranı (QR ile açılır): **Menü** sekmesinden kendi siparişini
-  verebilir, **Hesap** sekmesinden güncel hesabı görüp eşit böl / tutar gir ile öder
-- `/fis/[orderId]` — Herkese açık, yazdırılabilir fiş sayfası + e-posta ile gönderme
-- `/menu/[slug]` — Herkese açık, paylaşılabilir/gömülebilir menü (arama motorlarına açık)
-- `/gizlilik` — KVKK aydınlatma metni şablonu (fiş e-postasında bağlantısı var)
-- `/kullanim-sartlari` — Üleş ile işletme arasındaki SaaS hizmet şartları şablonu
+```bash
+npm run make-owner -- <kullanici_adi>
+```
+
+Komut `.env`'deki `DATABASE_URL`'e yazar. Panelde rol yükseltme ekranı bilerek yok; müdür
+sahip hesabının şifresini sıfırlayamaz ya da onu pasifleştiremez.
+
+## Roller ve sayfalar
+
+Üç rol var: **Sahip** (platform, biz), **Müdür**, **Garson**. Sahip kendi şubesinde müdür
+yetkisine sahiptir.
+
+- `/admin` — **Kasa**: masa ızgarası; açık masada kalan tutar, açık kalma süresi, ürün sayısı,
+  mutfakta bekleyen kalem (tüm roller)
+- `/admin/masalar/[tableId]` — Garson ekranı: ürün kutucukları, adet/not, nakit/POS ödeme alma,
+  "Tamamı" ile kalanı doldurma (tüm roller)
+- `/admin/mutfak` — Mutfak/bar ekranı: masaya göre fişler, bekleme süresine göre renk, sesli
+  uyarı, "tümü hazır", cihaz bazında kategori filtresi (tüm roller)
+- `/admin/destek` — Bize destek talebi gönderme (tüm roller)
+- `/admin/hesabim` — Kendi şifreni değiştirme (tüm roller)
+- `/admin/masalar` — Masa ekleme, QR kodları, PNG indirme; `/admin/masalar/yazdir` — A4'e
+  6 kart QR yazdırma (müdür)
+- `/admin/siparisler` — Günlük sipariş ve tahsilat özeti (müdür)
+- `/admin/gun-sonu` — Z raporu; açık masa varken uyarı (müdür)
+- `/admin/urunler` — Kategori, ürün, görsel, çeviri (müdür)
+- `/admin/personel` — Personel ekleme, şifre sıfırlama, pasifleştirme (müdür)
+- `/admin/ayarlar` — Bahşiş, Google yorum linki, menü adresi, diller, KVKK bilgileri, kartlı
+  ödeme ve iyzico alt üye işyeri (müdür)
+- `/admin/performans`, `/admin/degerlendirmeler`, `/admin/kayitlar` — Raporlar (müdür)
+- `/admin/isletmeler` — Tüm işletmeler, abonelikler, yeni işletme açma (sahip)
+- `/admin/talepler` — Demo ve destek talepleri, deneme e-postası (sahip)
+- `/masa/[qrToken]` — Müşteri ekranı (QR ile açılır): menü, sepet, hesap, bölüşme, ödeme
+- `/menu/[slug]` — Herkese açık, gömülebilir menü (arama motorlarına açık)
+- `/fis/[orderId]` — Yazdırılabilir fiş + e-postayla gönderme
+- `/` — Tanıtım sitesi ve demo formu; `/gizlilik`, `/kullanim-sartlari`, `/on-bilgilendirme`,
+  `/cerez-politikasi` — yasal metin şablonları
 
 ## Kapsam
 
@@ -72,8 +90,8 @@ edildi).
   şubenin menüsünü gösterir.
 - Sipariş hem personel (garson ekranı) hem de müşterinin kendisi (masadaki QR → Menü sekmesi)
   tarafından girilebilir — aynı açık hesaba (Order) eklenir.
-- İki rol var: **Müdür** (tüm yetkiler) ve **Garson** (sadece Kasa + sipariş girme/nakit ödeme
-  alma). Yetki kontrolü hem gezinme menüsünde hem de her sayfa/server action'da sunucu
+- Roller: **Sahip**, **Müdür** (şubede tüm yetkiler) ve **Garson** (Kasa, Mutfak, sipariş
+  girme, nakit/POS ödeme alma). Yetki kontrolü hem gezinme menüsünde hem de her sayfa/server action'da sunucu
   tarafında yapılıyor (`verifyAdminSession` / `verifyManagerSession`, bkz. `src/lib/dal.ts`).
 - **Kim yaptı kaydı**: sipariş kalemine kim eklediyse `OrderItem.addedBy`'a yazılır (müşteri
   kendi eklediyse boş kalır); silme işlemi gerçek silme değil "soft delete" (`removedAt` +
@@ -251,68 +269,71 @@ edildi).
 - Ödeme tamamlandığında veya hesap kapandığında `POS_WEBHOOK_URL` (`.env`) tanımlıysa oraya
   JSON POST edilir (`src/lib/posWebhook.ts`) — restoranın kullandığı POS/kasa sistemine
   entegrasyon buradan yapılabilir. Test edildi ve doğru payload ile çalışıyor.
+- **Demo ve destek talepleri** (`src/lib/support.ts`): tanıtım sitesindeki form ve paneldeki
+  Destek sayfası talebi önce `SupportRequest` tablosuna yazar, sonra `SUPPORT_EMAIL`'e
+  gönderir. E-posta gitmese de talep `/admin/talepler`'de görünür. İletişim alanı yalnızca
+  geçerli e-posta ya da telefon kabul eder (`src/lib/contact.ts`); telefon `+90 5xx …`
+  biçimine getirilir. Gelen e-postada "Yanıtla" müşterinin adresine gider.
+- **Mutfak, hesap kapansa da siparişi gösterir**: müşteri önce ödeyip sonra bekleyebilir;
+  son 6 saatte kapanan hesapların hazırlanmamış kalemleri "Hesap ödendi" rozetiyle görünür.
+- **Sürüm uyuşmazlığı koruması**: `deploymentId` = Railway commit kimliği. Sayfa eski sürümden
+  açıkken yeni sürüm yayına girerse tarayıcı hata yerine sayfayı yeniler.
 
-## Gerçek yayına alma (deployment) — hiçbir sağlayıcıya kilitlenmeden
+## Test ve CI
 
-Kod bilerek hiçbir hosting'e özel API/SDK kullanmıyor (Vercel'e özgü hiçbir şey yok) — bu
-yüzden barındırmayı istediğiniz zaman değiştirebilirsiniz. Taşınabilirliği sağlayan üç şey:
+```bash
+npm run typecheck    # next typegen + tsc
+npm run lint
+npm test             # birim testleri; entegrasyon testleri TEST_DATABASE_URL ister
+TEST_DATABASE_URL="postgresql://…@localhost:5432/test" npm test
+```
 
-- **Veritabanı standart Postgres.** Neon, Supabase, Railway, Vercel Postgres, kendi
-  sunucunuz — hepsi aynı Postgres protokolünü konuşur. Birinden diğerine geçiş sadece
-  `pg_dump` + `pg_restore` + `DATABASE_URL`'i değiştirmek.
-- **`Dockerfile` ile her yerde çalışır.** Railway, Render, Fly.io, kendi VPS'iniz — Docker
-  çalıştıran her platformda aynı image çalışır. Vercel'i seçerseniz Docker'a hiç gerek yok
-  (Vercel kendi build sistemini kullanır), ama aynı kod tabanı ikisinde de çalışır.
-- **Ödeme/e-posta zaten soyutlanmış.** `PAYMENT_PROVIDER` ve `SMTP_*` ile sağlayıcı
-  değiştirmek kod değişikliği gerektirmiyor (bkz. yukarı).
+Entegrasyon testleri (ödeme yarışları, askıdaki ödemeler, değerlendirme kuralı) tabloları
+siler; bu yüzden yalnızca **yerel** bir adrese karşı çalışır, uzak adres verilirse başlamayı
+reddeder. GitHub Actions her push'ta tip kontrolü, lint, testler (Postgres servisiyle) ve
+Docker ile aynı koşullarda derleme çalıştırır (`.github/workflows/ci.yml`).
 
-**NOT:** Bu geliştirme ortamında Docker kurulu değil, bu yüzden `docker build` komutunun
-kendisi hiç çalıştırılamadı. Ama `npm run build` ile üretilen `output: "standalone"` klasörü
-(Dockerfile'ın son aşamasının kopyaladığı tam olarak bu klasördür) `node server.js` ile
-doğrudan çalıştırılıp test edildi: sunucu ayakta kalıyor, ve en riskli nokta olan iyzipay'in
-dinamik olarak yüklediği dosyalar (`outputFileTracingIncludes` sayesinde) standalone build'e
-doğru şekilde dahil oluyor — `apiKey cannot be empty` gibi beklenen bir hata alınıyor,
-"modül bulunamadı" hatası yok. Test edilmeyen tek kısım Docker image'ının kendisinin build
-edilmesi (Alpine Linux base image, `npm ci` adımı vb.) — ilk `docker build`'de yine de gözünüz
-üstünde olsun.
+## Canlı ortam (Railway)
 
-### Adımlar
+Uygulama Railway'de `Dockerfile` ile derlenir; `master`'a push edilen her commit otomatik
+yayına alınır. Veritabanı Railway Postgres; alan adı Cloudflare üzerinden.
 
-1. **Postgres'e geçiş — DİKKAT:** `prisma/migrations` klasörü SQLite için üretildi
-   (`migration_lock.toml` = sqlite) ve SQL'i Postgres'te çalışmaz. Geçişte:
-   `provider = "postgresql"` yap, `prisma/migrations` klasörünü sil, `DATABASE_URL`'i Postgres'e
-   çevir, `npx prisma migrate dev --name init` ile sıfırdan tek migration üret, sonra `npm run db:seed`.
-   Eski SQLite verisi taşınmaz (pilot verisi için sorun değil; gerekiyorsa export/import yazılır).
-2. **Yerel Postgres ile deneyin (opsiyonel ama önerilir).** Docker kurulduysa:
-   `docker compose up -d`, sonra `prisma/schema.prisma`'da `provider = "sqlite"` →
-   `provider = "postgresql"`, `.env`'de `DATABASE_URL="postgresql://masaqr:masaqr@localhost:5432/masaqr"`,
-   `npx prisma migrate dev`. Gerçek sağlayıcıya geçmeden önce şemanın sorunsuz çalıştığını
-   kendi makinenizde görmüş olursunuz.
-3. **Barındırma + veritabanı sağlayıcısı seçin ve hesap açın** (bunu ben yapamam — hesap
-   oluşturma ve ödeme içeriyor). Hızlı başlangıç için Vercel (uygulama) + Neon (Postgres, her
-   ikisi de kredi kartsız ücretsiz katmana sahip) öneririm; VPS + Docker de eşit derecede
-   geçerli, sadece bakım yükü size kalır.
-4. **Prod veritabanına migration'ı çalıştırın**: `DATABASE_URL=<gerçek bağlantı dizesi> npx prisma migrate deploy`
-   (kendi makinenizden, tam proje koduyla — bkz. `Dockerfile`'daki not).
-5. **Domain + SSL.** Vercel'de otomatik; VPS'te kendiniz kurarsınız (ör. Caddy/nginx + Let's Encrypt).
-6. **Ortam değişkenlerini prod'a taşıyın**: yeni bir `SESSION_SECRET` (`openssl rand -base64 32`),
-   `PAYMENT_PROVIDER=iyzico` + gerçek anahtarlar, `SMTP_*`, varsa `POS_WEBHOOK_URL`.
-7. **`/gizlilik` sayfasını doldurun** — işletme unvanı/iletişim bilgisiyle, ideal olarak bir
-   hukuk danışmanına kontrol ettirin.
+**Yeni sürüm yayına alma sırası:** Migration varsa **önce** migration, sonra push. Tersi
+olursa yeni kod eksik sütunu okur ve sayfalar hata verir.
+
+```bash
+npx prisma migrate deploy   # .env'deki DATABASE_URL (Railway) — yalnızca yeni migration varsa
+git push origin master
+```
+
+**Railway değişkenleri** (tam liste ve açıklamalar `.env.example`'da):
+
+| Değişken | Not |
+|---|---|
+| `DATABASE_URL`, `SESSION_SECRET` | zorunlu |
+| `APP_URL`, `NEXT_PUBLIC_APP_URL` | `https://xn--le-wka21b.com`; ikincisi build'e gömülür (Dockerfile `ARG`) |
+| `TRUSTED_PROXY_HOPS` | `2` (Cloudflare + Railway) — IP tespiti ve hız sınırı için |
+| `RESEND_API_KEY`, `EMAIL_FROM`, `SUPPORT_EMAIL` | e-posta; alan adı Resend'de doğrulanmış olmalı |
+| `FIELD_ENCRYPTION_KEY` | IBAN/TC şifrelemesi; **kaybolursa şifreli alanlar okunamaz** |
+| `PAYMENT_PROVIDER`, `IYZICO_*` | kartlı ödeme; iyzico'da alt üye kaydı olmayan şubede kapalı kalır |
+
+**Dikkat edilecekler:**
+
+- Ürün görselleri `/app/uploads`'a yazılır. Railway'de bu yola bir **Volume** bağlı değilse
+  her deploy'da silinir.
+- `scripts/backup.sh` cron'lu bir sunucu içindir, Railway'de çalışmaz. Railway Postgres
+  yedeklemesini açın ya da düzenli `pg_dump` alın.
+- Hız sınırlayıcı bellek içidir (`src/lib/rateLimit.ts`); birden fazla instance'a çıkılırsa
+  Redis/Upstash ile değiştirilmeli. Aynı şekilde yüklenen görseller ortak bir depoya (S3/R2)
+  taşınmalı — değişmesi gereken tek yer `src/lib/uploads.ts`.
 
 ## Sırada ne var
 
-1. iyzico sandbox hesabı açıp ödeme entegrasyonunu gerçek bir ödeme ile doğrulamak
-2. Gerçek SMTP bilgileriyle fiş e-postasını uçtan uca doğrulamak
-3. Restoranın kullandığı POS sistemine özel entegrasyon kodunu `POS_WEBHOOK_URL`'in
-   arkasında (ayrı bir servis olarak) yazmak
-4. Resmi e-Arşiv/e-Fatura entegrasyonu (şu anki "fiş" sadece bilgilendirme amaçlı, yasal bir
-   fatura değil)
-5. Şube yönetimi için UI (şu an yeni şube açmak `npm run db:seed`'i farklı env değerleriyle
-   çalıştırmayı gerektiriyor — bkz. yukarı)
-6. Hız sınırlayıcı bellek içi (`src/lib/rateLimit.ts`); birden fazla sunucu instance'ına
-   çıkınca Redis/Upstash ile değiştirilmeli
-7. Müşteri kendi sipariş verirken not giremiyor (sadece garson ekranından not girilebiliyor)
-8. Ürün görselleri artık yüklenebiliyor (yukarı bkz.), dosyalar sunucu diskinde tutuluyor.
-   Birden fazla sunucuya çıkılırsa ortak bir depoya (S3/R2) taşınmalı — değişmesi gereken
-   tek yer `src/lib/uploads.ts`.
+1. iyzico sandbox ile uçtan uca kartlı ödeme ve alt üye işyeri kaydı testi (canlıda kartlı
+   ödemeyi açmadan önce şart)
+2. Müşteri ekranının (`/masa`, `/menu`) yeni tasarım diline geçirilmesi
+3. Panelden iade (şu an iyzico ödemesinin iadesi iyzico panelinden yapılıyor)
+4. e-Arşiv / e-Fatura entegrasyonu (şu anki fiş yasal belge değil)
+5. Ön sipariş ve grup siparişi (önce tasarım)
+6. `ules.com` alan adına geçiş
+7. KVKK ve kullanım metinlerinin hukuk kontrolü
