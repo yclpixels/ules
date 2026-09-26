@@ -2,7 +2,7 @@ import Link from "next/link";
 import { verifyAdminSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { describeSubscription } from "@/lib/subscription";
-import AdminNav, { type NavGroup } from "@/components/AdminNav";
+import AdminNav, { AdminTabs, type NavGroup } from "@/components/AdminNav";
 import Logo from "@/components/Logo";
 import { BellIcon } from "@/components/icons";
 import { roleLabel } from "@/lib/roles";
@@ -19,17 +19,18 @@ export default async function AdminLayout({
 
   // Abonelik/deneme durumu bandı. Süre dolsa bile panel kilitlenmez —
   // servis ortasında kapanma işletmeyi kaybettirir (bkz. lib/subscription.ts).
-  const branch = await prisma.branch.findUnique({
-    where: { id: session.branchId },
-    select: { subscriptionStatus: true, trialEndsAt: true },
-  });
-  const subscription = branch ? describeSubscription(branch) : null;
-
   // Düşük puan uyarısı: müşteri hâlâ masadayken müdahale şansı için.
   // Garsona gösterilmez — müdahale müdürün işi.
-  const lowRatingCount = isManager
-    ? await countUnacknowledgedLowRatings(session.branchId)
-    : 0;
+  // İki sorgu paralel: her sekme geçişinde bu yerleşim yeniden çalışıyor ve
+  // veritabanına her gidiş canlıda ~150 ms tutuyor (sıralı olunca toplanıyordu).
+  const [branch, lowRatingCount] = await Promise.all([
+    prisma.branch.findUnique({
+      where: { id: session.branchId },
+      select: { subscriptionStatus: true, trialEndsAt: true },
+    }),
+    isManager ? countUnacknowledgedLowRatings(session.branchId) : Promise.resolve(0),
+  ]);
+  const subscription = branch ? describeSubscription(branch) : null;
   // "info" nötr gri (marka rengiyle çakışmasın diye artık mavi değil), "warn"
   // gerçek bir uyarı sarısı — amber-* Tailwind sınıfı marka lacivertine
   // eşlendiği için burada bilinçli olarak ham hex kullanıldı.
@@ -96,19 +97,27 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-4 py-3 sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          <Link href="/admin" className="min-w-0 flex items-center gap-2">
-            <Logo className="w-7 h-7 shrink-0" />
-            <span className="text-sm font-semibold truncate">
-              {session.branchName}
+      {/* Tanıtım sitesi ve müşteri ekranıyla aynı lacivert bant; altında
+          rolün günlük ekranları her zaman görünür (menü açmadan geçiş). */}
+      <header className="sticky top-0 z-20 text-white" style={{ background: "#1D126D" }}>
+        <div className="max-w-4xl mx-auto px-4 pt-3 pb-2 flex items-center justify-between gap-3">
+          <Link href="/admin" className="min-w-0 flex items-center gap-2.5">
+            <Logo tone="white" className="w-8 h-8 shrink-0" />
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold truncate">{session.branchName}</span>
+              <span className="block text-xs text-white/60 truncate">
+                {session.name} · {roleLabel(session.role)}
+              </span>
             </span>
           </Link>
           <AdminNav
-            groups={groups}
+            groups={groups.slice(1)}
             userName={session.name}
             roleLabel={roleLabel(session.role)}
           />
+        </div>
+        <div className="max-w-4xl mx-auto px-4 pb-2.5">
+          <AdminTabs items={groups[0].items} />
         </div>
       </header>
 

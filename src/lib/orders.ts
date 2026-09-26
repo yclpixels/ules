@@ -49,20 +49,25 @@ export async function getOrderBill(orderId: string) {
     },
   });
 
-  const totalCents = order.items.reduce(
-    (sum, item) => sum + item.unitPriceCents * item.quantity,
-    0
-  );
-  const paidPayments = order.payments.filter((p) => p.status === "PAID");
+  return { order, ...summarizeBill(order.items, order.payments) };
+}
+
+/**
+ * Hesap özeti — tek formül: getOrderBill ve Kasa ekranı (tek sorguda tüm
+ * masalar) aynısını kullanır ki iki yerde farklılaşmasın. `items` silinmemiş
+ * kalemler olmalı.
+ */
+export function summarizeBill(
+  items: { unitPriceCents: number; quantity: number }[],
+  payments: { status: string; amountCents: number; tipCents: number }[]
+) {
+  const totalCents = items.reduce((sum, i) => sum + i.unitPriceCents * i.quantity, 0);
+  const paidPayments = payments.filter((p) => p.status === "PAID");
   // Bahşiş hesaba mahsup edilmez: kalan tutar sadece hesap payıyla düşer.
-  const paidCents = paidPayments.reduce(
-    (sum, p) => sum + (p.amountCents - p.tipCents),
-    0
-  );
+  const paidCents = paidPayments.reduce((sum, p) => sum + (p.amountCents - p.tipCents), 0);
   const tipCents = paidPayments.reduce((sum, p) => sum + p.tipCents, 0);
   const remainingCents = Math.max(totalCents - paidCents, 0);
-
-  return { order, totalCents, paidCents, tipCents, remainingCents };
+  return { totalCents, paidCents, tipCents, remainingCents };
 }
 
 async function closeOrderIfFullyPaid(orderId: string) {

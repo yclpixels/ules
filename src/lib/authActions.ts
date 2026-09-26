@@ -11,6 +11,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { audit } from "@/lib/audit";
 import { headers } from "next/headers";
 import { MIN_PASSWORD_LENGTH } from "@/lib/passwordPolicy";
+import { parseContact } from "@/lib/contact";
 
 export type LoginState = { error?: string } | undefined;
 
@@ -92,14 +93,17 @@ export async function addStaffAction(formData: FormData) {
   if (!name || !username || password.length < MIN_PASSWORD_LENGTH) {
     return;
   }
+  const email = parseGoogleEmail(formData.get("email"));
+  if (email === undefined) redirect("/admin/personel?hata=eposta-gecersiz");
 
-  // Kullanıcı adı tüm şubelerde tekil; çakışırsa Prisma P2002 fırlatır ve
-  // müdür beyaz hata sayfası görürdü — yakalayıp forma geri dönüyoruz.
+  // Kullanıcı adı ve e-posta tüm şubelerde tekil; çakışırsa Prisma P2002
+  // fırlatır ve müdür beyaz hata sayfası görürdü — yakalayıp forma dönüyoruz.
   try {
     await prisma.staffUser.create({
       data: {
         name,
         username,
+        email,
         passwordHash: hashPassword(password),
         role,
         branchId: session.branchId,
@@ -110,7 +114,9 @@ export async function addStaffAction(formData: FormData) {
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2002"
     ) {
-      redirect("/admin/personel?hata=kullanici-mevcut");
+      redirect(
+        `/admin/personel?hata=${uniqueTarget(err) === "email" ? "eposta-mevcut" : "kullanici-mevcut"}`
+      );
     }
     throw err;
   }
@@ -136,6 +142,93 @@ function manageableStaffFilter(session: { role: string; branchId: string }) {
   return session.role === "OWNER"
     ? { branchId: session.branchId }
     : { branchId: session.branchId, role: { not: "OWNER" as const } };
+}
+
+
+/**
+ * "Google ile giriş" e-postası: boş → null (bağlantıyı kaldırır), geçerli →
+ * küçük harf, geçersiz → undefined.
+ */
+function parseGoogleEmail(value: FormDataEntryValue | null): string | null | undefined {
+  const v = String(value ?? "").trim().toLowerCase();
+  if (!v) return null;
+  // Doğrulama lib/contact.ts ile aynı (birim testli).
+  const parsed = parseContact(v);
+  return parsed?.kind === "email" && v.length <= 200 ? parsed.value : undefined;
+}
+
+/** P2002 hangi alanda çakıştı (username / email). */
+function uniqueTarget(err: Prisma.PrismaClientKnownRequestError) {
+  const target = (err.meta?.target ?? []) as string[] | string;
+  return (Array.isArray(target) ? target.join(",") : String(target)).includes("email")
+    ? "email"
+    : "username";
+}
+
+/** Müdür: personelin Google e-postasını bağlar/değiştirir/kaldırır. */
+export async function setStaffEmailAction(formData: FormData) {
+  const session = await verifyManagerSession();
+  const id = String(formData.get("id") || "");
+  const email = parseGoogleEmail(formData.get("email"));
+  if (!id) return;
+  if (email === undefined) redirect("/admin/personel?hata=eposta-gecersiz");
+
+  let updated;
+  try {
+    updated = await prisma.staffUser.updateMany({
+      where: { id, ...manageableStaffFilter(session) },
+      data: { email },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      redirect("/admin/personel?hata=eposta-mevcut");
+    }
+    throw err;
+  }
+  if (updated.count > 0) {
+    const target = await prisma.staffUser.findUnique({ where: { id }, select: { name: true } });
+    await audit({
+      branchId: session.branchId,
+      action: "STAFF_EMAIL_CHANGED",
+      actorName: session.name,
+      actorId: session.staffId,
+      detail: `${target?.name ?? id}: ${email ? "Google e-postası bağlandı" : "Google e-postası kaldırıldı"}`,
+    });
+  }
+  revalidatePath("/admin/personel");
+}
+
+export type OwnEmailState = { error?: string; success?: string } | undefined;
+
+/** Herkes: kendi Google e-postasını bağlar (Hesabım). */
+export async function setOwnEmailAction(
+  _prev: OwnEmailState,
+  formData: FormData
+): Promise<OwnEmailState> {
+  const session = await verifyAdminSession();
+  const email = parseGoogleEmail(formData.get("email"));
+  if (email === undefined) return { error: "Geçerli bir e-posta adresi girin" };
+  try {
+    await prisma.staffUser.update({ where: { id: session.staffId }, data: { email } });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { error: "Bu e-posta başka bir personel hesabına bağlı" };
+    }
+    throw err;
+  }
+  await audit({
+    branchId: session.branchId,
+    action: "STAFF_EMAIL_CHANGED",
+    actorName: session.name,
+    actorId: session.staffId,
+    detail: email ? "Kendi Google e-postasını bağladı" : "Kendi Google e-postasını kaldırdı",
+  });
+  revalidatePath("/admin/hesabim");
+  return {
+    success: email
+      ? "Kaydedildi. Artık giriş ekranında \"Google ile giriş yap\" ile girebilirsiniz."
+      : "Google bağlantısı kaldırıldı.",
+  };
 }
 
 export async function toggleStaffActiveAction(formData: FormData) {

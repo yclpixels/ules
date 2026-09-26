@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getOrderBill, settleStalePendingPayments } from "@/lib/orders";
+import { settleStalePendingPayments, summarizeBill } from "@/lib/orders";
 import { byNaturalName, formatTL } from "@/lib/money";
 import { verifyAdminSession } from "@/lib/dal";
 import { minutesSince } from "@/lib/dates";
@@ -14,31 +14,42 @@ export const dynamic = "force-dynamic";
 export default async function KasaPage() {
   const session = await verifyAdminSession();
 
-  // Kasa ekranı 10 sn'de bir yenilendiği için askıda kalan kartlı ödemeler
-  // (müşteri iyzico formunu yarıda bıraktı) burada da sonuçlandırılır.
-  await settleStalePendingPayments({ branchId: session.branchId });
-
-  const tables = await prisma.table.findMany({
-    where: { branchId: session.branchId },
-    orderBy: { name: "asc" },
-    include: {
-      orders: {
-        where: { status: "OPEN" },
-        orderBy: { createdAt: "desc" },
-        take: 1,
+  // Tek sorgu: masalar + açık hesapları + kalemleri + ödemeleri. Önceden
+  // masalar, sonra her açık masa için ayrı hesap sorgusu atılıyordu; canlıda
+  // veritabanına her gidiş ~150 ms tuttuğu için Kasa (10 sn'de bir yenilenen
+  // ekran) yavaş açılıyordu. Askıdaki kartlı ödemelerin (müşteri iyzico
+  // formunu yarıda bıraktı) sonuçlandırılması da paralel çalışır.
+  const [tables] = await Promise.all([
+    prisma.table.findMany({
+      where: { branchId: session.branchId },
+      include: {
+        orders: {
+          where: { status: "OPEN" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: {
+            items: {
+              where: { removedAt: null },
+              select: { unitPriceCents: true, quantity: true, preparedAt: true },
+            },
+            payments: { select: { status: true, amountCents: true, tipCents: true } },
+          },
+        },
       },
-    },
-  });
+    }),
+    settleStalePendingPayments({ branchId: session.branchId }),
+  ]);
   tables.sort(byNaturalName);
 
-  const rows = await Promise.all(
-    tables.map(async (table) => {
+  const rows = tables.map((table) => {
       const openOrder = table.orders[0];
       if (!openOrder) {
         return { table, hasOrder: false as const };
       }
-      const { order, totalCents, paidCents, remainingCents } = await getOrderBill(
-        openOrder.id
+      const order = openOrder;
+      const { totalCents, paidCents, remainingCents } = summarizeBill(
+        order.items,
+        order.payments
       );
       return {
         table,
@@ -52,8 +63,7 @@ export default async function KasaPage() {
         waitingCount: order.items.filter((i) => !i.preparedAt).length,
         openMinutes: minutesSince(openOrder.createdAt),
       };
-    })
-  );
+    });
 
   const openRows = rows.filter((r) => r.hasOrder);
   const totalRemaining = rows.reduce(

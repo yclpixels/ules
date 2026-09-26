@@ -19,7 +19,7 @@ export default function LoginForm() {
           required
           autoFocus
           autoCapitalize="none"
-          className="w-full mt-1 border rounded-lg px-3 py-2"
+          className="w-full mt-1 h-12 border rounded-xl px-3"
         />
       </div>
       <div>
@@ -28,15 +28,15 @@ export default function LoginForm() {
           type="password"
           name="password"
           required
-          className="w-full mt-1 border rounded-lg px-3 py-2"
+          className="w-full mt-1 h-12 border rounded-xl px-3"
         />
       </div>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <button
         type="submit"
         disabled={pending}
-        className="w-full text-white rounded-lg py-2 font-medium shadow-md shadow-amber-600/20 disabled:opacity-50"
-        style={{ background: "linear-gradient(135deg, #1D126D, #1D126D)" }}
+        className="w-full h-12 text-white rounded-xl font-semibold disabled:opacity-50"
+        style={{ background: "#1D126D" }}
       >
         {pending ? "Giriş yapılıyor..." : "Giriş yap"}
       </button>

@@ -23,6 +23,7 @@ export type AuditAction =
   | "STAFF_DEACTIVATED"
   | "STAFF_PASSWORD_RESET"
   | "STAFF_ROLE_CHANGED"
+  | "STAFF_EMAIL_CHANGED"
   | "ORDER_CANCELLED"
   | "PAYMENT_VOIDED"
   | "DAY_CLOSED"
@@ -39,6 +40,7 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
   STAFF_DEACTIVATED: "Personel pasifleştirildi",
   STAFF_PASSWORD_RESET: "Personel şifresi sıfırlandı",
   STAFF_ROLE_CHANGED: "Personel rolü değiştirildi",
+  STAFF_EMAIL_CHANGED: "Google e-postası değiştirildi",
   ORDER_CANCELLED: "Hesap ödeme alınmadan kapatıldı",
   PAYMENT_VOIDED: "Ödeme iptal edildi",
   DAY_CLOSED: "Gün sonu kapatıldı",

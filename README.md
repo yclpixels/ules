@@ -323,6 +323,7 @@ git push origin master
 | `APP_URL`, `NEXT_PUBLIC_APP_URL` | `https://xn--le-wka21b.com`; ikincisi build'e gömülür (Dockerfile `ARG`) |
 | `TRUSTED_PROXY_HOPS` | `2` (Cloudflare + Railway) — IP tespiti ve hız sınırı için |
 | `RESEND_API_KEY`, `EMAIL_FROM`, `SUPPORT_EMAIL` | e-posta; alan adı Resend'de doğrulanmış olmalı |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | personel için Google ile giriş; redirect URI `https://xn--le-wka21b.com/api/auth/google/callback` |
 | `FIELD_ENCRYPTION_KEY` | IBAN/TC şifrelemesi; **kaybolursa şifreli alanlar okunamaz** |
 | `PAYMENT_PROVIDER`, `IYZICO_*` | kartlı ödeme; iyzico'da alt üye kaydı olmayan şubede kapalı kalır |
 | `GOOGLE_SITE_VERIFICATION`, `BING_SITE_VERIFICATION`, `YANDEX_VERIFICATION` | arama motoru doğrulama etiketi; build anında basılır, değişince yeniden deploy |

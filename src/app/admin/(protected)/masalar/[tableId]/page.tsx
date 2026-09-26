@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getOpenOrder, getOrderBill } from "@/lib/orders";
+import { summarizeBill } from "@/lib/orders";
 import { formatTL } from "@/lib/money";
 import {
   addOrderItemAction,
@@ -28,35 +28,46 @@ export default async function TableDetailPage({
 }) {
   const session = await verifyAdminSession();
   const { tableId } = await params;
-  const table = await prisma.table.findFirst({
-    where: { id: tableId, branchId: session.branchId },
-  });
-  if (!table) notFound();
   // OWNER kendi şubesinde müdür sayılır (bkz. verifyManagerSession).
   const isManager = session.role === "MANAGER" || session.role === "OWNER";
 
-  const order = await getOpenOrder(tableId);
-  const { totalCents, paidCents, tipCents, remainingCents } = order
-    ? await getOrderBill(order.id)
-    : { totalCents: 0, paidCents: 0, tipCents: 0, remainingCents: 0 };
-  const items = order
-    ? await prisma.orderItem.findMany({
-        where: { orderId: order.id, removedAt: null },
-        include: { product: true },
-        orderBy: { createdAt: "asc" },
-      })
-    : [];
-  const payments = order
-    ? await prisma.payment.findMany({
-        where: { orderId: order.id, status: "PAID" },
-        orderBy: { createdAt: "desc" },
-      })
-    : [];
-  const products = await prisma.product.findMany({
-    where: { isAvailable: true, branchId: session.branchId },
-    orderBy: { name: "asc" },
-    include: { category: { select: { id: true, name: true } } },
-  });
+  // Tek tur: masa (açık hesabı, kalemleri, ödemeleriyle) ve menü paralel.
+  // Önceden 6 sorgu sırayla atılıyordu ve kalemler/ödemeler iki kez
+  // çekiliyordu; canlıda veritabanına her gidiş ~150 ms tuttuğu için garson
+  // ekranı yavaş açılıyordu.
+  const [table, products] = await Promise.all([
+    prisma.table.findFirst({
+      where: { id: tableId, branchId: session.branchId },
+      include: {
+        orders: {
+          where: { status: "OPEN" },
+          take: 1,
+          include: {
+            items: {
+              where: { removedAt: null },
+              include: { product: true },
+              orderBy: { createdAt: "asc" },
+            },
+            payments: { orderBy: { createdAt: "desc" } },
+          },
+        },
+      },
+    }),
+    prisma.product.findMany({
+      where: { isAvailable: true, branchId: session.branchId },
+      orderBy: { name: "asc" },
+      include: { category: { select: { id: true, name: true } } },
+    }),
+  ]);
+  if (!table) notFound();
+
+  const order = table.orders[0] ?? null;
+  const items = order?.items ?? [];
+  const payments = (order?.payments ?? []).filter((p) => p.status === "PAID");
+  const { totalCents, paidCents, tipCents, remainingCents } = summarizeBill(
+    items,
+    order?.payments ?? []
+  );
 
   return (
     <div className="space-y-6">

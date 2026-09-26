@@ -7,11 +7,18 @@ import {
   addStaffAction,
   toggleStaffActiveAction,
   resetStaffPasswordAction,
+  setStaffEmailAction,
 } from "@/lib/authActions";
 
 const BRAND_GRADIENT = "linear-gradient(135deg, #1D126D, #1D126D)";
 
 export const dynamic = "force-dynamic";
+
+const ERRORS: Record<string, string> = {
+  "kullanici-mevcut": "Bu kullanıcı adı zaten kullanılıyor — başka bir tane deneyin.",
+  "eposta-gecersiz": "Google e-postası geçersiz görünüyor.",
+  "eposta-mevcut": "Bu Google e-postası başka bir personel hesabına bağlı.",
+};
 
 export default async function PersonelPage({
   searchParams,
@@ -32,9 +39,9 @@ export default async function PersonelPage({
         <h1 className="text-xl font-semibold">Personel</h1>
         <p className="text-sm text-gray-500">Hesap ekleme, şifre sıfırlama ve pasifleştirme</p>
       </div>
-      {hata === "kullanici-mevcut" && (
+      {hata && ERRORS[hata] && (
         <p className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-4 py-3 text-sm">
-          Bu kullanıcı adı zaten kullanılıyor — başka bir tane deneyin.
+          {ERRORS[hata]}
         </p>
       )}
       <form
@@ -67,6 +74,15 @@ export default async function PersonelPage({
             required
             minLength={MIN_PASSWORD_LENGTH}
             placeholder={`en az ${MIN_PASSWORD_LENGTH} karakter`}
+            className="w-full mt-1 border rounded-lg px-3 py-2"
+          />
+        </div>
+        <div className="min-w-[180px]">
+          <label className="text-sm text-gray-500">Google e-postası (isteğe bağlı)</label>
+          <input
+            name="email"
+            type="email"
+            placeholder="ahmet@gmail.com"
             className="w-full mt-1 border rounded-lg px-3 py-2"
           />
         </div>
@@ -114,6 +130,9 @@ export default async function PersonelPage({
                       {roleLabel(s.role)}
                     </span>
                   </p>
+                  {s.email && (
+                    <p className="text-xs text-gray-500 truncate">Google: {s.email}</p>
+                  )}
                 </div>
               </div>
               {/* Sahip hesabını yalnızca sahip yönetir (bkz. manageableStaffFilter). */}
@@ -121,6 +140,34 @@ export default async function PersonelPage({
                 <span className="text-xs text-gray-400 shrink-0">Platform hesabı</span>
               ) : (
               <div className="flex items-center gap-3 shrink-0">
+                <details className="sm:relative">
+                  <summary className="text-sm underline cursor-pointer list-none h-10 inline-flex items-center">
+                    Google
+                  </summary>
+                  <form
+                    action={setStaffEmailAction}
+                    className="absolute left-3 right-3 sm:left-auto sm:right-0 mt-2 bg-white border rounded-lg p-3 shadow-lg z-10 flex gap-2 items-end sm:w-72"
+                  >
+                    <input type="hidden" name="id" value={s.id} />
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-500">
+                        Google e-postası (boş = bağlantıyı kaldır)
+                      </label>
+                      <input
+                        name="email"
+                        type="email"
+                        defaultValue={s.email ?? ""}
+                        className="w-full mt-1 border rounded-lg px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <button
+                      className="text-white rounded-lg px-3 py-1 text-sm"
+                      style={{ background: BRAND_GRADIENT }}
+                    >
+                      Kaydet
+                    </button>
+                  </form>
+                </details>
                 <details className="sm:relative">
                   <summary className="text-sm underline cursor-pointer list-none h-10 inline-flex items-center">
                     Şifre Sıfırla

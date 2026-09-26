@@ -329,6 +329,10 @@ model StaffUser {
   id             String    @id @default(cuid())
   name           String
   username       String    @unique
+  // "Google ile giriş" için bağlı Google hesabının e-postası (küçük harf).
+  // Google yalnızca doğrulanmış e-postası bu alanla eşleşen AKTİF hesaba
+  // giriş yaptırır; Google ile yeni hesap açılmaz.
+  email          String?   @unique
   passwordHash   String
   role           StaffRole @default(WAITER)
   isActive       Boolean   @default(true)
