@@ -12,6 +12,7 @@ import {
 } from "@/lib/orders";
 import { formatTL, parseTLInputToCents } from "@/lib/money";
 import { parseVatRate } from "@/lib/vat";
+import { parseMenuImport, sameName, type ImportError } from "@/lib/menuImport";
 import {
   verifyAdminSession,
   verifyManagerSession,
@@ -1066,4 +1067,108 @@ export async function sendTestEmailAction(): Promise<TestEmailState> {
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Gönderilemedi" };
   }
+}
+
+export type ImportProductsState =
+  | { added: number; updated: number; errors: ImportError[]; message?: never }
+  | { message: string; added?: never; updated?: never; errors?: never }
+  | undefined;
+
+/**
+ * Excel'den toplu ürün ekleme. Aynı adlı ürün varsa güncellenir (fiyat
+ * listesini yeniden yapıştırmak fiyatları günceller); yoksa eklenir.
+ * Kategori adıyla eşlenir, yoksa oluşturulur. Veritabanı gidiş-dönüşü
+ * pahalı olduğu için yeni kategoriler ve yeni ürünler tek sorguda eklenir.
+ */
+export async function importProductsAction(
+  _prev: ImportProductsState,
+  formData: FormData
+): Promise<ImportProductsState> {
+  const session = await verifyManagerSession();
+
+  let text = String(formData.get("text") || "");
+  const file = formData.get("file");
+  if (!text.trim() && file instanceof File && file.size > 0) {
+    if (file.size > 1024 * 1024) return { message: "Dosya en fazla 1 MB olabilir" };
+    const buf = new Uint8Array(await file.arrayBuffer());
+    text = new TextDecoder("utf-8").decode(buf);
+    // Türkçe Excel'in "CSV (virgülle ayrılmış)" kaydı UTF-8 değil, Windows-1254.
+    if (text.includes("\uFFFD")) text = new TextDecoder("windows-1254").decode(buf);
+  }
+  if (!text.trim()) return { message: "Excel'den hücreleri kopyalayıp yapıştırın ya da bir CSV dosyası seçin" };
+
+  const { rows, errors } = parseMenuImport(text);
+  if (rows.length === 0) return { added: 0, updated: 0, errors };
+
+  const [categories, products] = await Promise.all([
+    prisma.category.findMany({ where: { branchId: session.branchId } }),
+    prisma.product.findMany({
+      where: { branchId: session.branchId },
+      select: { id: true, name: true },
+    }),
+  ]);
+
+  // Eksik kategoriler: tek sorguda, mevcutların sonuna.
+  const missing = [
+    ...new Map(
+      rows
+        .filter((r) => r.category && !categories.some((c) => sameName(c.name, r.category!)))
+        .map((r) => [r.category!.toLocaleLowerCase("tr-TR"), r.category!])
+    ).values(),
+  ];
+  let nextSort = categories.reduce((m, c) => Math.max(m, c.sortOrder), 0) + 1;
+  const created = missing.length
+    ? await prisma.category.createManyAndReturn({
+        data: missing.map((name) => ({ name, sortOrder: nextSort++, branchId: session.branchId })),
+      })
+    : [];
+  const allCategories = [...categories, ...created];
+  const categoryId = (name: string | null) =>
+    name ? allCategories.find((c) => sameName(c.name, name))?.id ?? null : null;
+
+  const toCreate = rows.filter((r) => !products.some((p) => sameName(p.name, r.name)));
+  const toUpdate = rows.filter((r) => products.some((p) => sameName(p.name, r.name)));
+
+  if (toCreate.length) {
+    await prisma.product.createMany({
+      data: toCreate.map((r) => ({
+        name: r.name,
+        priceCents: r.priceCents,
+        vatRate: r.vatRate ?? 10,
+        categoryId: categoryId(r.category),
+        description: r.description,
+        allergens: r.allergens,
+        imageUrl: r.imageUrl,
+        branchId: session.branchId,
+      })),
+    });
+  }
+  // Güncellemede boş hücre mevcut değeri silmez; yalnız dolu alanlar yazılır.
+  for (let i = 0; i < toUpdate.length; i += 10) {
+    await Promise.all(
+      toUpdate.slice(i, i + 10).map((r) =>
+        prisma.product.updateMany({
+          where: { id: products.find((p) => sameName(p.name, r.name))!.id, branchId: session.branchId },
+          data: {
+            priceCents: r.priceCents,
+            ...(r.vatRate !== null && { vatRate: r.vatRate }),
+            ...(r.category && { categoryId: categoryId(r.category) }),
+            ...(r.description && { description: r.description }),
+            ...(r.allergens && { allergens: r.allergens }),
+            ...(r.imageUrl && { imageUrl: r.imageUrl }),
+          },
+        })
+      )
+    );
+  }
+
+  await audit({
+    branchId: session.branchId,
+    action: "SETTINGS_UPDATED",
+    actorName: session.name,
+    actorId: session.staffId,
+    detail: `Excel'den ürün: ${toCreate.length} eklendi, ${toUpdate.length} güncellendi`,
+  });
+  revalidatePath("/admin/urunler");
+  return { added: toCreate.length, updated: toUpdate.length, errors };
 }

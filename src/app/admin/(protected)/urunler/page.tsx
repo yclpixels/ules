@@ -15,6 +15,7 @@ import { verifyManagerSession } from "@/lib/dal";
 import ConfirmButton from "@/components/ConfirmButton";
 import ImagePicker from "@/components/ImagePicker";
 import { VAT_RATES } from "@/lib/vat";
+import ImportProductsForm from "./ImportProductsForm";
 
 const BRAND_GRADIENT = "linear-gradient(135deg, #1D126D, #1D126D)";
 
@@ -118,6 +119,8 @@ export default async function UrunlerPage() {
           </div>
         )}
       </div>
+
+      <ImportProductsForm />
 
       <form
         action={addProductAction}
