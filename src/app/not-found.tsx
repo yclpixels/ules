@@ -14,10 +14,10 @@ export const metadata: Metadata = {
  */
 export default function NotFound() {
   const links = [
-    { href: "/", label: "Ana sayfa" },
-    { href: "/#paneller", label: "Panelleri inceleyin" },
-    { href: "/#sss", label: "Sık sorulan sorular" },
-    { href: "/#iletisim", label: "Ücretsiz demo isteyin" },
+    { href: "/", label: "Ana Sayfaya Dön" },
+    { href: "/sss", label: "Sık sorulan sorular" },
+    { href: "/iletisim", label: "İletişim" },
+    { href: "/isletme-basvur", label: "İşletme başvurusu" },
   ];
 
   return (
@@ -38,8 +38,9 @@ export default function NotFound() {
         >
           404
         </p>
-        <h1 className="mt-3 text-2xl font-bold">Aradığınız sayfa bulunamadı</h1>
-        <p className="mt-3 text-gray-600">
+        <h1 className="mt-3 text-2xl font-bold">Burada Üleş yok.</h1>
+        <p className="mt-2 text-gray-600">Aradığınız sayfayı bulamadık.</p>
+        <p className="mt-3 text-sm text-gray-500">
           Masadaki QR kodu okuttuysanız kod eskimiş olabilir — lütfen personele
           haber verin ya da kodu yeniden okutun.
         </p>

@@ -7,7 +7,16 @@ type Crumb = { name: string; path: string };
  * Google için BreadcrumbList yapılandırılmış verisi — arama sonucunda adres
  * yerine bu yol gösterilebilir. Son öğe bulunulan sayfadır, bağlantı olmaz.
  */
-export default function Breadcrumbs({ items, siteUrl }: { items: Crumb[]; siteUrl: string }) {
+export default function Breadcrumbs({
+  items,
+  siteUrl,
+  dark = false,
+}: {
+  items: Crumb[];
+  siteUrl: string;
+  /** Koyu zeminde (MarketingPage başlığı) açık renkli yazı. */
+  dark?: boolean;
+}) {
   const all: Crumb[] = [{ name: "Ana sayfa", path: "/" }, ...items];
   const jsonLd = {
     "@context": "https://schema.org",
@@ -21,7 +30,7 @@ export default function Breadcrumbs({ items, siteUrl }: { items: Crumb[]; siteUr
   };
 
   return (
-    <nav aria-label="Sayfa yolu" className="text-sm text-gray-500">
+    <nav aria-label="Sayfa yolu" className={`text-sm ${dark ? "text-white/60" : "text-gray-500"}`}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
@@ -29,13 +38,13 @@ export default function Breadcrumbs({ items, siteUrl }: { items: Crumb[]; siteUr
       <ol className="flex flex-wrap items-center gap-1.5">
         {all.map((c, i) => (
           <li key={c.path} className="flex items-center gap-1.5">
-            {i > 0 && <span aria-hidden="true" className="text-gray-300">›</span>}
+            {i > 0 && <span aria-hidden="true" className={dark ? "text-white/30" : "text-gray-300"}>›</span>}
             {i < all.length - 1 ? (
-              <Link href={c.path} className="hover:text-gray-900 hover:underline">
+              <Link href={c.path} className={dark ? "hover:text-white hover:underline" : "hover:text-gray-900 hover:underline"}>
                 {c.name}
               </Link>
             ) : (
-              <span aria-current="page" className="text-gray-900 font-medium">
+              <span aria-current="page" className={`font-medium ${dark ? "text-white" : "text-gray-900"}`}>
                 {c.name}
               </span>
             )}

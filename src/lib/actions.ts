@@ -25,6 +25,7 @@ import { hashPassword } from "@/lib/passwords";
 import { parseLocales, SUPPORTED_LOCALES } from "@/lib/locales";
 import { isValidSlug, slugify } from "@/lib/slug";
 import { createSupportRequest } from "@/lib/support";
+import { validateBusinessApplication, validateContactMessage } from "@/lib/publicForms";
 import { CONTACT_ERROR, parseContact } from "@/lib/contact";
 import { sendEmail, supportInbox } from "@/lib/email";
 import { roleLabel } from "@/lib/roles";
@@ -1178,4 +1179,89 @@ export async function importProductsAction(
   });
   menuChanged(session.branchId);
   return { added: toCreate.length, updated: toUpdate.length, errors };
+}
+
+type FormFieldErrors = Record<string, string | undefined>;
+
+export type PublicFormState =
+  | { success: true; contact?: string }
+  | { success?: false; error?: string; fieldErrors?: FormFieldErrors; values?: Record<string, string> }
+  | undefined;
+
+/** Herkese açık formlar: bot tuzağı + IP başına hız sınırı (dakikada değil saatte). */
+async function publicFormGuard(formData: FormData, key: string): Promise<string | null> {
+  if (String(formData.get("website_url") || "").trim()) return "bot";
+  const ip = clientIpFromHeaders(await headers());
+  const limited = rateLimit(`${key}:ip:${ip}`, { limit: 5, windowMs: 60 * 60 * 1000 });
+  return limited.ok ? null : "Çok fazla istek gönderildi, biraz sonra tekrar deneyin";
+}
+
+function formValues(formData: FormData, keys: string[]) {
+  return Object.fromEntries(keys.map((k) => [k, String(formData.get(k) ?? "")]));
+}
+
+/** /isletme-basvur formu: başvuru kaydedilir (Talepler) ve bize e-postayla gelir. */
+export async function sendBusinessApplicationAction(
+  _prev: PublicFormState,
+  formData: FormData
+): Promise<PublicFormState> {
+  const keys = ["businessName", "ownerName", "phone", "email", "city", "district", "businessType", "address", "website", "tables", "note", "consent"];
+  const values = formValues(formData, keys);
+  const guard = await publicFormGuard(formData, "apply");
+  if (guard === "bot") return { success: true };
+  if (guard) return { error: guard, values };
+
+  const result = validateBusinessApplication(formData);
+  if (!result.ok) {
+    return { error: "Lütfen işaretli alanları düzeltin", fieldErrors: result.errors, values };
+  }
+  const d = result.data;
+  const lines = [
+    `Yetkili: ${d.ownerName}`,
+    `Telefon: ${d.phone}`,
+    `E-posta: ${d.email}`,
+    `Tür: ${d.businessType}`,
+    `Şehir / ilçe: ${d.city} / ${d.district}`,
+    `Adres: ${d.address}`,
+    d.tables && `Masa sayısı: ${d.tables}`,
+    d.website && `Web / Instagram: ${d.website}`,
+    d.note && `\nNot:\n${d.note}`,
+  ].filter(Boolean);
+
+  await createSupportRequest({
+    kind: "DEMO",
+    label: "İşletme başvurusu",
+    name: d.businessName,
+    contact: d.phone,
+    replyTo: d.email,
+    subject: `${d.businessType}, ${d.city}`,
+    message: lines.join("\n"),
+  });
+  return { success: true, contact: d.phone };
+}
+
+/** /iletisim formu. */
+export async function sendContactMessageAction(
+  _prev: PublicFormState,
+  formData: FormData
+): Promise<PublicFormState> {
+  const values = formValues(formData, ["name", "contact", "topic", "message"]);
+  const guard = await publicFormGuard(formData, "message");
+  if (guard === "bot") return { success: true };
+  if (guard) return { error: guard, values };
+
+  const result = validateContactMessage(formData);
+  if (!result.ok) {
+    return { error: "Lütfen işaretli alanları düzeltin", fieldErrors: result.errors, values };
+  }
+  const d = result.data;
+  await createSupportRequest({
+    kind: "DEMO",
+    label: "İletişim formu",
+    name: d.name,
+    contact: d.contact,
+    subject: d.topic,
+    message: d.message,
+  });
+  return { success: true, contact: d.contact };
 }

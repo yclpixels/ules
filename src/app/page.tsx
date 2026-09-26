@@ -11,6 +11,9 @@ import LivePreviewFrame from "@/components/marketing/LivePreviewFrame";
 import Faq from "@/components/marketing/Faq";
 import PanelShowcase from "@/components/marketing/PanelShowcase";
 import { PUBLIC_SUPPORT_EMAIL, PUBLIC_SUPPORT_MAILTO } from "@/lib/contact";
+import Link from "next/link";
+import { homeFaqs } from "@/content/faq";
+import { formatPostDate, sortedPosts } from "@/content/blog";
 import {
   QrIcon,
   SplitIcon,
@@ -204,32 +207,8 @@ const steps = [
   },
 ];
 
-const faqs = [
-  {
-    q: "Müşterinin uygulama indirmesi gerekiyor mu?",
-    a: "Hayır. QR kod telefonun kamerasıyla okutulur ve menü doğrudan tarayıcıda açılır; üyelik de gerekmez.",
-  },
-  {
-    q: "Kartlı ödemeyi hemen açmak zorunda mıyım?",
-    a: "Hayır. Pek çok işletme QR'ı önce menü ve hesap görüntüleme için kullanır; müşteri payını görür, ödemeyi personele yapar. Kartlı ödemeyi hazır olduğunuzda ayarlardan açarsınız.",
-  },
-  {
-    q: "Para kimin hesabına yatıyor?",
-    a: "Doğrudan sizin. Kartlı tahsilat iyzico'nun lisanslı altyapısıyla işletmenin kendi hesabına yapılır; Üleş bir ödeme kuruluşu değildir ve para Üleş'ten geçmez.",
-  },
-  {
-    q: "Garsonlar sistemi kullanabilecek mi?",
-    a: "Evet. Garson ekranında kategori ve arama ile ürün tek dokunuşla eklenir; nakit ve POS ödemeleri de aynı hesaba işlenir. Müşteri siparişi ve garson siparişi aynı hesapta birleşir.",
-  },
-  {
-    q: "Mevcut POS / kasa sistemimle çalışır mı?",
-    a: "Ödeme ve hesap kapanma olayları kasa sisteminize bildirim (webhook) olarak gönderilebilir. POS cihazından alınan kartlı ödemeleri de sisteme kaydedebilirsiniz.",
-  },
-  {
-    q: "Kurulum ne kadar sürer?",
-    a: "Menünüzü ve masalarınızı birlikte giriyoruz, QR kodlarınız hazır çıkıyor. Kurulum ve personel eğitimi bizden.",
-  },
-];
+// SSS ortak içerikten (content/faq.ts): /sss sayfasıyla aynı metinler.
+const faqs = homeFaqs;
 
 /** Koyu ya da açık zeminde küçük, harf aralıklı bölüm etiketi. */
 function Eyebrow({ children, dark = false }: { children: ReactNode; dark?: boolean }) {
@@ -919,6 +898,49 @@ export default function Home() {
           </section>
         )}
 
+        {/* ─── Blog'dan (iç bağlantı + SEO) ──────────────────────── */}
+        <section className="bg-white">
+          <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
+            <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
+              <div className="max-w-xl">
+                <Eyebrow>Blog</Eyebrow>
+                <h2
+                  className="mt-5 text-4xl leading-[1.08] sm:text-5xl"
+                  style={{ ...displayFont, fontWeight: 800, letterSpacing: "-0.03em" }}
+                >
+                  Restoranlar için rehberler.
+                </h2>
+              </div>
+              <Link href="/blog" className="font-semibold underline underline-offset-4" style={{ color: BRAND }}>
+                Tüm yazılar →
+              </Link>
+            </div>
+            <ul className="mt-12 grid gap-4 md:grid-cols-3">
+              {sortedPosts()
+                .slice(0, 3)
+                .map((p) => (
+                  <li key={p.slug}>
+                    <Link
+                      href={`/blog/${p.slug}`}
+                      className="group flex h-full flex-col rounded-3xl p-7 transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-xl"
+                      style={{ background: SOFT, border: `1px solid ${LINE}` }}
+                    >
+                      <span className="text-[11px] uppercase" style={{ ...monoFont, color: MUTED, letterSpacing: "0.18em" }}>
+                        {p.category}
+                      </span>
+                      <p className="mt-4 flex-1 text-xl font-semibold leading-snug group-hover:underline group-hover:underline-offset-4">
+                        {p.title}
+                      </p>
+                      <p className="mt-6 text-sm" style={{ color: MUTED }}>
+                        {formatPostDate(p.publishedAt)} · {p.readingMinutes} dk
+                      </p>
+                    </Link>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        </section>
+
         {/* ─── SSS ────────────────────────────────────────────────── */}
         <section id="sss" className="scroll-mt-20" style={{ background: SOFT }}>
           <div className="mx-auto grid max-w-6xl gap-12 px-4 py-24 sm:px-6 sm:py-32 lg:grid-cols-[0.8fr_1.2fr]">
@@ -937,6 +959,13 @@ export default function Home() {
                 </a>
                 .
               </p>
+              <Link
+                href="/sss"
+                className="mt-8 inline-flex min-h-12 items-center rounded-full border bg-white px-6 font-semibold transition-colors hover:bg-[#F7F6FC]"
+                style={{ borderColor: LINE }}
+              >
+                Tüm soruları görün →
+              </Link>
             </div>
             <Faq items={faqs} />
           </div>
@@ -976,6 +1005,13 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
+              <Link
+                href="/isletme-basvur"
+                className="mt-10 inline-flex min-h-12 items-center rounded-full px-6 font-semibold transition-colors hover:bg-white/10"
+                style={{ border: "1px solid rgba(255,255,255,0.22)" }}
+              >
+                Detaylı işletme başvurusu →
+              </Link>
               <p className="mt-10 text-sm" style={{ color: ON_DARK_MUTED }}>
                 Form yerine e-posta mı tercih edersiniz?
               </p>
@@ -992,7 +1028,7 @@ export default function Home() {
       </main>
 
       <SiteFooter home />
-      <MobileStickyCta home />
+      <MobileStickyCta />
     </div>
   );
 }

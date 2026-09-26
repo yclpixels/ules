@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { getBaseUrl } from "@/lib/baseUrl";
 import { siteContent } from "@/content/site";
+import { blogPosts } from "@/content/blog";
+import { hasImpactData } from "@/content/impact";
 
 // Veritabanı okuyor: build sırasında önceden üretilmemeli (Docker build'inde
 // gerçek veritabanı yok). Site adresi tanımlıyken getBaseUrl başlık okumadığı
@@ -24,6 +26,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   return [
     { url: baseUrl, lastModified: now, changeFrequency: "weekly", priority: 1 },
+    // Tanıtım sitesi sayfaları
+    ...[
+      ["/isletme-basvur", 0.9],
+      ["/ules-nedir", 0.8],
+      ["/uygulama", 0.8],
+      ["/sss", 0.7],
+      ["/blog", 0.7],
+      ["/iletisim", 0.6],
+      ...(hasImpactData() ? [["/etki", 0.5] as const] : []),
+    ].map(([path, priority]) => ({
+      url: `${baseUrl}${path}`,
+      changeFrequency: "monthly" as const,
+      priority: priority as number,
+    })),
+    ...blogPosts.map((p) => ({
+      url: `${baseUrl}/blog/${p.slug}`,
+      lastModified: new Date(p.updatedAt ?? p.publishedAt),
+      changeFrequency: "yearly" as const,
+      priority: 0.6,
+    })),
     ...branches.map((b) => ({
       url: `${baseUrl}/menu/${b.menuSlug}`,
       lastModified: now,
@@ -44,7 +66,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       : []),
     // Platformun kendi yasal sayfaları (arama motorlarına açık; restoran
     // şablonları /gizlilik ve /on-bilgilendirme kapalı, burada yok).
-    ...["/gizlilik-politikasi", "/kullanim-sartlari", "/cerez-politikasi"].map((path) => ({
+    ...["/gizlilik-politikasi", "/kvkk", "/kullanim-sartlari", "/cerez-politikasi", "/iade-iptal", "/hesap-silme"].map((path) => ({
       url: `${baseUrl}${path}`,
       changeFrequency: "yearly" as const,
       priority: 0.3,

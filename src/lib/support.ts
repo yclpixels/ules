@@ -17,6 +17,8 @@ type NewSupportRequest = {
   branchName?: string | null;
   /** İletişim bilgisi e-posta değilse "Yanıtla" için kullanılacak adres. */
   replyTo?: string | null;
+  /** E-posta başlığındaki tür ("İşletme başvurusu", "İletişim formu"); yoksa türden. */
+  label?: string;
 };
 
 /**
@@ -44,7 +46,7 @@ export async function createSupportRequest(input: NewSupportRequest) {
   }
 
   const replyTo = EMAIL_RE.test(input.contact) ? input.contact : input.replyTo || undefined;
-  const label = input.kind === "DEMO" ? "Demo talebi" : "Destek talebi";
+  const label = input.label ?? (input.kind === "DEMO" ? "Demo talebi" : "Destek talebi");
   const who = input.kind === "DEMO" ? input.name : `${input.branchName ?? "Şube"} — ${input.name}`;
   const subject = `${label}: ${who}${input.subject ? ` — ${input.subject}` : ""}`.replace(/[\r\n]+/g, " ");
 

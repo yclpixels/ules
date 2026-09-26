@@ -6,7 +6,7 @@ import { PUBLIC_SUPPORT_EMAIL, PUBLIC_SUPPORT_MAILTO } from "@/lib/contact";
 export const metadata: Metadata = {
   title: "Gizlilik Politikası",
   description:
-    "Üleş web sitesi ve demo formu üzerinden toplanan kişisel verilerin hangi amaçla işlendiği, kimlerle paylaşıldığı ve KVKK kapsamındaki haklarınız.",
+    "Üleş web sitesi ve formları üzerinden toplanan kişisel verilerin hangi amaçla işlendiği, kimlerle paylaşıldığı ve KVKK kapsamındaki haklarınız.",
   alternates: { canonical: "/gizlilik-politikasi" },
   robots: { index: true, follow: true },
 };
@@ -29,7 +29,7 @@ export default function GizlilikPolitikasiPage() {
     <SubPage
       crumbs={[{ name: "Gizlilik Politikası", path: "/gizlilik-politikasi" }]}
       title="Gizlilik Politikası"
-      intro="Bu sayfa, Üleş web sitesi ve demo formu üzerinden toplanan kişisel verilerin 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında nasıl işlendiğini açıklar."
+      intro="Bu sayfa, Üleş web sitesi ve formları üzerinden toplanan kişisel verilerin 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında nasıl işlendiğini açıklar."
     >
       {!legalName && (
         <p className="mb-8 rounded-xl border border-[#fde68a] bg-[#fef3c7] p-4 text-sm text-[#92400e]">
@@ -58,6 +58,15 @@ export default function GizlilikPolitikasiPage() {
             numarası ve (yazarsanız) mesajınız.
           </li>
           <li>
+            <strong>İşletme başvuru formu:</strong> işletme adı, türü, adresi,
+            şehir/ilçe, masa sayısı, web sitesi veya Instagram adresi; yetkilinin adı,
+            telefonu, e-postası ve (yazarsanız) notunuz.
+          </li>
+          <li>
+            <strong>İletişim formu:</strong> adınız, e-posta adresiniz veya telefon
+            numaranız, seçtiğiniz konu ve mesajınız.
+          </li>
+          <li>
             <strong>Destek talepleri</strong> (panel kullanan işletme personeli):
             ad, işletme, iletişim bilgisi ve talep metni.
           </li>
@@ -78,7 +87,7 @@ export default function GizlilikPolitikasiPage() {
 
         <h2 className={h2}>3. Hangi amaçla ve hangi hukuki sebeple?</h2>
         <p>
-          Demo ve destek taleplerine dönüş yapmak, talep ettiğiniz hizmeti
+          Demo, başvuru, iletişim ve destek taleplerine dönüş yapmak, talep ettiğiniz hizmeti
           sunmak ve sözleşme öncesi görüşmeleri yürütmek (KVKK m.5/2-c); sistemin
           güvenliğini sağlamak ve kötüye kullanımı önlemek (KVKK m.5/2-f, meşru
           menfaat). Verileriniz pazarlama listelerine eklenmez, satılmaz.
@@ -103,7 +112,7 @@ export default function GizlilikPolitikasiPage() {
 
         <h2 className={h2}>5. Ne kadar süre saklıyoruz?</h2>
         <p>
-          Demo ve destek talepleri, talep sonuçlandıktan sonra en fazla 2 yıl;
+          Demo, başvuru, iletişim ve destek talepleri, talep sonuçlandıktan sonra en fazla 2 yıl;
           güvenlik kayıtları mevzuatın öngördüğü süre boyunca saklanır. Süre
           sonunda silinir veya anonim hâle getirilir.
         </p>
