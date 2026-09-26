@@ -28,12 +28,32 @@ export default async function MasalarPage() {
     tables.map(async (table) => {
       const url = `${baseUrl}/masa/${table.qrToken}`;
       const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 200 });
-      return { ...table, url, qrDataUrl };
+      // İndirme için yüksek çözünürlük: matbaaya/tasarımcıya gönderilebilsin.
+      const qrPngUrl = await QRCode.toDataURL(url, { margin: 2, width: 1024 });
+      return { ...table, url, qrDataUrl, qrPngUrl };
     })
   );
 
   return (
     <div className="space-y-6">
+      <div className="flex items-end justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl font-semibold">Masalar</h1>
+          <p className="text-sm text-gray-500">
+            Her masanın kendi QR kodu var; masa adını değiştirmek kodu bozmaz.
+          </p>
+        </div>
+        {tablesWithQr.length > 0 && (
+          <Link
+            href="/admin/masalar/yazdir"
+            className="h-11 inline-flex items-center rounded-lg px-4 text-sm font-medium text-white"
+            style={{ background: "#1D126D" }}
+          >
+            QR kartlarını yazdır
+          </Link>
+        )}
+      </div>
+
       <form
         action={addTableAction}
         className="bg-white border rounded-2xl p-4 flex gap-3 items-end"
@@ -69,6 +89,18 @@ export default async function MasalarPage() {
               className="mx-auto"
             />
             <p className="text-xs text-gray-400 break-all">{table.url}</p>
+            <div className="flex items-center justify-center gap-3 text-sm">
+              <a
+                href={table.qrPngUrl}
+                download={`${table.name} QR.png`}
+                className="underline"
+              >
+                PNG indir
+              </a>
+              <Link href={`/admin/masalar/yazdir?masa=${table.id}`} className="underline">
+                Kartı yazdır
+              </Link>
+            </div>
             <Link
               href={`/admin/masalar/${table.id}`}
               className="inline-block text-sm text-white rounded-lg px-3 py-1.5 font-medium transition-transform hover:scale-105"

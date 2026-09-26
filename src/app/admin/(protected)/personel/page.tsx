@@ -84,9 +84,10 @@ export default async function PersonelPage({
         </button>
       </form>
 
-      <div className="bg-white border rounded-2xl divide-y overflow-hidden">
+      {/* overflow-hidden yok: son satırın "Şifre Sıfırla" kutusu kesiliyordu. */}
+      <div className="bg-white border rounded-2xl divide-y">
         {staff.map((s) => (
-          <div key={s.id} className="px-4 py-3">
+          <div key={s.id} className="relative px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div
@@ -111,14 +112,18 @@ export default async function PersonelPage({
                   </p>
                 </div>
               </div>
+              {/* Sahip hesabını yalnızca sahip yönetir (bkz. manageableStaffFilter). */}
+              {session.role !== "OWNER" && s.role === "OWNER" ? (
+                <span className="text-xs text-gray-400 shrink-0">Platform hesabı</span>
+              ) : (
               <div className="flex items-center gap-3 shrink-0">
-                <details className="relative">
-                  <summary className="text-sm underline cursor-pointer list-none">
+                <details className="sm:relative">
+                  <summary className="text-sm underline cursor-pointer list-none h-10 inline-flex items-center">
                     Şifre Sıfırla
                   </summary>
                   <form
                     action={resetStaffPasswordAction}
-                    className="absolute right-0 mt-2 bg-white border rounded-lg p-3 shadow-lg z-10 flex gap-2 items-end w-64"
+                    className="absolute left-3 right-3 sm:left-auto sm:right-0 mt-2 bg-white border rounded-lg p-3 shadow-lg z-10 flex gap-2 items-end sm:w-64"
                   >
                     <input type="hidden" name="id" value={s.id} />
                     <div className="flex-1">
@@ -155,13 +160,14 @@ export default async function PersonelPage({
                           ? `${s.name} pasifleştirilsin mi? Açık oturumu anında düşer.`
                           : `${s.name} tekrar aktif edilsin mi?`
                       }
-                      className="text-sm underline"
+                      className="text-sm underline h-10"
                     >
                       {s.isActive ? "Pasifleştir" : "Aktif et"}
                     </ConfirmButton>
                   </form>
                 )}
               </div>
+              )}
             </div>
           </div>
         ))}

@@ -66,6 +66,10 @@ export default async function SiparislerPage({
   const dayTotalCents = rows
     .filter((r) => r.order.status !== "CANCELLED")
     .reduce((s, r) => s + r.totalCents, 0);
+  // Henüz kapanmamış hesaplar: ciro sanılmasın diye ayrıca gösteriliyor.
+  const dayOpenCents = rows
+    .filter((r) => r.order.status === "OPEN")
+    .reduce((s, r) => s + r.totalCents, 0);
   const dayPaidCents = rows.reduce((s, r) => s + r.paidCents, 0);
   const dayCashCents = rows.reduce((s, r) => s + r.cashCents, 0);
   const dayCardCents = rows.reduce((s, r) => s + r.cardCents, 0);
@@ -124,8 +128,13 @@ export default async function SiparislerPage({
           <p className="text-2xl font-semibold">{rows.length}</p>
         </div>
         <div className="bg-white border rounded-2xl p-4">
-          <p className="text-sm text-gray-500">Toplam ciro</p>
+          <p className="text-sm text-gray-500">Sipariş tutarı</p>
           <p className="text-2xl font-semibold">{formatTL(dayTotalCents)}</p>
+          {dayOpenCents > 0 && (
+            <p className="text-xs text-[#92400e] mt-1">
+              {formatTL(dayOpenCents)} hâlâ açık hesapta
+            </p>
+          )}
         </div>
         <div className="bg-white border rounded-2xl p-4">
           <p className="text-sm text-gray-500">Ödenen</p>

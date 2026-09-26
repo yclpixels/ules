@@ -126,6 +126,18 @@ export async function addStaffAction(formData: FormData) {
   revalidatePath("/admin/personel");
 }
 
+/**
+ * Müdürün değiştirebileceği personel. Platform sahibi (OWNER) hesabı bir
+ * şubeye bağlı dursa da o şubenin müdürü tarafından pasifleştirilemez ya da
+ * şifresi sıfırlanamaz: sıfırlayan müdür sahip hesabına girip tüm
+ * işletmeleri ve talepleri görürdü (yetki yükseltme). Sadece sahip kendisi.
+ */
+function manageableStaffFilter(session: { role: string; branchId: string }) {
+  return session.role === "OWNER"
+    ? { branchId: session.branchId }
+    : { branchId: session.branchId, role: { not: "OWNER" as const } };
+}
+
 export async function toggleStaffActiveAction(formData: FormData) {
   const session = await verifyManagerSession();
 
@@ -134,7 +146,7 @@ export async function toggleStaffActiveAction(formData: FormData) {
   if (!id || id === session.staffId) return; // kendi hesabını pasifleştiremesin
 
   const updated = await prisma.staffUser.updateMany({
-    where: { id, branchId: session.branchId },
+    where: { id, ...manageableStaffFilter(session) },
     // Pasifleşen hesabın oturumu tekrar aktif edilince de geri gelmesin.
     data: { isActive: !isActive, sessionVersion: { increment: 1 } },
   });
@@ -216,7 +228,7 @@ export async function resetStaffPasswordAction(formData: FormData) {
   if (!id || newPassword.length < MIN_PASSWORD_LENGTH) return;
 
   const reset = await prisma.staffUser.updateMany({
-    where: { id, branchId: session.branchId },
+    where: { id, ...manageableStaffFilter(session) },
     // Personelin açık oturumları düşer; yeni şifreyle tekrar girmesi gerekir.
     data: {
       passwordHash: hashPassword(newPassword),

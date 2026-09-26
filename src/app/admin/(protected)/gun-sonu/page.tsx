@@ -27,7 +27,7 @@ export default async function DayClosePage({
   const date =
     dateParam && startOfDayInIstanbul(dateParam) ? dateParam : today;
 
-  const [day, existing, recent] = await Promise.all([
+  const [day, existing, recent, openOrders] = await Promise.all([
     getDayData(session.branchId, date),
     prisma.dayClose.findUnique({
       where: { branchId_date: { branchId: session.branchId, date } },
@@ -36,6 +36,12 @@ export default async function DayClosePage({
       where: { branchId: session.branchId },
       orderBy: { date: "desc" },
       take: 14,
+    }),
+    // Hâlâ açık hesaplar: gün kapatılmadan önce ödemesi alınmalı ya da
+    // iptal edilmeli, yoksa kasa sayımı eksik çıkar.
+    prisma.order.findMany({
+      where: { status: "OPEN", table: { branchId: session.branchId } },
+      select: { table: { select: { id: true, name: true } } },
     }),
   ]);
   if (!day) return null;
@@ -90,6 +96,30 @@ export default async function DayClosePage({
           <p className="text-2xl font-semibold">{formatTL(day.totalCents)}</p>
         </div>
       </div>
+
+      {date === today && openOrders.length > 0 && !existing && (
+        <div className="rounded-2xl border border-[#fde68a] bg-[#fef3c7] text-[#92400e] p-4 text-sm space-y-2">
+          <p className="font-semibold">
+            {openOrders.length} masada hâlâ açık hesap var
+          </p>
+          <p>
+            Bu hesapların ödemesi alınmadan gün kapatılırsa kasa sayımı eksik
+            çıkar. Önce ödemeleri alın ya da (müşteri kalktıysa) hesabı iptal
+            edin.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {openOrders.map((o) => (
+              <Link
+                key={o.table.id}
+                href={`/admin/masalar/${o.table.id}`}
+                className="h-10 inline-flex items-center rounded-lg bg-white border border-[#fde68a] px-3 font-medium"
+              >
+                {o.table.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <form
         action={closeDayAction}
