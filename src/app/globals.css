@@ -106,6 +106,28 @@ body {
 }
 
 /*
+ * Tailwind 4'te renksiz `border` yazı rengini (neredeyse siyah) alıyor;
+ * v3'teki gibi açık çizgi rengine döndürülür. Uygulamada ~200 yerde renksiz
+ * `border` var (kartlar, tablolar, menü listesi) — hepsi sert siyah
+ * çerçeveyle görünüyordu. Form alanları bir ton koyu: boş bir kutunun
+ * sınırı beyaz zeminde seçilebilsin.
+ */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+  input,
+  select,
+  textarea {
+    border-color: var(--color-gray-300, currentColor);
+  }
+}
+
+/*
  * Fiş yazdırma: koyu zemin kâğıda basılmaz (mürekkep israfı, okunmaz çıktı).
  * Yazdırmada her şey beyaz zemin / siyah yazıya döner.
  */

@@ -22,7 +22,7 @@ const body = IBM_Plex_Sans({
 
 const mono = IBM_Plex_Mono({
   subsets: ["latin", "latin-ext"],
-  weight: ["500"],
+  weight: ["500", "700"], // 700: fişteki TOPLAM/TOPKDV satırları
   variable: "--font-mono",
   display: "swap",
   // Sadece tanıtım sitesindeki küçük etiketlerde; diğer sayfalarda indirilmesin.

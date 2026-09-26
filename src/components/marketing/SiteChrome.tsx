@@ -200,7 +200,7 @@ export function SiteFooter({ home = false }: { home?: boolean }) {
 
 /**
  * Telefonda ekranın altında sabit iletişim çubuğu. Telefon/WhatsApp
- * tanımlıysa "Ara" ve "WhatsApp", her zaman "Demo İste". Masaüstünde yok
+ * tanımlıysa "Ara" ve "WhatsApp", her zaman "Demo İsteyin". Masaüstünde yok
  * (orada başlıktaki düğme her zaman görünür).
  */
 export function MobileStickyCta({ home = false }: { home?: boolean }) {
@@ -237,7 +237,7 @@ export function MobileStickyCta({ home = false }: { home?: boolean }) {
           </a>
         )}
         <a href={sectionHref("iletisim", home)} className={btn} style={{ background: ON_DARK, color: INK }}>
-          Ücretsiz Demo İste
+          Demo İsteyin
         </a>
       </div>
     </div>

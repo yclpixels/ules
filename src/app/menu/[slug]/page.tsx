@@ -246,7 +246,7 @@ export default async function PublicMenuPage({
           </p>
         )}
 
-        <p className="text-center text-xs text-gray-400 pt-4">
+        <p className="text-center text-xs text-gray-500 pt-4">
           Fiyatlar değişebilir.
         </p>
       </main>

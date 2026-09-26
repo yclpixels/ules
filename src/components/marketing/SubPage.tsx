@@ -16,11 +16,14 @@ export default function SubPage({
   title,
   intro,
   children,
+  stickyCta = true,
 }: {
   crumbs: { name: string; path: string }[];
   title: string;
   intro?: ReactNode;
   children: ReactNode;
+  /** Alttaki "Demo İsteyin" çubuğu; talebi zaten göndermiş ziyaretçide gizlenir. */
+  stickyCta?: boolean;
 }) {
   return (
     <div className="min-h-screen bg-white">
@@ -37,7 +40,7 @@ export default function SubPage({
         <div className="mt-10">{children}</div>
       </main>
       <SiteFooter />
-      <MobileStickyCta />
+      {stickyCta && <MobileStickyCta />}
     </div>
   );
 }

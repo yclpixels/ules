@@ -26,6 +26,7 @@ export default function TesekkurlerPage() {
     <SubPage
       crumbs={[{ name: "Talebiniz alındı", path: "/tesekkurler" }]}
       title="Teşekkürler, talebiniz alındı."
+      stickyCta={false}
       intro="Demo talebiniz ekibimize ulaştı. Bundan sonra şöyle ilerliyoruz:"
     >
       <ol className="space-y-4">
