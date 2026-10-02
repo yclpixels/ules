@@ -1,10 +1,8 @@
 # Bu image herhangi bir Docker destekleyen barındırmada çalışır (Railway,
 # Render, Fly.io, kendi VPS'iniz, vb.) — tek bir sağlayıcıya kilitlenmez.
-#
-# NOT: Bu geliştirme ortamında Docker kurulu olmadığı için bu Dockerfile
-# uçtan uca build edilip test edilemedi. İlk build'de sorun çıkarsa en
-# olası neden `output: "standalone"` ile `iyzipay` paketinin dinamik
-# require'ları arasındaki etkileşimdir (bkz. next.config.ts yorumu).
+# Railway'de defalarca uçtan uca build edilip çalıştığı doğrulandı (bkz.
+# deploy geçmişi); geliştirme makinesinde Docker kurulu olmadığı için build
+# sadece burada elle tekrarlanamıyor.
 
 FROM node:20-alpine AS deps
 WORKDIR /app
